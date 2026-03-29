@@ -870,4 +870,34 @@ function SettingsScreen() {
   )
 }
 
+export default function Page() {
+  const [active, setActive] = useState("dashboard")
+
+  const screen = useMemo(() => {
+    switch (active) {
+      case "members":
+        return <MembersScreen />
+      case "market":
+        return <MarketScreen />
+      case "wallet":
+        return <WalletScreen />
+      case "fund":
+        return <FundScreen />
+      case "archive":
+        return <ArchiveScreen />
+      case "governance":
+        return <GovernanceScreen />
+      case "settings":
+        return <SettingsScreen />
+      default:
+        return <DashboardScreen />
+    }
+  }, [active])
+
+  return (
+    <Shell active={active} setActive={setActive}>
+      {screen}
+    </Shell>
+  )
+}
       

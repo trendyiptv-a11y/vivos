@@ -309,4 +309,324 @@ function DashboardScreen() {
           </CardContent>
         </Card>
       </div>
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Card className="rounded-3xl border-0 shadow-sm xl:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-xl">Nevoi și oferte recente</CardTitle>
+            <Tabs defaultValue="all">
+              <TabsList className="rounded-2xl">
+                <TabsTrigger value="all">Toate</TabsTrigger>
+                <TabsTrigger value="needs">Cereri</TabsTrigger>
+                <TabsTrigger value="offers">Oferte</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {marketItems.map((item, i) => (
+              <div
+                key={i}
+                className="flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div>
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary" className="rounded-xl">
+                      {item.type}
+                    </Badge>
+                    <Badge variant="outline" className="rounded-xl">
+                      {item.category}
+                    </Badge>
+                    <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
+                      {item.status}
+                    </Badge>
+                  </div>
+                  <p className="font-medium">{item.title}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {item.location} · {item.value}
+                  </p>
+                </div>
+                <Button className="rounded-2xl">Vezi detalii</Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Sănătatea rețelei</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {[
+              ["Încredere comunitară", 88],
+              ["Circulația valorii", 72],
+              ["Răspuns la urgențe", 81],
+              ["Participare activă", 66],
+            ].map(([label, value], i) => (
+              <div key={i}>
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span>{label as string}</span>
+                  <span className="font-medium">{value}%</span>
+                </div>
+                <Progress value={value as number} className="h-2" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+function MembersScreen() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-xl">Registrul membrilor</CardTitle>
+            <Button className="rounded-2xl">Adaugă membru</Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {members.map((member, i) => (
+              <div key={i} className="rounded-2xl border p-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="flex gap-3">
+                    <Avatar className="h-12 w-12 rounded-2xl">
+                      <AvatarFallback className="rounded-2xl bg-slate-900 text-white">
+                        {member.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{member.name}</p>
+                      <p className="text-sm text-slate-500">{member.role}</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {member.skills.map((skill, idx) => (
+                          <Badge key={idx} variant="outline" className="rounded-xl">
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 text-sm text-slate-600 md:text-right">
+                    <p>
+                      Reputație:{" "}
+                      <span className="font-medium text-slate-900">{member.reputation}</span>
+                    </p>
+                    <p>
+                      Contribuție:{" "}
+                      <span className="font-medium text-slate-900">
+                        {member.contribution} talanți
+                      </span>
+                    </p>
+                    <p>
+                      Nevoie:{" "}
+                      <span className="font-medium text-slate-900">{member.needs}</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="outline" className="rounded-2xl">
+                    Vezi profil
+                  </Button>
+                  <Button variant="outline" className="rounded-2xl">
+                    Propune schimb
+                  </Button>
+                  <Button variant="outline" className="rounded-2xl">
+                    Trimite mesaj
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Filtre și structură</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="mb-2 text-sm font-medium">Caută</p>
+              <Input placeholder="Nume, competență, rol..." className="rounded-2xl" />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-medium">Rol</p>
+              <div className="flex flex-wrap gap-2">
+                {["Toți", "Observator", "Activ", "Susținător", "Suspendat"].map((x) => (
+                  <Badge key={x} variant="outline" className="rounded-xl">
+                    {x}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-medium">Competențe populare</p>
+              <div className="flex flex-wrap gap-2">
+                {["electrician", "hrană", "juridic", "transport", "digital"].map((x) => (
+                  <Badge key={x} variant="secondary" className="rounded-xl">
+                    {x}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <Separator />
+            <div className="space-y-2 text-sm text-slate-600">
+              <p>Membru observator: 12</p>
+              <p>Membru activ: 24</p>
+              <p>Susținător: 9</p>
+              <p>Suspendat: 3</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+function MarketScreen() {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h3 className="text-2xl font-semibold">Piața comunitară</h3>
+          <p className="text-slate-500">Oferte, cereri, barter și colaborări directe.</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" className="rounded-2xl">
+            Publică cerere
+          </Button>
+          <Button className="rounded-2xl">Publică ofertă</Button>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {marketItems.map((item, i) => (
+          <Card key={i} className="rounded-3xl border-0 shadow-sm">
+            <CardContent className="p-5">
+              <div className="mb-3 flex flex-wrap gap-2">
+                <Badge variant="secondary" className="rounded-xl">
+                  {item.type}
+                </Badge>
+                <Badge variant="outline" className="rounded-xl">
+                  {item.category}
+                </Badge>
+              </div>
+              <h4 className="text-lg font-semibold leading-6">{item.title}</h4>
+              <p className="mt-2 text-sm text-slate-500">{item.location}</p>
+              <p className="mt-1 text-sm text-slate-500">Valoare: {item.value}</p>
+              <div className="mt-4 flex items-center justify-between">
+                <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
+                  {item.status}
+                </Badge>
+                <Button variant="outline" className="rounded-2xl">
+                  Detalii
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Flux schimb</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 lg:grid-cols-4">
+          {[
+            ["1. Publicare", "Membrul creează o ofertă sau o cerere."],
+            ["2. Potrivire", "Alt membru propune schimb sau colaborare."],
+            ["3. Confirmare", "Ambele părți confirmă condițiile."],
+            ["4. Feedback", "Rezultatul actualizează reputația și portofelul."],
+          ].map(([title, desc], i) => (
+            <div key={i} className="rounded-2xl border p-4">
+              <p className="font-medium">{title as string}</p>
+              <p className="mt-2 text-sm text-slate-500">{desc as string}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function WalletScreen() {
+  const balance = useMemo(() => 845, [])
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Portofel intern</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 rounded-3xl bg-slate-900 p-6 text-white">
+            <p className="text-sm text-slate-300">Sold disponibil</p>
+            <p className="mt-2 text-4xl font-semibold">{balance} talanți</p>
+            <p className="mt-3 text-sm text-slate-300">
+              Valoare oferită, primită și recunoscută în comunitate.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {walletEntries.map((entry, i) => (
+              <div key={i} className="flex items-center justify-between rounded-2xl border p-4">
+                <div>
+                  <p className="font-medium">{entry.label}</p>
+                  <p className="text-sm text-slate-500">{entry.meta}</p>
+                </div>
+                <p className="text-lg font-semibold">{entry.amount}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-6">
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Indicatori</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm text-slate-600">
+            <div className="flex items-center justify-between">
+              <span>Valoare oferită</span>
+              <span className="font-medium text-slate-900">1.420</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Valoare primită</span>
+              <span className="font-medium text-slate-900">575</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Contribuții fond</span>
+              <span className="font-medium text-slate-900">180</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Scor de încredere</span>
+              <span className="font-medium text-slate-900">A-</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Acțiuni</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <Button className="rounded-2xl">Transfer intern</Button>
+            <Button variant="outline" className="rounded-2xl">
+              Vezi toate tranzacțiile
+            </Button>
+            <Button variant="outline" className="rounded-2xl">
+              Contribuie la fond
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+  
+}
+
       

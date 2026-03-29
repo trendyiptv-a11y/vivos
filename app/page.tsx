@@ -629,4 +629,245 @@ function WalletScreen() {
   
 }
 
+function FundScreen() {
+  return (
+    <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-xl">Fond mutual</CardTitle>
+          <Button className="rounded-2xl">Depune cerere</Button>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border p-4">
+              <p className="text-sm text-slate-500">Total disponibil</p>
+              <p className="mt-2 text-2xl font-semibold">12.300 DKK</p>
+            </div>
+            <div className="rounded-2xl border p-4">
+              <p className="text-sm text-slate-500">Cereri active</p>
+              <p className="mt-2 text-2xl font-semibold">6</p>
+            </div>
+            <div className="rounded-2xl border p-4">
+              <p className="text-sm text-slate-500">Sprijin acordat luna asta</p>
+              <p className="mt-2 text-2xl font-semibold">2.150 DKK</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {fundRequests.map((r, i) => (
+              <div key={i} className="rounded-2xl border p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="font-medium">{r.member}</p>
+                    <p className="text-sm text-slate-500">
+                      Nevoie: {r.need} · {r.amount}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="rounded-xl">
+                      Urgentă: {r.urgency}
+                    </Badge>
+                    <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
+                      {r.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-6">
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Criterii eligibilitate</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-slate-600">
+            <p>• membru înregistrat și activ</p>
+            <p>• nevoie reală și documentată minimal</p>
+            <p>• lipsa abuzurilor anterioare</p>
+            <p>• evaluare proporțională cu fondul disponibil</p>
+            <p>• arhivare completă a deciziei</p>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Flux aprobare</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {["Depunere cerere", "Analiză", "Decizie", "Execuție", "Arhivare"].map(
+              (step, i) => (
+                <div key={step} className="flex items-center gap-3 rounded-2xl border p-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-slate-900 text-sm font-medium text-white">
+                    {i + 1}
+                  </div>
+                  <p className="text-sm">{step}</p>
+                </div>
+              )
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+function ArchiveScreen() {
+  return (
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-xl">Arhivă și memorie comunitară</CardTitle>
+          <Button variant="outline" className="rounded-2xl">
+            Încarcă document
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {archiveItems.map((item, i) => (
+            <div
+              key={i}
+              className="flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center md:justify-between"
+            >
+              <div>
+                <p className="font-medium">{item.title}</p>
+                <p className="text-sm text-slate-500">
+                  {item.type} · {item.date}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="rounded-2xl">
+                  Vezi
+                </Button>
+                <Button variant="outline" className="rounded-2xl">
+                  Hash
+                </Button>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="rounded-3xl border-0 shadow-sm lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-xl">Ce se arhivează</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {[
+              "Aderări",
+              "Schimburi importante",
+              "Decizii",
+              "Rapoarte fond",
+              "Sancțiuni",
+              "Procese verbale",
+              "Dovezi timestamp",
+              "Reguli actualizate",
+            ].map((x) => (
+              <div key={x} className="rounded-2xl border p-4 text-sm">
+                {x}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Integritate</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-slate-600">
+            <p>• semnătură internă</p>
+            <p>• registru versionat</p>
+            <p>• hash document</p>
+            <p>• timestamp extern</p>
+            <p>• trasabilitate decizională</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+function GovernanceScreen() {
+  return (
+    <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Guvernanță vie</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[
+            ["Administratori", "gestionare operațională și membri"],
+            ["Custode fond", "analiză cereri și raportare"],
+            ["Moderatori", "ordine comunitară și mediere"],
+            ["Arbitri", "soluționare conflicte și decizii sensibile"],
+          ].map(([role, desc]) => (
+            <div key={role} className="rounded-2xl border p-4">
+              <p className="font-medium">{role}</p>
+              <p className="mt-2 text-sm text-slate-500">{desc}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Circuit decizional</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[
+            ["Propunere", "un membru sau rol operațional inițiază o decizie"],
+            ["Consultare", "membrii relevanți sunt informați și pot comenta"],
+            ["Hotărâre", "se aprobă, modifică sau respinge"],
+            ["Publicare", "decizia intră în arhivă și devine vizibilă"],
+          ].map(([title, desc], i) => (
+            <div key={title} className="flex items-start gap-3 rounded-2xl border p-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-slate-900 text-sm font-medium text-white">
+                {i + 1}
+              </div>
+              <div>
+                <p className="font-medium">{title}</p>
+                <p className="mt-1 text-sm text-slate-500">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function SettingsScreen() {
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Configurări comunitate</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm text-slate-600">
+          <p>• prag reputație minimă pentru acces la fond</p>
+          <p>• categorii de piață și tipuri de schimb</p>
+          <p>• roluri active și permisiuni</p>
+          <p>• reguli de arhivare și dovadă</p>
+          <p>• text public: misiune, principii, aderare</p>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Direcții următoare</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-slate-600">
+          <p>• onboarding complet pentru membri</p>
+          <p>• chat intern sau mesagerie directă</p>
+          <p>• modul reputație mai detaliat</p>
+          <p>• export PDF pentru rapoarte și decizii</p>
+          <p>• ancorare externă pentru documente critice</p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
       

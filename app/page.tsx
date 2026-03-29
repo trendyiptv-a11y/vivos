@@ -294,19 +294,19 @@ function DashboardScreen() {
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             {[
-              ["Publică ofertă", ShoppingBag],
-              ["Cere sprijin", HeartHandshake],
-              ["Vezi arhiva", BookOpen],
-              ["Actualizează profil", Users],
-            ].map(([label, Icon], i) => {
-              const Comp = Icon as React.ComponentType<{ className?: string }>
-              return (
-                <Button key={i} variant="outline" className="justify-start rounded-2xl py-6 text-left">
-                  <Comp className="mr-3 h-4 w-4" />
-                  {label}
-                </Button>
-              )
-            })}
+  { label: "Publică ofertă", icon: ShoppingBag },
+  { label: "Cere sprijin", icon: HeartHandshake },
+  { label: "Vezi arhiva", icon: BookOpen },
+  { label: "Actualizează profil", icon: Users },
+].map((item, i) => {
+  const Comp = item.icon
+  return (
+    <Button key={i} variant="outline" className="justify-start rounded-2xl py-6 text-left">
+      <Comp className="mr-3 h-4 w-4" />
+      {item.label}
+    </Button>
+  )
+})}
           </CardContent>
         </Card>
       </div>

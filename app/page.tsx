@@ -1,8 +1,312 @@
-export default function Page() {
+import React, { useMemo, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
+import {
+  Bell,
+  BookOpen,
+  Coins,
+  FileText,
+  HandCoins,
+  HeartHandshake,
+  LayoutDashboard,
+  LifeBuoy,
+  Search,
+  Settings,
+  Shield,
+  ShoppingBag,
+  Users,
+  Wallet,
+} from "lucide-react"
+import { motion } from "framer-motion"
+
+const navItems = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "members", label: "Membri", icon: Users },
+  { id: "market", label: "Piață comunitară", icon: ShoppingBag },
+  { id: "wallet", label: "Portofel", icon: Wallet },
+  { id: "fund", label: "Fond mutual", icon: HeartHandshake },
+  { id: "archive", label: "Arhivă", icon: FileText },
+  { id: "governance", label: "Guvernanță", icon: Shield },
+  { id: "settings", label: "Setări", icon: Settings },
+]
+
+const members = [
+  {
+    name: "Sergiu B.",
+    role: "Membru activ",
+    skills: ["electrician", "organizare", "strategie"],
+    reputation: 94,
+    contribution: 1240,
+    needs: "transport ocazional",
+  },
+  {
+    name: "Ana M.",
+    role: "Susținător",
+    skills: ["hrană", "îngrijire", "logistică"],
+    reputation: 89,
+    contribution: 860,
+    needs: "ajutor juridic",
+  },
+  {
+    name: "Mihai C.",
+    role: "Observator",
+    skills: ["design", "web", "video"],
+    reputation: 71,
+    contribution: 310,
+    needs: "colaborări tehnice",
+  },
+  {
+    name: "Elena D.",
+    role: "Membru activ",
+    skills: ["educație", "traduceri", "administrare"],
+    reputation: 91,
+    contribution: 980,
+    needs: "sprijin medical urgent",
+  },
+]
+
+const marketItems = [
+  {
+    title: "Reparații electrice ușoare",
+    type: "Ofertă",
+    category: "Servicii",
+    value: "120 talanți",
+    location: "Copenhaga",
+    status: "Activ",
+  },
+  {
+    title: "Transport pentru spital",
+    type: "Cerere",
+    category: "Logistică",
+    value: "40 talanți",
+    location: "Odense",
+    status: "Urgent",
+  },
+  {
+    title: "Legume și conserve",
+    type: "Ofertă",
+    category: "Bunuri",
+    value: "60 talanți",
+    location: "Varde",
+    status: "Activ",
+  },
+  {
+    title: "Ajutor configurare site",
+    type: "Cerere",
+    category: "Digital",
+    value: "150 talanți",
+    location: "Remote",
+    status: "În lucru",
+  },
+]
+
+const walletEntries = [
+  { label: "Schimb confirmat", amount: "+120", meta: "Reparații electrice" },
+  { label: "Contribuție fond mutual", amount: "-30", meta: "Contribuție lunară" },
+  { label: "Recompensă implicare", amount: "+25", meta: "Moderare comunitară" },
+  { label: "Sprijin primit", amount: "+90", meta: "Transport medical" },
+]
+
+const fundRequests = [
+  { member: "Elena D.", need: "medicamente", urgency: "Ridicată", amount: "300 DKK", status: "În analiză" },
+  { member: "Ana M.", need: "transport", urgency: "Mediu", amount: "150 DKK", status: "Aprobat parțial" },
+  { member: "Mihai C.", need: "hrană", urgency: "Ridicată", amount: "200 DKK", status: "Executat" },
+]
+
+const archiveItems = [
+  { title: "Decizie #14 — criterii fond mutual", type: "Hotărâre", date: "28 mar 2026" },
+  { title: "Raport lunar martie 2026", type: "Raport", date: "27 mar 2026" },
+  { title: "Actualizare regulament barter", type: "Regulă", date: "25 mar 2026" },
+  { title: "Timestamp registru contribuții", type: "Dovadă", date: "24 mar 2026" },
+]
+
+function Shell({
+  active,
+  setActive,
+  children,
+}: {
+  active: string
+  setActive: (value: string) => void
+  children: React.ReactNode
+}) {
   return (
-    <main style={{ padding: "40px", fontFamily: "sans-serif" }}>
-      <h1>VIVOS MVP</h1>
-      <p>Deploy test reușit.</p>
-    </main>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
+        <aside className="border-r bg-white/90 backdrop-blur">
+          <div className="flex h-20 items-center gap-3 border-b px-6">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
+              <LifeBuoy className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Rețea vie</p>
+              <h1 className="text-xl font-semibold">VIVOS</h1>
+            </div>
+          </div>
+
+          <div className="p-4">
+            <div className="mb-4 rounded-2xl border bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Spațiu comunitar</p>
+              <p className="mt-1 text-sm font-medium">Ordine vie, schimb și sprijin mutual</p>
+            </div>
+
+            <nav className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = active === item.id
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActive(item.id)}
+                    className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
+                      isActive
+                        ? "bg-slate-900 text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+        </aside>
+
+        <main className="flex min-h-screen flex-col">
+          <header className="sticky top-0 z-10 border-b bg-white/85 backdrop-blur">
+            <div className="flex items-center justify-between gap-4 px-6 py-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Wireframe MVP</p>
+                <h2 className="text-2xl font-semibold">Platforma comunitară VIVOS</h2>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="hidden items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2 md:flex">
+                  <Search className="h-4 w-4 text-slate-500" />
+                  <Input
+                    className="h-auto w-48 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+                    placeholder="Caută membri, decizii, schimburi..."
+                  />
+                </div>
+
+                <Button variant="outline" className="rounded-2xl">
+                  <Bell className="mr-2 h-4 w-4" />
+                  Notificări
+                </Button>
+
+                <Avatar className="h-10 w-10 rounded-2xl">
+                  <AvatarFallback className="rounded-2xl bg-slate-900 text-white">
+                    VB
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+          </header>
+
+          <ScrollArea className="flex-1">
+            <motion.div
+              key={active}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18 }}
+              className="p-6"
+            >
+              {children}
+            </motion.div>
+          </ScrollArea>
+        </main>
+      </div>
+    </div>
   )
 }
+
+function StatCard({
+  title,
+  value,
+  hint,
+  icon: Icon,
+}: {
+  title: string
+  value: string
+  hint: string
+  icon: React.ComponentType<{ className?: string }>
+}) {
+  return (
+    <Card className="rounded-3xl border-0 shadow-sm">
+      <CardContent className="p-5">
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <p className="text-sm text-slate-500">{title}</p>
+            <p className="mt-2 text-3xl font-semibold tracking-tight">{value}</p>
+          </div>
+          <div className="rounded-2xl bg-slate-100 p-3">
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+        <p className="text-sm text-slate-500">{hint}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function DashboardScreen() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Membri activi" value="48" hint="12 membri noi în ultima lună" icon={Users} />
+        <StatCard title="Valoare circulată" value="4.280" hint="Talanți schimbați în 30 zile" icon={Coins} />
+        <StatCard title="Fond mutual" value="12.300 DKK" hint="Disponibil pentru sprijin imediat" icon={HandCoins} />
+        <StatCard title="Cereri urgente" value="6" hint="2 necesită răspuns astăzi" icon={LifeBuoy} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Fluxul comunității</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[
+              "Elena D. a primit sprijin mutual pentru medicamente.",
+              "Sergiu B. a finalizat un schimb pentru reparații electrice.",
+              "A fost publicată Decizia #14 privind criteriile fondului.",
+              "Două oferte noi au fost adăugate în Piața comunitară.",
+            ].map((item, i) => (
+              <div key={i} className="flex items-start gap-3 rounded-2xl border p-4">
+                <div className="mt-1 h-2.5 w-2.5 rounded-full bg-slate-900" />
+                <p className="text-sm leading-6 text-slate-700">{item}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Acțiuni rapide</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            {[
+              ["Publică ofertă", ShoppingBag],
+              ["Cere sprijin", HeartHandshake],
+              ["Vezi arhiva", BookOpen],
+              ["Actualizează profil", Users],
+            ].map(([label, Icon], i) => {
+              const Comp = Icon as React.ComponentType<{ className?: string }>
+              return (
+                <Button key={i} variant="outline" className="justify-start rounded-2xl py-6 text-left">
+                  <Comp className="mr-3 h-4 w-4" />
+                  {label}
+                </Button>
+              )
+            })}
+          </CardContent>
+        </Card>
+      </div>
+      

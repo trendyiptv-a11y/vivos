@@ -26,6 +26,7 @@ import {
   Wallet,
 } from "lucide-react"
 import { motion } from "framer-motion"
+import { supabase } from "@/lib/supabase/client"
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },

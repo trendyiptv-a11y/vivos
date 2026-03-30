@@ -404,16 +404,55 @@ function MembersScreen({
             <CardTitle className="text-xl">Registrul membrilor</CardTitle>
             <div className="text-sm text-slate-500">{members.length} membri</div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {loading ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Se încarcă membrii reali...
-              </div>
+          <CardContent className="space-y-4">
+  <div>
+    <p className="mb-2 text-sm font-medium">Acces membri</p>
+    <div className="rounded-2xl border p-4 text-sm text-slate-600">
+      Vizibil doar pentru utilizatori autentificați.
+    </div>
+  </div>
+
+  <div>
+    <p className="mb-2 text-sm font-medium">Ce poți vedea după login</p>
+    <div className="rounded-2xl border p-4 text-sm text-slate-600">
+      Profiluri, competențe, ce oferă și ce caută membrii comunității.
+    </div>
+  </div>
+
+  <Separator />
+
+  <div className="space-y-2 text-sm text-slate-600">
+    <p>Total membri reali: {members.length}</p>
+    <p>Încărcare: {loading ? "da" : "nu"}</p>
+  </div>
+</CardContent>
             ) : members.length === 0 ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Nu există încă membri vizibili în tabelul profiles.
-              </div>
-            ) : (
+  <div className="rounded-2xl border p-6">
+    <h3 className="text-lg font-semibold">Vezi membrii comunității</h3>
+    <p className="mt-2 text-sm text-slate-600">
+      Autentifică-te pentru a vedea membrii activi, profilurile lor și posibilitățile de colaborare.
+    </p>
+    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+      <Button
+        className="rounded-2xl"
+        onClick={() => {
+          window.location.href = "/login"
+        }}
+      >
+        Login
+      </Button>
+      <Button
+        variant="outline"
+        className="rounded-2xl"
+        onClick={() => {
+          window.location.href = "/signup"
+        }}
+      >
+        Creează cont
+      </Button>
+    </div>
+  </div>
+) : (
               members.map((member) => {
                 const displayName =
                   member.name?.trim() ||

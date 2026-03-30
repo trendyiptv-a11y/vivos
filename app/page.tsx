@@ -540,3 +540,219 @@ function MembersScreen({
     </div>
   )
 }
+function MarketScreen() {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h3 className="text-2xl font-semibold">Piața comunitară</h3>
+          <p className="text-slate-500">Oferte, cereri, barter și colaborări directe.</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" className="rounded-2xl">
+            Publică cerere
+          </Button>
+          <Button className="rounded-2xl">Publică ofertă</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function WalletScreen() {
+  return (
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Portofel intern</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {walletEntries.map((entry, i) => (
+              <div key={i} className="flex items-center justify-between rounded-2xl border p-4">
+                <div>
+                  <p className="font-medium">{entry.label}</p>
+                  <p className="text-sm text-slate-500">{entry.meta}</p>
+                </div>
+                <p className="text-lg font-semibold">{entry.amount}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function FundScreen() {
+  return (
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Fond mutual</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {fundRequests.map((r, i) => (
+              <div key={i} className="rounded-2xl border p-4">
+                <p className="font-medium">{r.member}</p>
+                <p className="text-sm text-slate-500">
+                  Nevoie: {r.need} · {r.amount}
+                </p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ArchiveScreen() {
+  return (
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Arhivă și memorie comunitară</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {archiveItems.map((item, i) => (
+            <div key={i} className="rounded-2xl border p-4">
+              <p className="font-medium">{item.title}</p>
+              <p className="text-sm text-slate-500">
+                {item.type} · {item.date}
+              </p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function GovernanceScreen() {
+  return (
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Guvernanță vie</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-600">Modul de guvernanță rămâne demo în această versiune.</p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function SettingsScreen() {
+  return (
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Setări</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-600">Setările rămân demo în această versiune.</p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+export default function Page() {
+  const [active, setActive] = useState("dashboard")
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [members, setMembers] = useState<ProfileMember[]>([])
+  const [membersLoading, setMembersLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadUser() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      setUserEmail(session?.user?.email ?? null)
+    }
+
+    loadUser()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email ?? null)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    async function loadMembers() {
+      setMembersLoading(true)
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.user) {
+        setMembers([])
+        setMembersLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, email, name, alias, role, skills, offers_summary, needs_summary, created_at")
+        .order("created_at", { ascending: false })
+
+      if (!error && data) {
+        setMembers(data as ProfileMember[])
+      } else {
+        setMembers([])
+      }
+
+      setMembersLoading(false)
+    }
+
+    loadMembers()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadMembers()
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const screen = useMemo(() => {
+    switch (active) {
+      case "members":
+        return <MembersScreen members={members} loading={membersLoading} isLoggedIn={!!userEmail} />
+      case "market":
+        return <MarketScreen />
+      case "wallet":
+        return <WalletScreen />
+      case "fund":
+        return <FundScreen />
+      case "archive":
+        return <ArchiveScreen />
+      case "governance":
+        return <GovernanceScreen />
+      case "settings":
+        return <SettingsScreen />
+      default:
+        return <DashboardScreen />
+    }
+  }, [active, members, membersLoading, userEmail])
+
+  return (
+    <Shell active={active} setActive={setActive} userEmail={userEmail}>
+      {screen}
+    </Shell>
+  )
+}

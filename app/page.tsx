@@ -14,9 +14,14 @@ const fundRequests = [ { member: "Elena D.", need: "medicamente", urgency: "Ridi
 
 const archiveItems = [ { title: "Decizie #14 — criterii fond mutual", type: "Hotărâre", date: "28 mar 2026" }, { title: "Raport lunar martie 2026", type: "Raport", date: "27 mar 2026" }, { title: "Actualizare regulament barter", type: "Regulă", date: "25 mar 2026" }, { title: "Timestamp registru contribuții", type: "Dovadă", date: "24 mar 2026" }, ]
 
-type ShellProps = { active: string setActive: (value: string) => void children: React.ReactNode userEmail: string | null }
+type ShellProps = {
+  active: string
+  setActive: (value: string) => void
+  children: React.ReactNode
+  userEmail: string | null
+}
 
-function Shell({ active, setActive, children, userEmail }: ShellProps) { return ( <div className="min-h-screen bg-slate-50 text-slate-900"> <div className="grid min-h-screen lg:grid-cols-[280px_1fr]"> <aside className="border-r bg-white/90 backdrop-blur"> <div className="flex h-20 items-center gap-3 border-b px-6"> <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm"> <LifeBuoy className="h-5 w-5" /> </div> <div> <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Rețea vie</p> <h1 className="text-xl font-semibold">VIVOS</h1> </div> </div>
+function Shell({ active, setActive, children, userEmail }: ShellProps) {return ( <div className="min-h-screen bg-slate-50 text-slate-900"> <div className="grid min-h-screen lg:grid-cols-[280px_1fr]"> <aside className="border-r bg-white/90 backdrop-blur"> <div className="flex h-20 items-center gap-3 border-b px-6"> <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm"> <LifeBuoy className="h-5 w-5" /> </div> <div> <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Rețea vie</p> <h1 className="text-xl font-semibold">VIVOS</h1> </div> </div>
 
 <div className="p-4">
         <div className="mb-4 rounded-2xl border bg-slate-50 p-3">

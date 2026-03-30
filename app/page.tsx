@@ -328,10 +328,16 @@ function DashboardScreen() {
             ].map((item, i) => {
               const Comp = item.icon
               return (
-                <Button key={i} variant="outline" className="justify-start rounded-2xl py-6 text-left">
-                  <Comp className="mr-3 h-4 w-4" />
-                  {item.label}
-                </Button>
+          <Button
+          variant="outline"
+          className="justify-start rounded-2xl py-6 text-left"
+          onClick={() => {
+          window.location.href = "/profile"
+          }}
+          >
+          <Comp className="mr-3 h-4 w-4" />
+          {item.label}
+          </Button>
               )
             })}
           </CardContent>

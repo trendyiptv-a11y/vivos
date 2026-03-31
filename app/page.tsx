@@ -508,6 +508,18 @@ function MembersScreen({
                         </p>
                       </div>
                     </div>
+                    <div className="mt-4">
+  <Button
+    variant="outline"
+    className="rounded-2xl"
+    onClick={(e) => {
+      e.stopPropagation()
+      window.location.href = `/member/${member.id}`
+    }}
+  >
+    Vezi profil
+  </Button>
+</div>
                   </div>
                 )
               })

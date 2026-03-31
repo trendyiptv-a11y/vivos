@@ -567,11 +567,24 @@ function MarketScreen() {
           <p className="text-slate-500">Oferte, cereri, barter și colaborări directe.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="rounded-2xl">
-            Publică cerere
-          </Button>
-          <Button className="rounded-2xl">Publică ofertă</Button>
-        </div>
+  <Button
+    variant="outline"
+    className="rounded-2xl"
+    onClick={() => {
+      window.location.href = "/market/new"
+    }}
+  >
+    Publică cerere
+  </Button>
+  <Button
+    className="rounded-2xl"
+    onClick={() => {
+      window.location.href = "/market/new"
+    }}
+  >
+    Publică ofertă
+  </Button>
+</div>
       </div>
     </div>
   )

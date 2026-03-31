@@ -463,7 +463,13 @@ function MembersScreen({
                   : []
 
                 return (
-                  <div key={member.id} className="rounded-2xl border p-4">
+                  <div
+  key={member.id}
+  className="cursor-pointer rounded-2xl border p-4 transition hover:bg-slate-50"
+  onClick={() => {
+    window.location.href = `/member/${member.id}`
+  }}
+>
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                       <div className="flex gap-3">
                         <Avatar className="h-12 w-12 rounded-2xl">

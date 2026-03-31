@@ -707,7 +707,7 @@ export default function Page() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [members, setMembers] = useState<ProfileMember[]>([])
   const [membersLoading, setMembersLoading] = useState(true)
-
+const [marketPosts, setMarketPosts] = useState<MarketPost[]>([])
   useEffect(() => {
     async function loadUser() {
       const {

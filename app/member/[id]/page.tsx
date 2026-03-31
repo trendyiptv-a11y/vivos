@@ -33,9 +33,12 @@ export default async function MemberPage({ params }: MemberPageProps) {
     member.email?.split("@")[0] ||
     "Membru"
 
-  const skillsList = member.skills
-    ? member.skills.split(",").map((s) => s.trim()).filter(Boolean)
-    : []
+  const skillsList: string[] = member.skills
+  ? member.skills
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0)
+  : []
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">

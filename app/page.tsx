@@ -106,7 +106,18 @@ type ProfileMember = {
   needs_summary: string | null
   created_at?: string | null
 }
-
+type MarketPost = {
+  id: string
+  author_id: string
+  post_type: "offer" | "request"
+  title: string
+  category: string | null
+  description: string | null
+  value_text: string | null
+  location: string | null
+  status: "active" | "in_progress" | "closed"
+  created_at: string
+}
 type ShellProps = {
   active: string
   setActive: (value: string) => void

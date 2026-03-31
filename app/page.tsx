@@ -770,7 +770,7 @@ const [marketPosts, setMarketPosts] = useState<MarketPost[]>([])
       subscription.unsubscribe()
     }
   }, [])
-
+const [marketPosts, setMarketPosts] = useState<MarketPost[]>([])
   const screen = useMemo(() => {
     switch (active) {
       case "members":

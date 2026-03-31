@@ -298,7 +298,7 @@ function DashboardScreen() {
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             {[
-              { label: "Publică ofertă", icon: ShoppingBag, href: "#" },
+              { label: "Publică ofertă", icon: ShoppingBag, href: "/market/new" },
               { label: "Cere sprijin", icon: HeartHandshake, href: "#" },
               { label: "Vezi arhiva", icon: BookOpen, href: "#" },
               { label: "Actualizează profil", icon: Users, href: "/profile" },

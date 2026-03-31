@@ -152,10 +152,16 @@ function Shell({ active, setActive, children, userEmail }: ShellProps) {
                   />
                 </div>
 
-                <Button variant="outline" className="rounded-2xl">
-                  <Bell className="mr-2 h-4 w-4" />
-                  Notificări
-                </Button>
+                <Button
+  variant="outline"
+  className="rounded-2xl"
+  onClick={() => {
+    window.location.href = "/notifications"
+  }}
+>
+  <Bell className="mr-2 h-4 w-4" />
+  Notificări
+</Button>
 
                 {userEmail ? (
                   <>

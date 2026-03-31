@@ -243,143 +243,110 @@ function StatCard({
 function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Membri activi" value="48" hint="12 membri noi în ultima lună" icon={Users} />
-        <StatCard title="Valoare circulată" value="4.280" hint="Talanți schimbați în 30 zile" icon={Coins} />
-        <StatCard title="Fond mutual" value="12.300 DKK" hint="Disponibil pentru sprijin imediat" icon={HandCoins} />
-        <StatCard title="Cereri urgente" value="6" hint="2 necesită răspuns astăzi" icon={LifeBuoy} />
-      </div>
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Bine ai venit în VIVOS</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Platforma este în construcție, dar baza reală există deja: membri autentificați,
+            profiluri reale și piață comunitară funcțională.
+          </p>
 
-      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">Fluxul comunității</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[
-              "Elena D. a primit sprijin mutual pentru medicamente.",
-              "Sergiu B. a finalizat un schimb pentru reparații electrice.",
-              "A fost publicată Decizia #14 privind criteriile fondului.",
-              "Două oferte noi au fost adăugate în Piața comunitară.",
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3 rounded-2xl border p-4">
-                <div className="mt-1 h-2.5 w-2.5 rounded-full bg-slate-900" />
-                <p className="text-sm leading-6 text-slate-700">{item}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/market/new"
+              }}
+            >
+              Publică ofertă
+            </Button>
 
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">Acțiuni rapide</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            {[
-              { label: "Publică ofertă", icon: ShoppingBag, href: "/market/new" },
-              { label: "Cere sprijin", icon: HeartHandshake, href: "#" },
-              { label: "Vezi arhiva", icon: BookOpen, href: "#" },
-              { label: "Actualizează profil", icon: Users, href: "/profile" },
-            ].map((item, i) => {
-              const Comp = item.icon
-              return (
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/profile"
+              }}
+            >
+              Actualizează profil
+            </Button>
+
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/market"
+              }}
+            >
+              Vezi piața reală
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-xl">Nevoi și oferte recente</CardTitle>
+          <Button
+            variant="outline"
+            className="rounded-2xl"
+            onClick={() => {
+              window.location.href = "/market"
+            }}
+          >
+            Toată piața
+          </Button>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          {marketPosts.length === 0 ? (
+            <div className="rounded-2xl border p-4 text-sm text-slate-600">
+              Nu există încă postări reale. Intră în piață și publică prima ofertă sau cerere.
+            </div>
+          ) : (
+            marketPosts.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div>
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary" className="rounded-xl">
+                      {item.post_type === "offer" ? "Ofertă" : "Cerere"}
+                    </Badge>
+                    <Badge variant="outline" className="rounded-xl">
+                      {item.category || "General"}
+                    </Badge>
+                    <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
+                      {item.status === "in_progress"
+                        ? "În lucru"
+                        : item.status === "closed"
+                        ? "Închis"
+                        : "Activ"}
+                    </Badge>
+                  </div>
+
+                  <p className="font-medium">{item.title}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {(item.location || "Necompletat")} · {(item.value_text || "Necompletat")}
+                  </p>
+                </div>
+
                 <Button
-                  key={i}
-                  variant="outline"
-                  className="justify-start rounded-2xl py-6 text-left"
+                  className="rounded-2xl"
                   onClick={() => {
-                    if (item.href !== "#") window.location.href = item.href
+                    window.location.href = "/market"
                   }}
                 >
-                  <Comp className="mr-3 h-4 w-4" />
-                  {item.label}
+                  Vezi detalii
                 </Button>
-              )
-            })}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-3">
-        <Card className="rounded-3xl border-0 shadow-sm xl:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-xl">Nevoi și oferte recente</CardTitle>
-            <Tabs defaultValue="all">
-              <TabsList className="rounded-2xl">
-                <TabsTrigger value="all">Toate</TabsTrigger>
-                <TabsTrigger value="needs">Cereri</TabsTrigger>
-                <TabsTrigger value="offers">Oferte</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {marketPosts.length === 0 ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Nu există încă postări reale. Intră în piață și publică prima ofertă sau cerere.
               </div>
-            ) : (
-              marketPosts.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center md:justify-between"
-                >
-                  <div>
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary" className="rounded-xl">
-                        {item.post_type === "offer" ? "Ofertă" : "Cerere"}
-                      </Badge>
-                      <Badge variant="outline" className="rounded-xl">
-                        {item.category || "General"}
-                      </Badge>
-                      <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
-                        {item.status === "in_progress"
-                          ? "În lucru"
-                          : item.status === "closed"
-                          ? "Închis"
-                          : "Activ"}
-                      </Badge>
-                    </div>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {(item.location || "Necompletat")} · {(item.value_text || "Necompletat")}
-                    </p>
-                  </div>
-                  <Button
-                    className="rounded-2xl"
-                    onClick={() => {
-                      window.location.href = "/market"
-                    }}
-                  >
-                    Vezi detalii
-                  </Button>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">Sănătatea rețelei</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {[
-              ["Încredere comunitară", 88],
-              ["Circulația valorii", 72],
-              ["Răspuns la urgențe", 81],
-              ["Participare activă", 66],
-            ].map(([label, value], i) => (
-              <div key={i}>
-                <div className="mb-2 flex items-center justify-between text-sm">
-                  <span>{label as string}</span>
-                  <span className="font-medium">{value}%</span>
-                </div>
-                <Progress value={value as number} className="h-2" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

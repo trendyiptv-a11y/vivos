@@ -30,7 +30,7 @@ import { motion } from "framer-motion"
 import { supabase } from "@/lib/supabase/client"
 
 const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "dashboard", label: "Acasă", icon: LayoutDashboard },
   { id: "members", label: "Membri", icon: Users },
   { id: "market", label: "Piață comunitară", icon: ShoppingBag },
   { id: "wallet", label: "Portofel", icon: Wallet },

@@ -678,7 +678,7 @@ function AboutScreen() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-600">
-            În VIVOS, talantul este unitatea internă de valoare a comunității. Formula de bază pentru MVP este:
+            În VIVOS, talantul este unitatea internă de valoare a comunității. Formula de bază este:
           </p>
 
           <div className="rounded-2xl border bg-slate-50 p-4 text-center text-lg font-semibold">
@@ -701,8 +701,8 @@ function AboutScreen() {
           </div>
 
           <div className="rounded-2xl border p-4 text-sm text-slate-600">
-            Pagina HTML completă despre Talant poate fi păstrată separat ca <strong>despre-talant-vivos.html</strong>.
-          </div>
+  Talantul VIVOS are o pagină dedicată, unde sunt explicate clar principiile, formula de bază și rolul său în comunitate.
+</div>
         </CardContent>
       </Card>
     </div>

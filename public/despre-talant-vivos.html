@@ -1,1 +1,377 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Despre Talantul VIVOS</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #e2e8f0;
+      --accent: #0f172a;
+      --soft: #f1f5f9;
+      --green: #065f46;
+      --green-bg: #ecfdf5;
+    }
 
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: Inter, Arial, Helvetica, sans-serif; }
+    body { line-height: 1.65; }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 40px 20px 64px;
+    }
+
+    .hero {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 32px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 40px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    h3 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      line-height: 1.3;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    .muted { color: var(--muted); }
+
+    .highlight {
+      margin: 18px 0 0;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      font-weight: 600;
+    }
+
+    .formula {
+      margin: 18px 0 0;
+      padding: 18px 20px;
+      border-radius: 20px;
+      background: var(--green-bg);
+      border: 1px solid #a7f3d0;
+      color: var(--green);
+      font-size: 24px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .list-item {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 18px;
+      padding: 14px 16px;
+    }
+
+    .pill {
+      display: inline-block;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    ul {
+      margin: 10px 0 0 18px;
+      padding: 0;
+    }
+
+    li { margin-bottom: 8px; }
+
+    .principles {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .principle {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: #fff;
+    }
+
+    .principle strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .quote {
+      border-left: 4px solid var(--accent);
+      padding: 8px 0 8px 16px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .footer-note {
+      margin-top: 24px;
+      font-size: 14px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      .grid, .principles {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+
+      .formula {
+        font-size: 20px;
+      }
+
+      .hero, .card {
+        padding: 22px;
+        border-radius: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Despre • VIVOS</div>
+      <h1>Talantul VIVOS</h1>
+      <p class="lead">
+        Talantul este unitatea internă de valoare a comunității VIVOS. El nu este gândit ca monedă
+        speculativă, ci ca expresie coerentă a contribuției umane, a utilității reale și a schimbului viu dintre membri.
+      </p>
+      <div class="formula">1 talant = aproximativ 15 minute de contribuție standard</div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Ce este talantul</h2>
+        <p>
+          Talantul este o <strong>unitate comunitară de măsură a valorii</strong>. El există pentru a exprima
+          într-un mod clar și echitabil:
+        </p>
+        <ul>
+          <li>contribuția umană,</li>
+          <li>utilitatea reală,</li>
+          <li>timpul oferit comunității,</li>
+          <li>sprijinul mutual,</li>
+          <li>schimbul viu dintre membri.</li>
+        </ul>
+        <p class="highlight">
+          Talantul nu este un scop în sine. El este un instrument prin care comunitatea recunoaște, circulă și păstrează valoarea reală.
+        </p>
+      </article>
+
+      <aside class="card">
+        <h2>Regula de bază</h2>
+        <p class="muted">
+          În faza inițială a platformei, comunitatea folosește un reper simplu și ușor de înțeles:
+        </p>
+        <div class="list">
+          <div class="list-item"><strong>4 talanți</strong><br><span class="muted">aproximativ 1 oră de contribuție standard</span></div>
+          <div class="list-item"><strong>8 talanți</strong><br><span class="muted">aproximativ 2 ore de contribuție standard</span></div>
+          <div class="list-item"><strong>16 talanți</strong><br><span class="muted">aproximativ 4 ore de contribuție standard</span></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="card">
+      <h2>Cum se evaluează contribuția</h2>
+      <p class="muted">
+        Nu orice activitate are aceeași dificultate, responsabilitate sau specializare. De aceea, VIVOS folosește repere orientative.
+      </p>
+
+      <div class="list">
+        <div class="list-item">
+          <span class="pill">Contribuție standard</span>
+          <h3>4 talanți / oră</h3>
+          <p class="muted">Transport local, ajutor practic, curățenie, sprijin logistic, activități de rutină.</p>
+        </div>
+
+        <div class="list-item">
+          <span class="pill">Contribuție tehnică</span>
+          <h3>8 talanți / oră</h3>
+          <p class="muted">Ajutor IT, reparații, suport tehnic, configurare digitală, organizare tehnică.</p>
+        </div>
+
+        <div class="list-item">
+          <span class="pill">Contribuție specializată</span>
+          <h3>12+ talanți / oră</h3>
+          <p class="muted">Lucrări complexe, consiliere specializată, proiectare, intervenții cu impact ridicat.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Ce NU este talantul</h2>
+        <ul>
+          <li>nu este salariu clasic,</li>
+          <li>nu este monedă fiat mascată,</li>
+          <li>nu este instrument speculativ,</li>
+          <li>nu este mecanism de control,</li>
+          <li>nu este un preț rece pus peste relațiile vii.</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>De ce nu este legat rigid de bani</h2>
+        <p>
+          VIVOS nu pornește de la ideea că valoarea trebuie redusă exclusiv la bani fiat. De aceea,
+          talantul nu este definit ca echivalent fix în DKK, EUR sau altă monedă.
+        </p>
+        <p class="quote">
+          Talantul rămâne o unitate comunitară de valoare, nu o copie a banilor clasici.
+        </p>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Principiile VIVOS pentru talant</h2>
+      <div class="principles">
+        <div class="principle">
+          <strong>Claritate</strong>
+          <span class="muted">Regulile de evaluare trebuie să fie ușor de înțeles.</span>
+        </div>
+        <div class="principle">
+          <strong>Echitate</strong>
+          <span class="muted">Contribuțiile reale trebuie recunoscute proporțional.</span>
+        </div>
+        <div class="principle">
+          <strong>Transparență</strong>
+          <span class="muted">Diferențele de evaluare trebuie să poată fi explicate.</span>
+        </div>
+        <div class="principle">
+          <strong>Utilitate reală</strong>
+          <span class="muted">Valoarea vine din timp, efect și sens concret pentru comunitate.</span>
+        </div>
+        <div class="principle">
+          <strong>Echilibru comunitar</strong>
+          <span class="muted">Talantul susține circulația sănătoasă a valorii, nu dominarea.</span>
+        </div>
+        <div class="principle">
+          <strong>Demnitate</strong>
+          <span class="muted">Contribuția umană este recunoscută coerent, practic și cu respect.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Wallet-ul în talanți</h2>
+      <p>
+        Wallet-ul VIVOS este instrumentul intern prin care talanții circulă între membri. Rolul lui este să permită:
+      </p>
+      <ul>
+        <li>transferuri clare,</li>
+        <li>istoric al schimburilor,</li>
+        <li>vizibilitate asupra circulației valorii,</li>
+        <li>încredere și trasabilitate în comunitate.</li>
+      </ul>
+      <p class="highlight">
+        Wallet-ul nu schimbă sensul talantului. El doar îl face operabil în platformă.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Formula de lansare</h2>
+      <p>
+        Pentru MVP, comunitatea pornește de la această formulă:
+      </p>
+      <div class="formula">1 talant = 15 minute de contribuție standard</div>
+      <p class="muted" style="margin-top:16px;">
+        cu repere orientative:
+      </p>
+      <ul>
+        <li><strong>4 talanți / oră</strong> — contribuție standard</li>
+        <li><strong>8 talanți / oră</strong> — contribuție tehnică</li>
+        <li><strong>12+ talanți / oră</strong> — contribuție specializată</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Formulare scurtă pentru interfață</h2>
+      <p>
+        <strong>Talantul este unitatea internă de valoare a comunității VIVOS.</strong>
+      </p>
+      <p>
+        În faza inițială, <strong>1 talant = aproximativ 15 minute de contribuție standard</strong>.
+      </p>
+      <p class="muted">
+        Valoarea concretă a unei activități se stabilește în funcție de timp, utilitate, dificultate, responsabilitate și specializare.
+      </p>
+    </section>
+
+    <p class="footer-note">
+      VIVOS • Ordine vie, schimb și sprijin mutual
+    </p>
+  </main>
+</body>
+</html>

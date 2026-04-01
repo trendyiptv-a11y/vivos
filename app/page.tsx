@@ -881,7 +881,8 @@ export default function Page() {
       case "market":
         return <MarketScreen />
       case "wallet":
-        return <WalletScreen />
+  window.location.href = "/wallet"
+  return <DashboardScreen marketPosts={marketPosts} />
       case "fund":
         return <FundScreen />
       case "archive":

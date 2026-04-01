@@ -536,10 +536,15 @@ function MembersScreen({
 
             <Separator />
 
-            <div className="space-y-2 text-sm text-slate-600">
-              <p>Total membri reali: {isLoggedIn ? members.length : 0}</p>
-              <p>Încărcare: {loading ? "da" : "nu"}</p>
-            </div>
+            <Separator />
+
+<div className="text-sm text-slate-600">
+  {isLoggedIn ? (
+    <p>Total membri reali: {members.length}</p>
+  ) : (
+    <p>Registrul complet al membrilor devine vizibil după autentificare.</p>
+  )}
+</div>
           </CardContent>
         </Card>
       </div>

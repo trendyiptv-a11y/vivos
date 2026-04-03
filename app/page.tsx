@@ -163,7 +163,7 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
           <header className="sticky top-0 z-10 border-b bg-white/85 backdrop-blur">
             <div className="flex items-center justify-between gap-4 px-6 py-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Wireframe MVP</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Wireframe MVP Chat</p>
                 <h2 className="text-2xl font-semibold">Platforma comunitară VIVOS</h2>
               </div>
 

@@ -739,29 +739,83 @@ function WalletScreen() {
   )
 }
 
-function FundScreen() {
+function FundScreen({
+  fundRequests,
+  isLoggedIn,
+}: {
+  fundRequests: MutualFundRequest[]
+  isLoggedIn: boolean
+}) {
   return (
     <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h3 className="text-2xl font-semibold">Fond mutual de sprijin</h3>
+          <p className="text-slate-500">Cereri reale de sprijin, vizibile comunității.</p>
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            className="rounded-2xl"
+            onClick={() => {
+              window.location.href = isLoggedIn ? "/fund/new" : "/login"
+            }}
+          >
+            Cere sprijin
+          </Button>
+        </div>
+      </div>
+
       <Card className="rounded-3xl border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">Fond mutual</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-xl">Cereri recente</CardTitle>
+          <div className="text-sm text-slate-500">{fundRequests.length} cereri</div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {fundRequests.map((r, i) => (
-              <div key={i} className="rounded-2xl border p-4">
-                <p className="font-medium">{r.member}</p>
-                <p className="text-sm text-slate-500">
-                  Nevoie: {r.need} · {r.amount}
+        <CardContent className="space-y-3">
+          {fundRequests.length === 0 ? (
+            <div className="rounded-2xl border p-4 text-sm text-slate-600">
+              Nu există încă cereri în fondul mutual de sprijin.
+            </div>
+          ) : (
+            fundRequests.map((item) => (
+              <div key={item.id} className="rounded-2xl border p-4">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="rounded-xl">
+                    {item.urgency === "ridicata"
+                      ? "Urgență ridicată"
+                      : item.urgency === "medie"
+                      ? "Urgență medie"
+                      : "Urgență scăzută"}
+                  </Badge>
+
+                  <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
+                    {item.status === "in_review"
+                      ? "În analiză"
+                      : item.status === "approved"
+                      ? "Aprobat"
+                      : item.status === "supported"
+                      ? "Sprijinit"
+                      : item.status === "closed"
+                      ? "Închis"
+                      : "Nou"}
+                  </Badge>
+                </div>
+
+                <p className="font-medium">{item.title}</p>
+                <p className="mt-2 text-sm text-slate-600">{item.description}</p>
+                <p className="mt-3 text-sm text-slate-500">
+                  {item.amount_talanti ? `${Number(item.amount_talanti).toFixed(2)} talanți` : "Fără sumă specificată"} ·{" "}
+                  {new Date(item.created_at).toLocaleDateString("ro-RO")}
                 </p>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </CardContent>
       </Card>
     </div>
   )
 }
+
 
 function ArchiveScreen() {
   return (

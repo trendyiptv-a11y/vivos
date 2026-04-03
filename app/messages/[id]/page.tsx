@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
 
 type Message = {
@@ -14,13 +13,15 @@ type Message = {
   created_at: string
 }
 
+type ConversationProfile = {
+  name: string | null
+  alias: string | null
+  email: string | null
+}
+
 type Member = {
   member_id: string
-  profiles: {
-    name: string | null
-    alias: string | null
-    email: string | null
-  } | null
+  profiles: ConversationProfile | null
 }
 
 export default function ConversationPage() {
@@ -62,8 +63,20 @@ export default function ConversationPage() {
           .eq("conversation_id", conversationId),
       ])
 
-      setMessages((messagesData as Message[]) ?? [])
-      setMembers((membersData as Member[]) ?? [])
+      const normalizedMessages: Message[] = (messagesData ?? []).map((item: any) => ({
+        id: item.id,
+        sender_id: item.sender_id,
+        body: item.body,
+        created_at: item.created_at,
+      }))
+
+      const normalizedMembers: Member[] = (membersData ?? []).map((item: any) => ({
+        member_id: item.member_id,
+        profiles: Array.isArray(item.profiles) ? item.profiles[0] ?? null : item.profiles ?? null,
+      }))
+
+      setMessages(normalizedMessages)
+      setMembers(normalizedMembers)
       setLoading(false)
     }
 
@@ -90,10 +103,12 @@ export default function ConversationPage() {
 
   const otherName = useMemo(() => {
     const other = members.find((m) => m.member_id !== userId)
+    const profile = other?.profiles ?? null
+
     return (
-      other?.profiles?.name?.trim() ||
-      other?.profiles?.alias?.trim() ||
-      other?.profiles?.email?.trim() ||
+      profile?.name?.trim() ||
+      profile?.alias?.trim() ||
+      profile?.email?.trim() ||
       "Membru"
     )
   }, [members, userId])

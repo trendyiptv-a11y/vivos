@@ -1,17 +1,21 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import {
   Bell,
   BookOpen,
+  Coins,
   FileText,
+  HandCoins,
   HeartHandshake,
   LayoutDashboard,
   LifeBuoy,
@@ -42,6 +46,12 @@ const walletEntries = [
   { label: "Contribuție fond mutual", amount: "-30", meta: "Contribuție lunară" },
   { label: "Recompensă implicare", amount: "+25", meta: "Moderare comunitară" },
   { label: "Sprijin primit", amount: "+90", meta: "Transport medical" },
+]
+
+const fundRequests = [
+  { member: "Elena D.", need: "medicamente", urgency: "Ridicată", amount: "300 DKK", status: "În analiză" },
+  { member: "Ana M.", need: "transport", urgency: "Mediu", amount: "150 DKK", status: "Aprobat parțial" },
+  { member: "Mihai C.", need: "hrană", urgency: "Ridicată", amount: "200 DKK", status: "Executat" },
 ]
 
 const archiveItems = [
@@ -153,7 +163,7 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
           <header className="sticky top-0 z-10 border-b bg-white/85 backdrop-blur">
             <div className="flex items-center justify-between gap-4 px-6 py-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Wireframe MVP Chat</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Wireframe MVP</p>
                 <h2 className="text-2xl font-semibold">Platforma comunitară VIVOS</h2>
               </div>
 
@@ -167,7 +177,13 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
                 </div>
 
                 <div className="relative">
-                  <Button variant="outline" className="rounded-2xl" onClick={() => (window.location.href = "/notifications")}>
+                  <Button
+                    variant="outline"
+                    className="rounded-2xl"
+                    onClick={() => {
+                      window.location.href = "/notifications"
+                    }}
+                  >
                     <Bell className="mr-2 h-4 w-4" />
                     Notificări
                   </Button>
@@ -209,7 +225,12 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
                     </Avatar>
                   </>
                 ) : (
-                  <Button className="rounded-2xl" onClick={() => (window.location.href = "/login")}>
+                  <Button
+                    className="rounded-2xl"
+                    onClick={() => {
+                      window.location.href = "/login"
+                    }}
+                  >
                     Login
                   </Button>
                 )}
@@ -234,6 +255,35 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
   )
 }
 
+function StatCard({
+  title,
+  value,
+  hint,
+  icon: Icon,
+}: {
+  title: string
+  value: string
+  hint: string
+  icon: React.ComponentType<{ className?: string }>
+}) {
+  return (
+    <Card className="rounded-3xl border-0 shadow-sm">
+      <CardContent className="p-5">
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <p className="text-sm text-slate-500">{title}</p>
+            <p className="mt-2 text-3xl font-semibold tracking-tight">{value}</p>
+          </div>
+          <div className="rounded-2xl bg-slate-100 p-3">
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+        <p className="text-sm text-slate-500">{hint}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
 function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
   return (
     <div className="space-y-6">
@@ -248,13 +298,32 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button className="rounded-2xl" onClick={() => (window.location.href = "/market/new")}>
+            <Button
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/market/new"
+              }}
+            >
               Publică ofertă
             </Button>
-            <Button variant="outline" className="rounded-2xl" onClick={() => (window.location.href = "/profile")}>
+
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/profile"
+              }}
+            >
               Actualizează profil
             </Button>
-            <Button variant="outline" className="rounded-2xl" onClick={() => (window.location.href = "/market")}>
+
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/market"
+              }}
+            >
               Vezi piața reală
             </Button>
           </div>
@@ -264,7 +333,13 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">Nevoi și oferte recente</CardTitle>
-          <Button variant="outline" className="rounded-2xl" onClick={() => (window.location.href = "/market")}>
+          <Button
+            variant="outline"
+            className="rounded-2xl"
+            onClick={() => {
+              window.location.href = "/market"
+            }}
+          >
             Toată piața
           </Button>
         </CardHeader>
@@ -289,7 +364,11 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
                       {item.category || "General"}
                     </Badge>
                     <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
-                      {item.status === "in_progress" ? "În lucru" : item.status === "closed" ? "Închis" : "Activ"}
+                      {item.status === "in_progress"
+                        ? "În lucru"
+                        : item.status === "closed"
+                        ? "Închis"
+                        : "Activ"}
                     </Badge>
                   </div>
 
@@ -299,7 +378,12 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
                   </p>
                 </div>
 
-                <Button className="rounded-2xl" onClick={() => (window.location.href = "/market")}>
+                <Button
+                  className="rounded-2xl"
+                  onClick={() => {
+                    window.location.href = "/market"
+                  }}
+                >
                   Vezi detalii
                 </Button>
               </div>
@@ -315,12 +399,10 @@ function MembersScreen({
   members,
   loading,
   isLoggedIn,
-  onStartChat,
 }: {
   members: ProfileMember[]
   loading: boolean
   isLoggedIn: boolean
-  onStartChat: (memberId: string) => void
 }) {
   return (
     <div className="space-y-6">
@@ -328,11 +410,15 @@ function MembersScreen({
         <Card className="rounded-3xl border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-xl">Registrul membrilor</CardTitle>
-            <div className="text-sm text-slate-500">{isLoggedIn ? `${members.length} membri` : "acces restricționat"}</div>
+            <div className="text-sm text-slate-500">
+              {isLoggedIn ? `${members.length} membri` : "acces restricționat"}
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {loading ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă membrii...</div>
+              <div className="rounded-2xl border p-4 text-sm text-slate-600">
+                Se încarcă membrii...
+              </div>
             ) : !isLoggedIn ? (
               <div className="rounded-2xl border p-6">
                 <h3 className="text-lg font-semibold">Vezi membrii comunității</h3>
@@ -340,10 +426,21 @@ function MembersScreen({
                   Autentifică-te pentru a vedea membrii activi, profilurile lor și posibilitățile de colaborare.
                 </p>
                 <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                  <Button className="rounded-2xl" onClick={() => (window.location.href = "/login")}>
+                  <Button
+                    className="rounded-2xl"
+                    onClick={() => {
+                      window.location.href = "/login"
+                    }}
+                  >
                     Login
                   </Button>
-                  <Button variant="outline" className="rounded-2xl" onClick={() => (window.location.href = "/signup")}>
+                  <Button
+                    variant="outline"
+                    className="rounded-2xl"
+                    onClick={() => {
+                      window.location.href = "/signup"
+                    }}
+                  >
                     Creează cont
                   </Button>
                 </div>
@@ -355,7 +452,10 @@ function MembersScreen({
             ) : (
               members.map((member) => {
                 const displayName =
-                  member.name?.trim() || member.alias?.trim() || member.email?.split("@")[0] || "Membru"
+                  member.name?.trim() ||
+                  member.alias?.trim() ||
+                  member.email?.split("@")[0] ||
+                  "Membru"
 
                 const initials = displayName
                   .split(" ")
@@ -379,7 +479,9 @@ function MembersScreen({
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                       <div className="flex gap-3">
                         <Avatar className="h-12 w-12 rounded-2xl">
-                          <AvatarFallback className="rounded-2xl bg-slate-900 text-white">{initials || "MB"}</AvatarFallback>
+                          <AvatarFallback className="rounded-2xl bg-slate-900 text-white">
+                            {initials || "MB"}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
                           <p className="font-medium">{displayName}</p>
@@ -412,7 +514,7 @@ function MembersScreen({
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <div className="mt-4">
                       <Button
                         variant="outline"
                         className="rounded-2xl"
@@ -422,16 +524,6 @@ function MembersScreen({
                         }}
                       >
                         Vezi profil
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="rounded-2xl"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onStartChat(member.id)
-                        }}
-                      >
-                        Trimite mesaj
                       </Button>
                     </div>
                   </div>
@@ -473,11 +565,7 @@ function MembersScreen({
   )
 }
 
-function MarketScreen({
-  marketPosts,
-}: {
-  marketPosts: MarketPost[]
-}) {
+function MarketScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -513,7 +601,9 @@ function MarketScreen({
         </CardHeader>
         <CardContent className="space-y-3">
           {marketPosts.length === 0 ? (
-            <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu există încă postări în piață.</div>
+            <div className="rounded-2xl border p-4 text-sm text-slate-600">
+              Nu există încă postări în piață.
+            </div>
           ) : (
             marketPosts.map((item) => (
               <div
@@ -542,10 +632,17 @@ function MarketScreen({
                     {(item.location || "Necompletat")} · {(item.value_text || "Necompletat")}
                   </p>
 
-                  {item.description && <p className="mt-2 text-sm text-slate-600">{item.description}</p>}
+                  {item.description && (
+                    <p className="mt-2 text-sm text-slate-600">{item.description}</p>
+                  )}
                 </div>
 
-                <Button className="rounded-2xl" onClick={() => (window.location.href = "/market")}>
+                <Button
+                  className="rounded-2xl"
+                  onClick={() => {
+                    window.location.href = "/market"
+                  }}
+                >
                   Vezi detalii
                 </Button>
               </div>
@@ -558,7 +655,76 @@ function MarketScreen({
 }
 
 function AboutScreen() {
-  return <div />
+  return (
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Despre VIVOS</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-slate-600">
+            VIVOS este o platformă comunitară pentru schimb, sprijin mutual și recunoașterea valorii reale dintre membri.
+            Aici păstrăm și documentele de bază ale comunității.
+          </p>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/despre-talant-vivos.html"
+              }}
+            >
+              Deschide pagina Talantului
+            </Button>
+
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/wallet"
+              }}
+            >
+              Vezi wallet-ul în talanți
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Talantul VIVOS</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-slate-600">
+            În VIVOS, talantul este unitatea internă de valoare a comunității. Formula de bază este:
+          </p>
+
+          <div className="rounded-2xl border bg-slate-50 p-4 text-center text-lg font-semibold">
+            1 talant = aproximativ 15 minute de contribuție standard
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border p-4">
+              <p className="text-sm text-slate-500">Contribuție standard</p>
+              <p className="mt-2 text-xl font-semibold">4 talanți / oră</p>
+            </div>
+            <div className="rounded-2xl border p-4">
+              <p className="text-sm text-slate-500">Contribuție tehnică</p>
+              <p className="mt-2 text-xl font-semibold">8 talanți / oră</p>
+            </div>
+            <div className="rounded-2xl border p-4">
+              <p className="text-sm text-slate-500">Contribuție specializată</p>
+              <p className="mt-2 text-xl font-semibold">12+ talanți / oră</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border p-4 text-sm text-slate-600">
+  Talantul VIVOS are o pagină dedicată, unde sunt explicate clar principiile, formula de bază și rolul său în comunitate.
+</div>
+        </CardContent>
+      </Card>
+    </div>
+  )
 }
 
 function WalletScreen() {
@@ -589,11 +755,9 @@ function WalletScreen() {
 function FundScreen({
   fundRequests,
   isLoggedIn,
-  onStartChat,
 }: {
   fundRequests: MutualFundRequest[]
   isLoggedIn: boolean
-  onStartChat: (memberId: string) => void
 }) {
   return (
     <div className="space-y-6">
@@ -665,11 +829,7 @@ function FundScreen({
                     {new Date(item.created_at).toLocaleDateString("ro-RO")}
                   </p>
 
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                    <Button variant="outline" className="rounded-2xl" onClick={() => onStartChat(item.author_id)}>
-                      Scrie autorului
-                    </Button>
-
+                  <div className="mt-4">
                     <Button
                       variant="outline"
                       className="rounded-2xl"
@@ -680,12 +840,12 @@ function FundScreen({
                         }
 
                         const params = new URLSearchParams({
-                          supportRequestId: item.id,
-                          supportReceiverId: item.author_id,
-                          supportAmount: item.amount_talanti ? String(item.amount_talanti) : "",
-                          supportTitle: item.title,
-                          supportAuthor: authorName,
-                        })
+  supportRequestId: item.id,
+  supportReceiverId: item.author_id,
+  supportAmount: item.amount_talanti ? String(item.amount_talanti) : "",
+  supportTitle: item.title,
+  supportAuthor: authorName,
+})
 
                         window.location.href = `/wallet?${params.toString()}`
                       }}
@@ -765,28 +925,6 @@ export default function Page() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
 
-  const handleStartChat = React.useCallback(async (otherMemberId: string) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    if (!session?.user) {
-      window.location.href = "/login"
-      return
-    }
-
-    const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
-      other_member_id: otherMemberId,
-    })
-
-    if (error || !data) {
-      alert("Nu am putut porni conversația.")
-      return
-    }
-
-    window.location.href = `/messages/${data}`
-  }, [])
-
   useEffect(() => {
     async function loadUser() {
       const {
@@ -804,7 +942,9 @@ export default function Page() {
       setUserEmail(session?.user?.email ?? null)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -826,8 +966,11 @@ export default function Page() {
         .select("id, email, name, alias, role, skills, offers_summary, needs_summary, created_at")
         .order("created_at", { ascending: false })
 
-      if (!error && data) setMembers(data as ProfileMember[])
-      else setMembers([])
+      if (!error && data) {
+        setMembers(data as ProfileMember[])
+      } else {
+        setMembers([])
+      }
 
       setMembersLoading(false)
     }
@@ -840,7 +983,9 @@ export default function Page() {
       loadMembers()
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -860,8 +1005,11 @@ export default function Page() {
         .order("created_at", { ascending: false })
         .limit(20)
 
-      if (!error && data) setMarketPosts(data as MarketPost[])
-      else setMarketPosts([])
+      if (!error && data) {
+        setMarketPosts(data as MarketPost[])
+      } else {
+        setMarketPosts([])
+      }
     }
 
     loadMarketPosts()
@@ -872,16 +1020,16 @@ export default function Page() {
       loadMarketPosts()
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
     async function loadFundRequests() {
       const { data, error } = await supabase
         .from("mutual_fund_requests")
-        .select(
-          "id, author_id, title, description, amount_talanti, urgency, status, created_at, author:profiles!mutual_fund_requests_author_id_fkey(name, alias, email)"
-        )
+        .select("id, author_id, title, description, amount_talanti, urgency, status, created_at, author:profiles!mutual_fund_requests_author_id_fkey(name, alias, email)")
         .order("created_at", { ascending: false })
         .limit(20)
 
@@ -915,8 +1063,14 @@ export default function Page() {
       .channel("fund-requests")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "mutual_fund_requests" },
-        () => loadFundRequests()
+        {
+          event: "*",
+          schema: "public",
+          table: "mutual_fund_requests",
+        },
+        () => {
+          loadFundRequests()
+        }
       )
       .subscribe()
 
@@ -941,7 +1095,9 @@ export default function Page() {
         .select("*", { count: "exact", head: true })
         .eq("is_read", false)
 
-      if (!error) setUnreadCount(count || 0)
+      if (!error) {
+        setUnreadCount(count || 0)
+      }
     }
 
     loadUnreadCount()
@@ -950,8 +1106,14 @@ export default function Page() {
       .channel("notifications-badge")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "notifications" },
-        () => loadUnreadCount()
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+        },
+        () => {
+          loadUnreadCount()
+        }
       )
       .subscribe()
 
@@ -976,7 +1138,9 @@ export default function Page() {
         .select("*", { count: "exact", head: true })
         .gte("created_at", since)
 
-      if (!error) setPublicPulseCount(count || 0)
+      if (!error) {
+        setPublicPulseCount(count || 0)
+      }
     }
 
     loadPublicPulse()
@@ -985,8 +1149,14 @@ export default function Page() {
       .channel("public-pulse")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "public_activity_feed" },
-        () => loadPublicPulse()
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "public_activity_feed",
+        },
+        () => {
+          loadPublicPulse()
+        }
       )
       .subscribe()
 
@@ -995,51 +1165,29 @@ export default function Page() {
     }
   }, [])
 
-  let screen: React.ReactNode
-
-  switch (active) {
-    case "members":
-      screen = (
-        <MembersScreen
-          members={members}
-          loading={membersLoading}
-          isLoggedIn={!!userEmail}
-          onStartChat={handleStartChat}
-        />
-      )
-      break
-    case "market":
-      screen = <MarketScreen marketPosts={marketPosts} onStartChat={handleStartChat} />
-      break
-    case "about":
-      screen = <AboutScreen />
-      break
-    case "wallet":
-      window.location.href = "/wallet"
-      screen = <DashboardScreen marketPosts={marketPosts} />
-      break
-    case "fund":
-      screen = (
-        <FundScreen
-          fundRequests={fundRequests}
-          isLoggedIn={!!userEmail}
-          onStartChat={handleStartChat}
-        />
-      )
-      break
-    case "archive":
-      screen = <ArchiveScreen />
-      break
-    case "governance":
-      screen = <GovernanceScreen />
-      break
-    case "settings":
-      screen = <SettingsScreen />
-      break
-    default:
-      screen = <DashboardScreen marketPosts={marketPosts} />
-      break
-  }
+  const screen = useMemo(() => {
+    switch (active) {
+      case "members":
+        return <MembersScreen members={members} loading={membersLoading} isLoggedIn={!!userEmail} />
+      case "market":
+        return <MarketScreen marketPosts={marketPosts} />
+      case "about":
+        return <AboutScreen />
+      case "wallet":
+        window.location.href = "/wallet"
+        return <DashboardScreen marketPosts={marketPosts} />
+      case "fund":
+        return <FundScreen fundRequests={fundRequests} isLoggedIn={!!userEmail} />
+      case "archive":
+        return <ArchiveScreen />
+      case "governance":
+        return <GovernanceScreen />
+      case "settings":
+        return <SettingsScreen />
+      default:
+        return <DashboardScreen marketPosts={marketPosts} />
+    }
+  }, [active, members, membersLoading, userEmail, marketPosts, fundRequests])
 
   return (
     <Shell

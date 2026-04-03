@@ -19,6 +19,7 @@ import {
   HeartHandshake,
   LayoutDashboard,
   LifeBuoy,
+  MessageSquare,
   Search,
   Settings,
   Shield,
@@ -32,6 +33,7 @@ import { supabase } from "@/lib/supabase/client"
 const navItems = [
   { id: "dashboard", label: "Acasă", icon: LayoutDashboard },
   { id: "members", label: "Membri", icon: Users },
+  { id: "messages", label: "Mesaje", icon: MessageSquare },
   { id: "market", label: "Piață comunitară", icon: ShoppingBag },
   { id: "about", label: "Despre", icon: BookOpen },
   { id: "wallet", label: "Portofel", icon: Wallet },
@@ -1201,6 +1203,9 @@ export default function Page() {
     switch (active) {
       case "members":
         return <MembersScreen members={members} loading={membersLoading} isLoggedIn={!!userEmail} />
+      case "messages":
+        window.location.href = "/messages"
+        return <DashboardScreen marketPosts={marketPosts} />
       case "market":
         return <MarketScreen marketPosts={marketPosts} />
       case "about":

@@ -11,15 +11,17 @@ type ConversationRow = {
   created_at: string
 }
 
+type ConversationProfile = {
+  id: string
+  name: string | null
+  alias: string | null
+  email: string | null
+}
+
 type MemberRow = {
   conversation_id: string
   member_id: string
-  profiles: {
-    id: string
-    name: string | null
-    alias: string | null
-    email: string | null
-  } | null
+  profiles: ConversationProfile | null
 }
 
 type MessageRow = {
@@ -78,9 +80,21 @@ export default function MessagesPage() {
           .order("created_at", { ascending: false }),
       ])
 
+      const normalizedMembers: MemberRow[] = (membersData ?? []).map((item: any) => ({
+        conversation_id: item.conversation_id,
+        member_id: item.member_id,
+        profiles: Array.isArray(item.profiles) ? item.profiles[0] ?? null : item.profiles ?? null,
+      }))
+
+      const normalizedMessages: MessageRow[] = (messagesData ?? []).map((item: any) => ({
+        conversation_id: item.conversation_id,
+        body: item.body,
+        created_at: item.created_at,
+      }))
+
       setConversations((convData as ConversationRow[]) ?? [])
-      setMembers((membersData as MemberRow[]) ?? [])
-      setLatestMessages((messagesData as MessageRow[]) ?? [])
+      setMembers(normalizedMembers)
+      setLatestMessages(normalizedMessages)
       setLoading(false)
     }
 
@@ -90,11 +104,12 @@ export default function MessagesPage() {
   const conversationCards = useMemo(() => {
     return conversations.map((conv) => {
       const other = members.find((m) => m.conversation_id === conv.id && m.member_id !== userId)
+      const profile = other?.profiles ?? null
       const latest = latestMessages.find((m) => m.conversation_id === conv.id)
       const name =
-        other?.profiles?.name?.trim() ||
-        other?.profiles?.alias?.trim() ||
-        other?.profiles?.email?.trim() ||
+        profile?.name?.trim() ||
+        profile?.alias?.trim() ||
+        profile?.email?.trim() ||
         "Membru"
 
       return {

@@ -13,7 +13,8 @@ type Message = {
   created_at: string
 }
 
-type ConversationProfile = {
+type ProfileRow = {
+  id: string
   name: string | null
   alias: string | null
   email: string | null
@@ -21,7 +22,7 @@ type ConversationProfile = {
 
 type Member = {
   member_id: string
-  profiles: ConversationProfile | null
+  profile: ProfileRow | null
 }
 
 export default function ConversationPage() {
@@ -51,7 +52,7 @@ export default function ConversationPage() {
 
       setUserId(session.user.id)
 
-      const [{ data: messagesData }, { data: membersData }] = await Promise.all([
+      const [{ data: messagesData }, { data: memberRows, error: memberRowsError }] = await Promise.all([
         supabase
           .from("messages")
           .select("id, sender_id, body, created_at")
@@ -59,7 +60,7 @@ export default function ConversationPage() {
           .order("created_at", { ascending: true }),
         supabase
           .from("conversation_members")
-          .select("member_id, profiles:profiles!conversation_members_member_id_fkey(name, alias, email)")
+          .select("member_id")
           .eq("conversation_id", conversationId),
       ])
 
@@ -70,10 +71,31 @@ export default function ConversationPage() {
         created_at: item.created_at,
       }))
 
-      const normalizedMembers: Member[] = (membersData ?? []).map((item: any) => ({
-        member_id: item.member_id,
-        profiles: Array.isArray(item.profiles) ? item.profiles[0] ?? null : item.profiles ?? null,
-      }))
+      let normalizedMembers: Member[] = []
+
+      if (!memberRowsError && memberRows && memberRows.length > 0) {
+        const memberIds = memberRows.map((m: any) => m.member_id)
+
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("id, name, alias, email")
+          .in("id", memberIds)
+
+        const profileMap = new Map<string, ProfileRow>()
+        ;(profilesData ?? []).forEach((p: any) => {
+          profileMap.set(p.id, {
+            id: p.id,
+            name: p.name ?? null,
+            alias: p.alias ?? null,
+            email: p.email ?? null,
+          })
+        })
+
+        normalizedMembers = memberRows.map((item: any) => ({
+          member_id: item.member_id,
+          profile: profileMap.get(item.member_id) ?? null,
+        }))
+      }
 
       setMessages(normalizedMessages)
       setMembers(normalizedMembers)
@@ -103,7 +125,7 @@ export default function ConversationPage() {
 
   const otherName = useMemo(() => {
     const other = members.find((m) => m.member_id !== userId)
-    const profile = other?.profiles ?? null
+    const profile = other?.profile ?? null
 
     return (
       profile?.name?.trim() ||

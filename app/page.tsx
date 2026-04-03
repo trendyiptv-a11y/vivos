@@ -755,9 +755,11 @@ function WalletScreen() {
 function FundScreen({
   fundRequests,
   isLoggedIn,
+  onStartChat,
 }: {
   fundRequests: MutualFundRequest[]
   isLoggedIn: boolean
+  onStartChat: (memberId: string) => void
 }) {
   return (
     <div className="space-y-6">
@@ -829,7 +831,15 @@ function FundScreen({
                     {new Date(item.created_at).toLocaleDateString("ro-RO")}
                   </p>
 
-                  <div className="mt-4">
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <Button
+                      variant="outline"
+                      className="rounded-2xl"
+                      onClick={() => onStartChat(item.author_id)}
+                    >
+                      Scrie autorului
+                    </Button>
+
                     <Button
                       variant="outline"
                       className="rounded-2xl"
@@ -924,6 +934,28 @@ export default function Page() {
   const [fundRequests, setFundRequests] = useState<MutualFundRequest[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
+
+  async function handleStartChat(otherMemberId: string) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session?.user) {
+      window.location.href = "/login"
+      return
+    }
+
+    const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
+      other_member_id: otherMemberId,
+    })
+
+    if (error || !data) {
+      alert("Nu am putut porni conversația.")
+      return
+    }
+
+    window.location.href = `/messages/${data}`
+  }
 
   useEffect(() => {
     async function loadUser() {
@@ -1177,7 +1209,7 @@ export default function Page() {
         window.location.href = "/wallet"
         return <DashboardScreen marketPosts={marketPosts} />
       case "fund":
-        return <FundScreen fundRequests={fundRequests} isLoggedIn={!!userEmail} />
+        return <FundScreen fundRequests={fundRequests} isLoggedIn={!!userEmail} onStartChat={handleStartChat} />
       case "archive":
         return <ArchiveScreen />
       case "governance":

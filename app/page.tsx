@@ -840,12 +840,12 @@ function FundScreen({
                         }
 
                         const params = new URLSearchParams({
-                          supportRequestId: item.id,
-                          supportReceiverId: item.author_id,
-                          supportAmount: item.amount_talanti ? String(item.amount_talanti) : "",
-                          supportTitle: item.title,
-                          supportAuthor: authorName,
-                        })
+  supportRequestId: item.id,
+  supportReceiverId: item.author_id,
+  supportAmount: item.amount_talanti ? String(item.amount_talanti) : "",
+  supportTitle: item.title,
+  supportAuthor: authorName,
+})
 
                         window.location.href = `/wallet?${params.toString()}`
                       }}

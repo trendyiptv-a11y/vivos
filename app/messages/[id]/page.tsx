@@ -112,20 +112,44 @@ export default function ConversationPage() {
   }, [members, userId])
 
   async function handleSend(e: React.FormEvent) {
-    e.preventDefault()
-    if (!body.trim() || !userId) return
+  e.preventDefault()
+  if (!body.trim() || !userId) return
 
-    setSending(true)
+  setSending(true)
 
-    await supabase.from("messages").insert({
+  const cleanBody = body.trim()
+
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({
       conversation_id: conversationId,
       sender_id: userId,
-      body: body.trim(),
+      body: cleanBody,
     })
+    .select("id, sender_id, body, created_at")
+    .single()
 
-    setBody("")
+  if (error) {
+    alert(`Mesajul nu a putut fi trimis: ${error.message}`)
     setSending(false)
+    return
   }
+
+  if (data) {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: data.id,
+        sender_id: data.sender_id,
+        body: data.body,
+        created_at: data.created_at,
+      },
+    ])
+  }
+
+  setBody("")
+  setSending(false)
+}
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">

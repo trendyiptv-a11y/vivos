@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { supabase } from "@/lib/supabase/client"
+import PushSubscribeButton from "@/components/push/push-subscribe-button"
 
 const navItems = [
   { id: "dashboard", label: "Acasă", icon: LayoutDashboard },
@@ -948,9 +949,13 @@ function SettingsScreen() {
         <CardHeader>
           <CardTitle className="text-xl">Setări</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-slate-600">Setările rămân demo în această versiune.</p>
-        </CardContent>
+        <CardContent className="space-y-4">
+  <p className="text-sm text-slate-600">
+    Activează notificările push pentru a fi anunțat când primești mesaje noi.
+  </p>
+
+  <PushSubscribeButton />
+</CardContent>
       </Card>
     </div>
   )

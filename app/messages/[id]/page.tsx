@@ -119,6 +119,16 @@ export default function ConversationPage() {
 
   const cleanBody = body.trim()
 
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session?.access_token) {
+    alert("Sesiunea nu este validă. Reautentifică-te.")
+    setSending(false)
+    return
+  }
+
   const { data, error } = await supabase
     .from("messages")
     .insert({
@@ -145,6 +155,28 @@ export default function ConversationPage() {
 
     if (notificationError) {
       console.error("Notification error:", notificationError)
+    }
+
+    try {
+      const pushResponse = await fetch("/api/notifications/send-message-push", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          conversationId,
+          messageId: data.id,
+          messageBody: cleanBody,
+        }),
+      })
+
+      if (!pushResponse.ok) {
+        const pushResult = await pushResponse.json().catch(() => null)
+        console.error("Push send error:", pushResult)
+      }
+    } catch (pushError) {
+      console.error("Push request failed:", pushError)
     }
 
     setMessages((prev) => [

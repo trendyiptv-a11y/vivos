@@ -136,6 +136,17 @@ export default function ConversationPage() {
   }
 
   if (data) {
+    const { error: notificationError } = await supabase.rpc("create_message_notification", {
+      p_conversation_id: conversationId,
+      p_message_id: data.id,
+      p_sender_id: userId,
+      p_message_body: cleanBody,
+    })
+
+    if (notificationError) {
+      console.error("Notification error:", notificationError)
+    }
+
     setMessages((prev) => [
       ...prev,
       {

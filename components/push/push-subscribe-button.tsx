@@ -83,18 +83,18 @@ export default function PushSubscribeButton() {
       const subscriptionJson = subscription.toJSON()
 
       const response = await fetch("/api/notifications/subscribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          endpoint: subscription.endpoint,
-          keys: subscriptionJson.keys,
-          userAgent: navigator.userAgent,
-          deviceLabel: "browser",
-        }),
-      })
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session.access_token}`,
+  },
+  body: JSON.stringify({
+    endpoint: subscription.endpoint,
+    keys: subscriptionJson.keys,
+    userAgent: navigator.userAgent,
+    deviceLabel: "browser",
+  }),
+})
 
       const result = await response.json()
 

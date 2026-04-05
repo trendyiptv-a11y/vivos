@@ -380,14 +380,24 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
                   </p>
                 </div>
 
-                <Button
-                  className="rounded-2xl"
-                  onClick={() => {
-                    window.location.href = "/market"
-                  }}
-                >
-                  Vezi detalii
-                </Button>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    variant="outline"
+                    className="rounded-2xl"
+                    onClick={() => onStartChat(item.author_id)}
+                  >
+                    Contactează autorul
+                  </Button>
+
+                  <Button
+                    className="rounded-2xl"
+                    onClick={() => {
+                      window.location.href = "/market"
+                    }}
+                  >
+                    Vezi detalii
+                  </Button>
+                </div>
               </div>
             ))
           )}
@@ -580,7 +590,13 @@ function MembersScreen({
   )
 }
 
-function MarketScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
+function MarketScreen({
+  marketPosts,
+  onStartChat,
+}: {
+  marketPosts: MarketPost[]
+  onStartChat: (memberId: string) => void
+}) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -1227,7 +1243,7 @@ export default function Page() {
         window.location.href = "/messages"
         return <DashboardScreen marketPosts={marketPosts} />
       case "market":
-        return <MarketScreen marketPosts={marketPosts} />
+        return <MarketScreen marketPosts={marketPosts} onStartChat={handleStartChat} />
       case "about":
         return <AboutScreen />
       case "wallet":

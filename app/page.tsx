@@ -401,10 +401,12 @@ function MembersScreen({
   members,
   loading,
   isLoggedIn,
+  onStartChat,
 }: {
   members: ProfileMember[]
   loading: boolean
   isLoggedIn: boolean
+  onStartChat: (memberId: string) => void
 }) {
   return (
     <div className="space-y-6">
@@ -516,7 +518,7 @@ function MembersScreen({
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4">
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                       <Button
                         variant="outline"
                         className="rounded-2xl"
@@ -526,6 +528,17 @@ function MembersScreen({
                         }}
                       >
                         Vezi profil
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        className="rounded-2xl"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onStartChat(member.id)
+                        }}
+                      >
+                        Trimite mesaj
                       </Button>
                     </div>
                   </div>
@@ -1202,7 +1215,14 @@ export default function Page() {
   const screen = useMemo(() => {
     switch (active) {
       case "members":
-        return <MembersScreen members={members} loading={membersLoading} isLoggedIn={!!userEmail} />
+        return (
+          <MembersScreen
+            members={members}
+            loading={membersLoading}
+            isLoggedIn={!!userEmail}
+            onStartChat={handleStartChat}
+          />
+        )
       case "messages":
         window.location.href = "/messages"
         return <DashboardScreen marketPosts={marketPosts} />

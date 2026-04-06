@@ -54,6 +54,41 @@ export default function ConversationPage() {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
+  const markActiveConversation = useCallback(
+    async (currentUserId: string) => {
+      const { error } = await supabase
+        .from("active_conversations")
+        .upsert(
+          {
+            user_id: currentUserId,
+            conversation_id: conversationId,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,conversation_id" }
+        )
+
+      if (error) {
+        console.error("Active conversation upsert error:", error)
+      }
+    },
+    [conversationId]
+  )
+
+  const clearActiveConversation = useCallback(
+    async (currentUserId: string) => {
+      const { error } = await supabase
+        .from("active_conversations")
+        .delete()
+        .eq("user_id", currentUserId)
+        .eq("conversation_id", conversationId)
+
+      if (error) {
+        console.error("Active conversation delete error:", error)
+      }
+    },
+    [conversationId]
+  )
+
   const loadMessagesOnly = useCallback(async () => {
     const { data, error } = await supabase
       .from("messages")
@@ -117,13 +152,58 @@ export default function ConversationPage() {
 
       setUserId(session.user.id)
 
-      await Promise.all([loadMessagesOnly(), loadMembersOnly()])
+      await Promise.all([
+        loadMessagesOnly(),
+        loadMembersOnly(),
+        markActiveConversation(session.user.id),
+      ])
 
       setLoading(false)
     }
 
     loadInitial()
-  }, [conversationId, router, loadMessagesOnly, loadMembersOnly])
+  }, [conversationId, router, loadMessagesOnly, loadMembersOnly, markActiveConversation])
+
+  useEffect(() => {
+    if (!userId) return
+
+    const handleVisibility = async () => {
+      if (document.visibilityState === "visible") {
+        await markActiveConversation(userId)
+        await loadMessagesOnly()
+      } else {
+        await clearActiveConversation(userId)
+      }
+    }
+
+    const handleFocus = async () => {
+      await markActiveConversation(userId)
+      await loadMessagesOnly()
+    }
+
+    const handleOnline = async () => {
+      await markActiveConversation(userId)
+      await loadMessagesOnly()
+    }
+
+    const heartbeat = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        markActiveConversation(userId)
+      }
+    }, 15000)
+
+    document.addEventListener("visibilitychange", handleVisibility)
+    window.addEventListener("focus", handleFocus)
+    window.addEventListener("online", handleOnline)
+
+    return () => {
+      window.clearInterval(heartbeat)
+      document.removeEventListener("visibilitychange", handleVisibility)
+      window.removeEventListener("focus", handleFocus)
+      window.removeEventListener("online", handleOnline)
+      clearActiveConversation(userId)
+    }
+  }, [userId, markActiveConversation, clearActiveConversation, loadMessagesOnly])
 
   useEffect(() => {
     const channel = supabase
@@ -159,33 +239,6 @@ export default function ConversationPage() {
       supabase.removeChannel(channel)
     }
   }, [conversationId])
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        loadMessagesOnly()
-      }
-    }, 2000)
-
-    const handleFocus = () => {
-      loadMessagesOnly()
-    }
-
-    const handleOnline = () => {
-      loadMessagesOnly()
-    }
-
-    window.addEventListener("focus", handleFocus)
-    window.addEventListener("online", handleOnline)
-    document.addEventListener("visibilitychange", handleFocus)
-
-    return () => {
-      window.clearInterval(interval)
-      window.removeEventListener("focus", handleFocus)
-      window.removeEventListener("online", handleOnline)
-      document.removeEventListener("visibilitychange", handleFocus)
-    }
-  }, [loadMessagesOnly])
 
   const otherName = useMemo(() => {
     const other = members.find((m) => m.member_id !== userId)

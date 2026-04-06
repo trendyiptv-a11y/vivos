@@ -33,6 +33,11 @@ export default function ProfilePage() {
   const [offersSummary, setOffersSummary] = useState("")
   const [needsSummary, setNeedsSummary] = useState("")
 
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState("")
+
   useEffect(() => {
     async function loadProfile() {
       setLoading(true)
@@ -108,6 +113,38 @@ export default function ProfilePage() {
     setSaving(false)
   }
 
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setPasswordMessage("")
+
+    if (password.length < 6) {
+      setPasswordMessage("Parola trebuie să aibă cel puțin 6 caractere.")
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setPasswordMessage("Parolele nu coincid.")
+      return
+    }
+
+    setPasswordSaving(true)
+
+    const { error } = await supabase.auth.updateUser({
+      password,
+    })
+
+    if (error) {
+      setPasswordMessage(error.message)
+      setPasswordSaving(false)
+      return
+    }
+
+    setPassword("")
+    setConfirmPassword("")
+    setPasswordMessage("Parola a fost schimbată cu succes.")
+    setPasswordSaving(false)
+  }
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
@@ -122,7 +159,7 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl space-y-6">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-slate-500">Membru autentificat</p>
@@ -227,6 +264,53 @@ export default function ProfilePage() {
                   onClick={() => router.push("/")}
                 >
                   Anulează
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl">Schimbă parola</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Parolă nouă</label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="rounded-2xl"
+                    placeholder="Introdu parola nouă"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Confirmă parola</label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="rounded-2xl"
+                    placeholder="Reintrodu parola"
+                    required
+                  />
+                </div>
+              </div>
+
+              {passwordMessage && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+                  {passwordMessage}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button type="submit" className="rounded-2xl" disabled={passwordSaving}>
+                  {passwordSaving ? "Se actualizează..." : "Actualizează parola"}
                 </Button>
               </div>
             </form>

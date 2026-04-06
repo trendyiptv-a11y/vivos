@@ -95,6 +95,39 @@ export async function POST(request: Request) {
 
     const recipientId = recipient.member_id
 
+    const activeThreshold = new Date(Date.now() - 30 * 1000).toISOString()
+
+    const { data: activeConversation, error: activeConversationError } = await supabase
+      .from("active_conversations")
+      .select("user_id, conversation_id, updated_at")
+      .eq("user_id", recipientId)
+      .eq("conversation_id", conversationId)
+      .gte("updated_at", activeThreshold)
+      .maybeSingle()
+
+    if (activeConversationError) {
+      console.error("Active conversation check error:", activeConversationError)
+    }
+
+    if (activeConversation) {
+      await supabase.from("notification_delivery_log").insert({
+        user_id: recipientId,
+        notification_type: "new_message",
+        channel: "push",
+        status: "acked",
+        conversation_id: conversationId,
+        message_id: messageId,
+        error_message: "Push suprimat: receptorul este activ în conversație.",
+      })
+
+      return NextResponse.json({
+        ok: true,
+        delivered: 0,
+        suppressed: true,
+        reason: "Receptorul este deja activ în conversație.",
+      })
+    }
+
     const { data: senderProfile } = await supabase
       .from("profiles")
       .select("name, alias, email")

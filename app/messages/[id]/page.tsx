@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,15 @@ type Member = {
   email: string | null
 }
 
+function upsertMessage(list: Message[], incoming: Message) {
+  const exists = list.some((msg) => msg.id === incoming.id)
+  if (exists) return list
+
+  const next = [...list, incoming]
+  next.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  return next
+}
+
 export default function ConversationPage() {
   const router = useRouter()
   const params = useParams()
@@ -32,8 +41,14 @@ export default function ConversationPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [members, setMembers] = useState<Member[]>([])
 
+  const bottomRef = useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
-    async function load() {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  useEffect(() => {
+    async function loadInitial() {
       setLoading(true)
 
       const {
@@ -47,16 +62,21 @@ export default function ConversationPage() {
 
       setUserId(session.user.id)
 
-      const [{ data: messagesData }, { data: membersData, error: membersError }] = await Promise.all([
-        supabase
-          .from("messages")
-          .select("id, sender_id, body, created_at")
-          .eq("conversation_id", conversationId)
-          .order("created_at", { ascending: true }),
-        supabase.rpc("get_conversation_members_with_profiles", {
-          p_conversation_id: conversationId,
-        }),
-      ])
+      const [{ data: messagesData, error: messagesError }, { data: membersData, error: membersError }] =
+        await Promise.all([
+          supabase
+            .from("messages")
+            .select("id, sender_id, body, created_at")
+            .eq("conversation_id", conversationId)
+            .order("created_at", { ascending: true }),
+          supabase.rpc("get_conversation_members_with_profiles", {
+            p_conversation_id: conversationId,
+          }),
+        ])
+
+      if (messagesError) {
+        console.error("Load messages error:", messagesError)
+      }
 
       const normalizedMessages: Message[] = (messagesData ?? []).map((item: any) => ({
         id: item.id,
@@ -79,21 +99,36 @@ export default function ConversationPage() {
       setLoading(false)
     }
 
-    load()
+    loadInitial()
 
     const channel = supabase
-      .channel(`conversation-${conversationId}`)
+      .channel(`conversation-live-${conversationId}`)
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => load()
+        (payload) => {
+          const incoming = payload.new as any
+
+          if (!incoming?.id) return
+
+          const newMessage: Message = {
+            id: incoming.id,
+            sender_id: incoming.sender_id,
+            body: incoming.body,
+            created_at: incoming.created_at,
+          }
+
+          setMessages((prev) => upsertMessage(prev, newMessage))
+        }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log("Realtime status:", status)
+      })
 
     return () => {
       supabase.removeChannel(channel)
@@ -103,96 +138,90 @@ export default function ConversationPage() {
   const otherName = useMemo(() => {
     const other = members.find((m) => m.member_id !== userId)
 
-    return (
-      other?.name?.trim() ||
-      other?.alias?.trim() ||
-      other?.email?.trim() ||
-      "Membru"
-    )
+    return other?.name?.trim() || other?.alias?.trim() || other?.email?.trim() || "Membru"
   }, [members, userId])
 
   async function handleSend(e: React.FormEvent) {
-  e.preventDefault()
-  if (!body.trim() || !userId) return
+    e.preventDefault()
+    if (!body.trim() || !userId) return
 
-  setSending(true)
+    setSending(true)
 
-  const cleanBody = body.trim()
+    const cleanBody = body.trim()
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-  if (!session?.access_token) {
-    alert("Sesiunea nu este validă. Reautentifică-te.")
-    setSending(false)
-    return
-  }
-
-  const { data, error } = await supabase
-    .from("messages")
-    .insert({
-      conversation_id: conversationId,
-      sender_id: userId,
-      body: cleanBody,
-    })
-    .select("id, sender_id, body, created_at")
-    .single()
-
-  if (error) {
-    alert(`Mesajul nu a putut fi trimis: ${error.message}`)
-    setSending(false)
-    return
-  }
-
-  if (data) {
-    const { error: notificationError } = await supabase.rpc("create_message_notification", {
-      p_conversation_id: conversationId,
-      p_message_id: data.id,
-      p_sender_id: userId,
-      p_message_body: cleanBody,
-    })
-
-    if (notificationError) {
-      console.error("Notification error:", notificationError)
+    if (!session?.access_token) {
+      alert("Sesiunea nu este validă. Reautentifică-te.")
+      setSending(false)
+      return
     }
 
-    try {
-      const pushResponse = await fetch("/api/notifications/send-message-push", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          conversationId,
-          messageId: data.id,
-          messageBody: cleanBody,
-        }),
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: conversationId,
+        sender_id: userId,
+        body: cleanBody,
+      })
+      .select("id, sender_id, body, created_at")
+      .single()
+
+    if (error) {
+      alert(`Mesajul nu a putut fi trimis: ${error.message}`)
+      setSending(false)
+      return
+    }
+
+    if (data) {
+      const { error: notificationError } = await supabase.rpc("create_message_notification", {
+        p_conversation_id: conversationId,
+        p_message_id: data.id,
+        p_sender_id: userId,
+        p_message_body: cleanBody,
       })
 
-      if (!pushResponse.ok) {
-        const pushResult = await pushResponse.json().catch(() => null)
-        console.error("Push send error:", pushResult)
+      if (notificationError) {
+        console.error("Notification error:", notificationError)
       }
-    } catch (pushError) {
-      console.error("Push request failed:", pushError)
+
+      try {
+        const pushResponse = await fetch("/api/notifications/send-message-push", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            conversationId,
+            messageId: data.id,
+            messageBody: cleanBody,
+          }),
+        })
+
+        if (!pushResponse.ok) {
+          const pushResult = await pushResponse.json().catch(() => null)
+          console.error("Push send error:", pushResult)
+        }
+      } catch (pushError) {
+        console.error("Push request failed:", pushError)
+      }
+
+      setMessages((prev) =>
+        upsertMessage(prev, {
+          id: data.id,
+          sender_id: data.sender_id,
+          body: data.body,
+          created_at: data.created_at,
+        })
+      )
     }
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: data.id,
-        sender_id: data.sender_id,
-        body: data.body,
-        created_at: data.created_at,
-      },
-    ])
+    setBody("")
+    setSending(false)
   }
-
-  setBody("")
-  setSending(false)
-}
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
@@ -220,23 +249,26 @@ export default function ConversationPage() {
                 Nu există încă mesaje în această conversație.
               </div>
             ) : (
-              messages.map((msg) => {
-                const mine = msg.sender_id === userId
-                return (
-                  <div
-                    key={msg.id}
-                    className={`rounded-2xl border p-4 ${mine ? "bg-slate-50" : "bg-white"}`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium">{mine ? "Tu" : otherName}</p>
-                      <p className="text-xs text-slate-500">
-                        {new Date(msg.created_at).toLocaleString("ro-RO")}
-                      </p>
+              <>
+                {messages.map((msg) => {
+                  const mine = msg.sender_id === userId
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`rounded-2xl border p-4 ${mine ? "bg-slate-50" : "bg-white"}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-medium">{mine ? "Tu" : otherName}</p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(msg.created_at).toLocaleString("ro-RO")}
+                        </p>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-700">{msg.body}</p>
                     </div>
-                    <p className="mt-2 text-sm text-slate-700">{msg.body}</p>
-                  </div>
-                )
-              })
+                  )
+                })}
+                <div ref={bottomRef} />
+              </>
             )}
           </CardContent>
         </Card>

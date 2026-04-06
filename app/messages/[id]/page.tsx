@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,13 +20,16 @@ type Member = {
   email: string | null
 }
 
+function sortMessages(list: Message[]) {
+  return [...list].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  )
+}
+
 function upsertMessage(list: Message[], incoming: Message) {
   const exists = list.some((msg) => msg.id === incoming.id)
   if (exists) return list
-
-  const next = [...list, incoming]
-  next.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-  return next
+  return sortMessages([...list, incoming])
 }
 
 export default function ConversationPage() {
@@ -43,9 +46,61 @@ export default function ConversationPage() {
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  }, [])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages, scrollToBottom])
+
+  const loadMessagesOnly = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("id, sender_id, body, created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true })
+
+    if (error) {
+      console.error("Load messages error:", error)
+      return
+    }
+
+    const normalizedMessages: Message[] = (data ?? []).map((item: any) => ({
+      id: item.id,
+      sender_id: item.sender_id,
+      body: item.body,
+      created_at: item.created_at,
+    }))
+
+    setMessages((prev) => {
+      const prevIds = prev.map((m) => m.id).join("|")
+      const nextIds = normalizedMessages.map((m) => m.id).join("|")
+      if (prevIds === nextIds) return prev
+      return normalizedMessages
+    })
+  }, [conversationId])
+
+  const loadMembersOnly = useCallback(async () => {
+    const { data, error } = await supabase.rpc("get_conversation_members_with_profiles", {
+      p_conversation_id: conversationId,
+    })
+
+    if (error) {
+      console.error("Load members error:", error)
+      setMembers([])
+      return
+    }
+
+    const normalizedMembers: Member[] = (data ?? []).map((item: any) => ({
+      member_id: item.member_id,
+      name: item.name ?? null,
+      alias: item.alias ?? null,
+      email: item.email ?? null,
+    }))
+
+    setMembers(normalizedMembers)
+  }, [conversationId])
 
   useEffect(() => {
     async function loadInitial() {
@@ -62,45 +117,15 @@ export default function ConversationPage() {
 
       setUserId(session.user.id)
 
-      const [{ data: messagesData, error: messagesError }, { data: membersData, error: membersError }] =
-        await Promise.all([
-          supabase
-            .from("messages")
-            .select("id, sender_id, body, created_at")
-            .eq("conversation_id", conversationId)
-            .order("created_at", { ascending: true }),
-          supabase.rpc("get_conversation_members_with_profiles", {
-            p_conversation_id: conversationId,
-          }),
-        ])
+      await Promise.all([loadMessagesOnly(), loadMembersOnly()])
 
-      if (messagesError) {
-        console.error("Load messages error:", messagesError)
-      }
-
-      const normalizedMessages: Message[] = (messagesData ?? []).map((item: any) => ({
-        id: item.id,
-        sender_id: item.sender_id,
-        body: item.body,
-        created_at: item.created_at,
-      }))
-
-      const normalizedMembers: Member[] = membersError
-        ? []
-        : (membersData ?? []).map((item: any) => ({
-            member_id: item.member_id,
-            name: item.name ?? null,
-            alias: item.alias ?? null,
-            email: item.email ?? null,
-          }))
-
-      setMessages(normalizedMessages)
-      setMembers(normalizedMembers)
       setLoading(false)
     }
 
     loadInitial()
+  }, [conversationId, router, loadMessagesOnly, loadMembersOnly])
 
+  useEffect(() => {
     const channel = supabase
       .channel(`conversation-live-${conversationId}`)
       .on(
@@ -133,12 +158,44 @@ export default function ConversationPage() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [conversationId, router])
+  }, [conversationId])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        loadMessagesOnly()
+      }
+    }, 2000)
+
+    const handleFocus = () => {
+      loadMessagesOnly()
+    }
+
+    const handleOnline = () => {
+      loadMessagesOnly()
+    }
+
+    window.addEventListener("focus", handleFocus)
+    window.addEventListener("online", handleOnline)
+    document.addEventListener("visibilitychange", handleFocus)
+
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener("focus", handleFocus)
+      window.removeEventListener("online", handleOnline)
+      document.removeEventListener("visibilitychange", handleFocus)
+    }
+  }, [loadMessagesOnly])
 
   const otherName = useMemo(() => {
     const other = members.find((m) => m.member_id !== userId)
 
-    return other?.name?.trim() || other?.alias?.trim() || other?.email?.trim() || "Membru"
+    return (
+      other?.name?.trim() ||
+      other?.alias?.trim() ||
+      other?.email?.trim() ||
+      "Membru"
+    )
   }, [members, userId])
 
   async function handleSend(e: React.FormEvent) {
@@ -221,6 +278,7 @@ export default function ConversationPage() {
 
     setBody("")
     setSending(false)
+    scrollToBottom()
   }
 
   return (
@@ -243,7 +301,9 @@ export default function ConversationPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {loading ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă conversația...</div>
+              <div className="rounded-2xl border p-4 text-sm text-slate-600">
+                Se încarcă conversația...
+              </div>
             ) : messages.length === 0 ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">
                 Nu există încă mesaje în această conversație.

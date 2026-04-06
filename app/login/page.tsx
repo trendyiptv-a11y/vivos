@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -65,6 +66,15 @@ export default function LoginPage() {
                 className="rounded-2xl"
                 required
               />
+            </div>
+
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-slate-500 underline underline-offset-4 hover:text-slate-700"
+              >
+                Ai uitat parola?
+              </Link>
             </div>
 
             {message && (

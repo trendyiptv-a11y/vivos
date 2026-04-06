@@ -22,16 +22,19 @@ export default function PushSubscribeButton() {
   const [permission, setPermission] = useState<NotificationPermission>("default")
   const [busy, setBusy] = useState(false)
   const [ready, setReady] = useState(false)
+  const [statusText, setStatusText] = useState("")
 
   useEffect(() => {
     const ok =
       typeof window !== "undefined" &&
+      window.isSecureContext &&
       "serviceWorker" in navigator &&
       "PushManager" in window &&
       "Notification" in window
 
     setSupported(ok)
-    if (ok) {
+
+    if (typeof window !== "undefined" && "Notification" in window) {
       setPermission(Notification.permission)
     }
   }, [])
@@ -39,6 +42,7 @@ export default function PushSubscribeButton() {
   async function handleEnablePush() {
     try {
       setBusy(true)
+      setStatusText("")
 
       const {
         data: { session },
@@ -50,7 +54,7 @@ export default function PushSubscribeButton() {
       }
 
       if (!supported) {
-        alert("Browserul nu suportă Web Push.")
+        alert("Acest browser sau dispozitiv nu suportă Web Push.")
         return
       }
 
@@ -74,37 +78,59 @@ export default function PushSubscribeButton() {
       let subscription = await swRegistration.pushManager.getSubscription()
 
       if (!subscription) {
-        subscription = await swRegistration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-        })
+        try {
+          subscription = await swRegistration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          })
+        } catch (subscribeError: any) {
+          console.error("Push subscribe error:", subscribeError)
+          alert(
+            "Browserul a permis notificările, dar nu a putut crea push subscription. Pe acest dispozitiv sau browser, Web Push poate fi limitat."
+          )
+          return
+        }
+      }
+
+      if (!subscription) {
+        alert(
+          "Nu s-a putut crea push subscription. Browserul sau dispozitivul nu oferă suport complet pentru Web Push."
+        )
+        return
       }
 
       const subscriptionJson = subscription.toJSON()
 
-      const response = await fetch("/api/notifications/subscribe", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${session.access_token}`,
-  },
-  body: JSON.stringify({
-    endpoint: subscription.endpoint,
-    keys: subscriptionJson.keys,
-    userAgent: navigator.userAgent,
-    deviceLabel: "browser",
-  }),
-})
+      if (!subscriptionJson?.keys?.p256dh || !subscriptionJson?.keys?.auth) {
+        alert("Push subscription este incomplet.")
+        return
+      }
 
-      const result = await response.json()
+      const response = await fetch("/api/notifications/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          endpoint: subscription.endpoint,
+          keys: subscriptionJson.keys,
+          userAgent: navigator.userAgent,
+          deviceLabel: "browser",
+        }),
+      })
+
+      const result = await response.json().catch(() => null)
 
       if (!response.ok) {
         throw new Error(result?.error || "Nu am putut salva push subscription.")
       }
 
       setReady(true)
+      setStatusText("Push activat cu succes.")
       alert("Notificările push au fost activate.")
     } catch (error: any) {
+      console.error(error)
       alert(error?.message || "A apărut o eroare la activarea notificărilor.")
     } finally {
       setBusy(false)
@@ -125,8 +151,18 @@ export default function PushSubscribeButton() {
         Status notificări: <span className="font-medium text-slate-900">{permission}</span>
       </div>
 
+      {statusText ? (
+        <div className="rounded-2xl border p-4 text-sm text-slate-600">
+          {statusText}
+        </div>
+      ) : null}
+
       <Button className="rounded-2xl" onClick={handleEnablePush} disabled={busy}>
-        {busy ? "Se activează..." : ready || permission === "granted" ? "Reactivează push" : "Activează notificări push"}
+        {busy
+          ? "Se activează..."
+          : ready || permission === "granted"
+          ? "Reactivează push"
+          : "Activează notificări push"}
       </Button>
     </div>
   )

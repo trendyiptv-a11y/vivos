@@ -57,6 +57,7 @@ export default function ConversationPage() {
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null)
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const callChannelRef = useRef<any>(null)
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -308,13 +309,20 @@ export default function ConversationPage() {
         console.log("Call channel status:", status)
       })
 
+    callChannelRef.current = callChannel
+
     return () => {
+      callChannelRef.current = null
       supabase.removeChannel(callChannel)
     }
   }, [conversationId, userId, currentCallSessionId])
 
   async function handleStartCall() {
     if (!userId || !otherMember?.member_id || callUiState !== "idle") return
+    if (!callChannelRef.current) {
+      alert("Canalul de apel nu este pregătit.")
+      return
+    }
 
     try {
       setCallBusy(true)
@@ -346,10 +354,7 @@ export default function ConversationPage() {
         },
       })
 
-      const channel = supabase.channel(`call:conversation:${conversationId}`)
-      await channel.subscribe()
-
-      await channel.send({
+      await callChannelRef.current.send({
         type: "broadcast",
         event: "call_invite",
         payload: {
@@ -373,6 +378,10 @@ export default function ConversationPage() {
 
   async function handleAcceptCall() {
     if (!userId || !incomingCall?.callSessionId) return
+    if (!callChannelRef.current) {
+      alert("Canalul de apel nu este pregătit.")
+      return
+    }
 
     try {
       setCallBusy(true)
@@ -401,10 +410,7 @@ export default function ConversationPage() {
         },
       })
 
-      const channel = supabase.channel(`call:conversation:${conversationId}`)
-      await channel.subscribe()
-
-      await channel.send({
+      await callChannelRef.current.send({
         type: "broadcast",
         event: "call_accept",
         payload: {
@@ -428,6 +434,10 @@ export default function ConversationPage() {
 
   async function handleRejectCall() {
     if (!userId || !incomingCall?.callSessionId) return
+    if (!callChannelRef.current) {
+      alert("Canalul de apel nu este pregătit.")
+      return
+    }
 
     try {
       setCallBusy(true)
@@ -451,10 +461,7 @@ export default function ConversationPage() {
         },
       })
 
-      const channel = supabase.channel(`call:conversation:${conversationId}`)
-      await channel.subscribe()
-
-      await channel.send({
+      await callChannelRef.current.send({
         type: "broadcast",
         event: "call_reject",
         payload: {
@@ -483,6 +490,12 @@ export default function ConversationPage() {
       setCurrentCallSessionId(null)
       return
     }
+    if (!callChannelRef.current) {
+      setIncomingCall(null)
+      setCurrentCallSessionId(null)
+      setCallUiState("idle")
+      return
+    }
 
     try {
       setCallBusy(true)
@@ -504,10 +517,7 @@ export default function ConversationPage() {
         },
       })
 
-      const channel = supabase.channel(`call:conversation:${conversationId}`)
-      await channel.subscribe()
-
-      await channel.send({
+      await callChannelRef.current.send({
         type: "broadcast",
         event: "call_end",
         payload: {
@@ -748,3 +758,9 @@ export default function ConversationPage() {
     </main>
   )
 }
+"""
+path = Path("/mnt/data/conversation_page_with_call_signaling_fixed.tsx")
+path.write_text(code, encoding="utf-8")
+print(path.as_posix())
+򐠎 to=python_user_visible.exec code execution_output from commentary  天天中彩票微信 to=python_user_visible.exec code execution_output code omitted  无码av code execution_output
+/mnt/data/conversation_page_with_call_signaling_fixed.tsx

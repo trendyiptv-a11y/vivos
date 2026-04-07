@@ -27,6 +27,14 @@ type IncomingCall = {
   fromUserId: string
 }
 
+type AudioElWithSink = HTMLAudioElement & {
+  setSinkId?: (sinkId: string) => Promise<void>
+}
+
+type MediaDevicesWithAudioOutput = MediaDevices & {
+  selectAudioOutput?: () => Promise<MediaDeviceInfo>
+}
+
 function sortMessages(list: Message[]) {
   return [...list].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -55,6 +63,9 @@ export default function ConversationPage() {
   const [callBusy, setCallBusy] = useState(false)
   const [currentCallSessionId, setCurrentCallSessionId] = useState<string | null>(null)
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null)
+
+  const [speakerOn, setSpeakerOn] = useState(false)
+  const [audioMessage, setAudioMessage] = useState("")
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -95,6 +106,9 @@ export default function ConversationPage() {
       } catch {}
       remoteAudioRef.current.srcObject = null
     }
+
+    setSpeakerOn(false)
+    setAudioMessage("")
   }, [])
 
   const ensureLocalStream = useCallback(async () => {
@@ -305,6 +319,15 @@ export default function ConversationPage() {
       if (document.visibilityState === "visible") {
         await markActiveConversation(userId)
         await loadMessagesOnly()
+
+        const audioEl = remoteAudioRef.current
+        if (audioEl?.srcObject) {
+          try {
+            await audioEl.play()
+          } catch (error) {
+            console.error("Resume remote audio error:", error)
+          }
+        }
       } else {
         await clearActiveConversation(userId)
       }
@@ -313,6 +336,15 @@ export default function ConversationPage() {
     const handleFocus = async () => {
       await markActiveConversation(userId)
       await loadMessagesOnly()
+
+      const audioEl = remoteAudioRef.current
+      if (audioEl?.srcObject) {
+        try {
+          await audioEl.play()
+        } catch (error) {
+          console.error("Focus remote audio error:", error)
+        }
+      }
     }
 
     const handleOnline = async () => {
@@ -520,6 +552,44 @@ export default function ConversationPage() {
     }
   }, [conversationId, userId, ensurePeerConnection, cleanupAudioCall])
 
+  async function handleToggleSpeaker() {
+    const audioEl = remoteAudioRef.current as AudioElWithSink | null
+
+    if (!audioEl) {
+      setAudioMessage("Audio remote indisponibil.")
+      return
+    }
+
+    if (typeof audioEl.setSinkId !== "function") {
+      setAudioMessage("Browserul nu permite controlul ieșirii audio.")
+      return
+    }
+
+    try {
+      const mediaDevices = navigator.mediaDevices as MediaDevicesWithAudioOutput
+
+      if (!speakerOn) {
+        if (typeof mediaDevices.selectAudioOutput !== "function") {
+          setAudioMessage("Selectarea difuzorului nu este suportată aici.")
+          return
+        }
+
+        const outputDevice = await mediaDevices.selectAudioOutput()
+        await audioEl.setSinkId(outputDevice.deviceId)
+        setSpeakerOn(true)
+        setAudioMessage("Ieșirea audio a fost schimbată.")
+        return
+      }
+
+      await audioEl.setSinkId("")
+      setSpeakerOn(false)
+      setAudioMessage("Ieșirea audio a revenit la implicit.")
+    } catch (error) {
+      console.error("Speaker toggle error:", error)
+      setAudioMessage("Nu am putut schimba ieșirea audio.")
+    }
+  }
+
   async function handleStartCall() {
     if (!userId || !otherMember?.member_id || callUiState !== "idle") return
     if (!callChannelRef.current) {
@@ -529,6 +599,7 @@ export default function ConversationPage() {
 
     try {
       setCallBusy(true)
+      setAudioMessage("")
       await ensureLocalStream()
 
       const { data: callSession, error: callSessionError } = await supabase
@@ -591,6 +662,7 @@ export default function ConversationPage() {
 
     try {
       setCallBusy(true)
+      setAudioMessage("")
       await ensureLocalStream()
       await ensurePeerConnection(userId)
 
@@ -852,9 +924,20 @@ export default function ConversationPage() {
             ) : null}
 
             {callUiState === "connected" ? (
-              <Button variant="outline" className="rounded-2xl" onClick={handleEndCall} disabled={callBusy}>
-                {callBusy ? "Se închide..." : "Închide apelul"}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  className="rounded-2xl"
+                  onClick={handleToggleSpeaker}
+                  disabled={callBusy}
+                >
+                  {speakerOn ? "Difuzor: ON" : "Difuzor"}
+                </Button>
+
+                <Button variant="outline" className="rounded-2xl" onClick={handleEndCall} disabled={callBusy}>
+                  {callBusy ? "Se închide..." : "Închide apelul"}
+                </Button>
+              </>
             ) : null}
 
             <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/messages")}>
@@ -880,8 +963,9 @@ export default function ConversationPage() {
             <CardHeader>
               <CardTitle className="text-xl">Apel audio activ</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-2">
               <p className="text-sm text-slate-600">Conectat cu {otherName}.</p>
+              {audioMessage ? <p className="text-xs text-slate-500">{audioMessage}</p> : null}
             </CardContent>
           </Card>
         ) : null}

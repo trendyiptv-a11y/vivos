@@ -90,6 +90,9 @@ export default function ConversationPage() {
     }
 
     if (remoteAudioRef.current) {
+      try {
+        remoteAudioRef.current.pause()
+      } catch {}
       remoteAudioRef.current.srcObject = null
     }
   }, [])
@@ -122,10 +125,22 @@ export default function ConversationPage() {
         iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
       })
 
-      pc.ontrack = (event) => {
+      pc.ontrack = async (event) => {
         const [remoteStream] = event.streams
-        if (remoteAudioRef.current && remoteStream) {
-          remoteAudioRef.current.srcObject = remoteStream
+        const audioEl = remoteAudioRef.current
+
+        if (!audioEl || !remoteStream) return
+
+        audioEl.srcObject = remoteStream
+        audioEl.autoplay = true
+        audioEl.playsInline = true
+        audioEl.muted = false
+
+        try {
+          await audioEl.play()
+          console.log("Remote audio started")
+        } catch (error) {
+          console.error("Remote audio play error:", error)
         }
       }
 
@@ -814,7 +829,7 @@ export default function ConversationPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
-      <audio ref={remoteAudioRef} autoPlay playsInline />
+      <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
 
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

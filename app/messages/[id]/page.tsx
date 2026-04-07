@@ -57,7 +57,15 @@ export default function ConversationPage() {
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null)
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
   const callChannelRef = useRef<any>(null)
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
+  const localStreamRef = useRef<MediaStream | null>(null)
+  const currentCallSessionIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    currentCallSessionIdRef.current = currentCallSessionId
+  }, [currentCallSessionId])
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -66,6 +74,104 @@ export default function ConversationPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
+
+  const cleanupAudioCall = useCallback(() => {
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.ontrack = null
+      peerConnectionRef.current.onicecandidate = null
+      peerConnectionRef.current.onconnectionstatechange = null
+      peerConnectionRef.current.close()
+      peerConnectionRef.current = null
+    }
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop())
+      localStreamRef.current = null
+    }
+
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = null
+    }
+  }, [])
+
+  const ensureLocalStream = useCallback(async () => {
+    if (localStreamRef.current) return localStreamRef.current
+
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+      throw new Error("Browserul nu suportă accesul la microfon.")
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false,
+    })
+
+    localStreamRef.current = stream
+    return stream
+  }, [])
+
+  const ensurePeerConnection = useCallback(
+    async (currentUserId: string) => {
+      if (peerConnectionRef.current) return peerConnectionRef.current
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
+      })
+
+      pc.ontrack = (event) => {
+        const [remoteStream] = event.streams
+        if (remoteAudioRef.current && remoteStream) {
+          remoteAudioRef.current.srcObject = remoteStream
+        }
+      }
+
+      pc.onicecandidate = async (event) => {
+        if (!event.candidate) return
+        if (!callChannelRef.current) return
+        if (!currentCallSessionIdRef.current) return
+
+        try {
+          await callChannelRef.current.send({
+            type: "broadcast",
+            event: "ice_candidate",
+            payload: {
+              type: "ice_candidate",
+              callSessionId: currentCallSessionIdRef.current,
+              conversationId,
+              fromUserId: currentUserId,
+              candidate: event.candidate.toJSON(),
+            },
+          })
+        } catch (error) {
+          console.error("ICE send error:", error)
+        }
+      }
+
+      pc.onconnectionstatechange = () => {
+        const state = pc.connectionState
+
+        if (state === "failed" || state === "disconnected" || state === "closed") {
+          cleanupAudioCall()
+          setIncomingCall(null)
+          setCurrentCallSessionId(null)
+          setCallUiState("idle")
+        }
+      }
+
+      const stream = await ensureLocalStream()
+      stream.getTracks().forEach((track) => {
+        pc.addTrack(track, stream)
+      })
+
+      peerConnectionRef.current = pc
+      return pc
+    },
+    [cleanupAudioCall, conversationId, ensureLocalStream]
+  )
 
   const markActiveConversation = useCallback(
     async (currentUserId: string) => {
@@ -283,15 +389,42 @@ export default function ConversationPage() {
         setCurrentCallSessionId(payload.callSessionId)
         setCallUiState("incoming")
       })
-      .on("broadcast", { event: "call_accept" }, ({ payload }) => {
+      .on("broadcast", { event: "call_accept" }, async ({ payload }) => {
         if (!payload) return
-        if (payload.callSessionId !== currentCallSessionId) return
-        setCallUiState("connected")
+        if (payload.callSessionId !== currentCallSessionIdRef.current) return
+        if (!userId) return
+
+        try {
+          const pc = await ensurePeerConnection(userId)
+          const offer = await pc.createOffer()
+          await pc.setLocalDescription(offer)
+
+          await callChannelRef.current?.send({
+            type: "broadcast",
+            event: "webrtc_offer",
+            payload: {
+              type: "webrtc_offer",
+              callSessionId: payload.callSessionId,
+              conversationId,
+              fromUserId: userId,
+              sdp: offer,
+            },
+          })
+
+          setCallUiState("connected")
+        } catch (error) {
+          console.error("Offer create error:", error)
+          alert("Nu am putut porni audio-ul apelului.")
+          cleanupAudioCall()
+          setCurrentCallSessionId(null)
+          setCallUiState("idle")
+        }
       })
       .on("broadcast", { event: "call_reject" }, ({ payload }) => {
         if (!payload) return
-        if (payload.callSessionId !== currentCallSessionId) return
+        if (payload.callSessionId !== currentCallSessionIdRef.current) return
 
+        cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
         setCallUiState("idle")
@@ -299,11 +432,66 @@ export default function ConversationPage() {
       })
       .on("broadcast", { event: "call_end" }, ({ payload }) => {
         if (!payload) return
-        if (currentCallSessionId && payload.callSessionId !== currentCallSessionId) return
+        if (currentCallSessionIdRef.current && payload.callSessionId !== currentCallSessionIdRef.current) return
 
+        cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
         setCallUiState("idle")
+      })
+      .on("broadcast", { event: "webrtc_offer" }, async ({ payload }) => {
+        if (!payload) return
+        if (payload.callSessionId !== currentCallSessionIdRef.current) return
+        if (!userId) return
+
+        try {
+          const pc = await ensurePeerConnection(userId)
+          await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp))
+
+          const answer = await pc.createAnswer()
+          await pc.setLocalDescription(answer)
+
+          await callChannelRef.current?.send({
+            type: "broadcast",
+            event: "webrtc_answer",
+            payload: {
+              type: "webrtc_answer",
+              callSessionId: payload.callSessionId,
+              conversationId,
+              fromUserId: userId,
+              sdp: answer,
+            },
+          })
+
+          setCallUiState("connected")
+        } catch (error) {
+          console.error("Offer handling error:", error)
+        }
+      })
+      .on("broadcast", { event: "webrtc_answer" }, async ({ payload }) => {
+        if (!payload) return
+        if (payload.callSessionId !== currentCallSessionIdRef.current) return
+
+        try {
+          const pc = peerConnectionRef.current
+          if (!pc) return
+          await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp))
+          setCallUiState("connected")
+        } catch (error) {
+          console.error("Answer handling error:", error)
+        }
+      })
+      .on("broadcast", { event: "ice_candidate" }, async ({ payload }) => {
+        if (!payload) return
+        if (payload.callSessionId !== currentCallSessionIdRef.current) return
+
+        try {
+          const pc = peerConnectionRef.current
+          if (!pc || !payload.candidate) return
+          await pc.addIceCandidate(new RTCIceCandidate(payload.candidate))
+        } catch (error) {
+          console.error("ICE handling error:", error)
+        }
       })
       .subscribe((status) => {
         console.log("Call channel status:", status)
@@ -315,7 +503,7 @@ export default function ConversationPage() {
       callChannelRef.current = null
       supabase.removeChannel(callChannel)
     }
-  }, [conversationId, userId, currentCallSessionId])
+  }, [conversationId, userId, ensurePeerConnection, cleanupAudioCall])
 
   async function handleStartCall() {
     if (!userId || !otherMember?.member_id || callUiState !== "idle") return
@@ -326,6 +514,7 @@ export default function ConversationPage() {
 
     try {
       setCallBusy(true)
+      await ensureLocalStream()
 
       const { data: callSession, error: callSessionError } = await supabase
         .from("call_sessions")
@@ -340,6 +529,7 @@ export default function ConversationPage() {
 
       if (callSessionError || !callSession?.id) {
         alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`)
+        cleanupAudioCall()
         return
       }
 
@@ -368,9 +558,10 @@ export default function ConversationPage() {
 
       setCurrentCallSessionId(callSessionId)
       setCallUiState("outgoing")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Start call error:", error)
-      alert("Nu am putut porni apelul.")
+      alert(error?.message || "Nu am putut porni apelul.")
+      cleanupAudioCall()
     } finally {
       setCallBusy(false)
     }
@@ -385,6 +576,8 @@ export default function ConversationPage() {
 
     try {
       setCallBusy(true)
+      await ensureLocalStream()
+      await ensurePeerConnection(userId)
 
       const callSessionId = incomingCall.callSessionId
 
@@ -398,6 +591,7 @@ export default function ConversationPage() {
 
       if (updateError) {
         alert(`Nu am putut accepta apelul: ${updateError.message}`)
+        cleanupAudioCall()
         return
       }
 
@@ -424,9 +618,10 @@ export default function ConversationPage() {
       setIncomingCall(null)
       setCurrentCallSessionId(callSessionId)
       setCallUiState("connected")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Accept call error:", error)
-      alert("Nu am putut accepta apelul.")
+      alert(error?.message || "Nu am putut accepta apelul.")
+      cleanupAudioCall()
     } finally {
       setCallBusy(false)
     }
@@ -472,6 +667,7 @@ export default function ConversationPage() {
         },
       })
 
+      cleanupAudioCall()
       setIncomingCall(null)
       setCurrentCallSessionId(null)
       setCallUiState("idle")
@@ -485,16 +681,10 @@ export default function ConversationPage() {
 
   async function handleEndCall() {
     if (!userId || !currentCallSessionId) {
+      cleanupAudioCall()
       setIncomingCall(null)
       setCallUiState("idle")
       setCurrentCallSessionId(null)
-      return
-    }
-
-    if (!callChannelRef.current) {
-      setIncomingCall(null)
-      setCurrentCallSessionId(null)
-      setCallUiState("idle")
       return
     }
 
@@ -518,7 +708,7 @@ export default function ConversationPage() {
         },
       })
 
-      await callChannelRef.current.send({
+      await callChannelRef.current?.send({
         type: "broadcast",
         event: "call_end",
         payload: {
@@ -531,6 +721,7 @@ export default function ConversationPage() {
     } catch (error) {
       console.error("End call error:", error)
     } finally {
+      cleanupAudioCall()
       setIncomingCall(null)
       setCurrentCallSessionId(null)
       setCallUiState("idle")
@@ -623,6 +814,8 @@ export default function ConversationPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
+      <audio ref={remoteAudioRef} autoPlay playsInline />
+
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -662,6 +855,7 @@ export default function ConversationPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-slate-600">Sună către {otherName}...</p>
+              <p className="mt-2 text-xs text-slate-500">Microfonul este pregătit.</p>
             </CardContent>
           </Card>
         ) : null}
@@ -669,10 +863,10 @@ export default function ConversationPage() {
         {callUiState === "connected" ? (
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-xl">Apel activ</CardTitle>
+              <CardTitle className="text-xl">Apel audio activ</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-600">Conectat cu {otherName}. Următorul pas va fi audio WebRTC.</p>
+              <p className="text-sm text-slate-600">Conectat cu {otherName}.</p>
             </CardContent>
           </Card>
         ) : null}

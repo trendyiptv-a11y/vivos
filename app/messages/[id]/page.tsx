@@ -20,6 +20,13 @@ type Member = {
   email: string | null
 }
 
+type CallUiState = "idle" | "outgoing" | "incoming" | "connected"
+
+type IncomingCall = {
+  callSessionId: string
+  fromUserId: string
+}
+
 function sortMessages(list: Message[]) {
   return [...list].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -43,6 +50,11 @@ export default function ConversationPage() {
   const [body, setBody] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [members, setMembers] = useState<Member[]>([])
+
+  const [callUiState, setCallUiState] = useState<CallUiState>("idle")
+  const [callBusy, setCallBusy] = useState(false)
+  const [currentCallSessionId, setCurrentCallSessionId] = useState<string | null>(null)
+  const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null)
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
@@ -240,16 +252,280 @@ export default function ConversationPage() {
     }
   }, [conversationId])
 
-  const otherName = useMemo(() => {
-    const other = members.find((m) => m.member_id !== userId)
+  const otherMember = useMemo(() => {
+    return members.find((m) => m.member_id !== userId) || null
+  }, [members, userId])
 
+  const otherName = useMemo(() => {
     return (
-      other?.name?.trim() ||
-      other?.alias?.trim() ||
-      other?.email?.trim() ||
+      otherMember?.name?.trim() ||
+      otherMember?.alias?.trim() ||
+      otherMember?.email?.trim() ||
       "Membru"
     )
-  }, [members, userId])
+  }, [otherMember])
+
+  useEffect(() => {
+    if (!userId) return
+
+    const callChannel = supabase
+      .channel(`call:conversation:${conversationId}`)
+      .on("broadcast", { event: "call_invite" }, ({ payload }) => {
+        if (!payload) return
+        if (payload.toUserId !== userId) return
+        if (payload.fromUserId === userId) return
+
+        setIncomingCall({
+          callSessionId: payload.callSessionId,
+          fromUserId: payload.fromUserId,
+        })
+        setCurrentCallSessionId(payload.callSessionId)
+        setCallUiState("incoming")
+      })
+      .on("broadcast", { event: "call_accept" }, ({ payload }) => {
+        if (!payload) return
+        if (payload.callSessionId !== currentCallSessionId) return
+        setCallUiState("connected")
+      })
+      .on("broadcast", { event: "call_reject" }, ({ payload }) => {
+        if (!payload) return
+        if (payload.callSessionId !== currentCallSessionId) return
+
+        setIncomingCall(null)
+        setCurrentCallSessionId(null)
+        setCallUiState("idle")
+        alert("Apel respins.")
+      })
+      .on("broadcast", { event: "call_end" }, ({ payload }) => {
+        if (!payload) return
+        if (currentCallSessionId && payload.callSessionId !== currentCallSessionId) return
+
+        setIncomingCall(null)
+        setCurrentCallSessionId(null)
+        setCallUiState("idle")
+      })
+      .subscribe((status) => {
+        console.log("Call channel status:", status)
+      })
+
+    return () => {
+      supabase.removeChannel(callChannel)
+    }
+  }, [conversationId, userId, currentCallSessionId])
+
+  async function handleStartCall() {
+    if (!userId || !otherMember?.member_id || callUiState !== "idle") return
+
+    try {
+      setCallBusy(true)
+
+      const { data: callSession, error: callSessionError } = await supabase
+        .from("call_sessions")
+        .insert({
+          conversation_id: conversationId,
+          caller_id: userId,
+          callee_id: otherMember.member_id,
+          status: "ringing",
+        })
+        .select("id")
+        .single()
+
+      if (callSessionError || !callSession?.id) {
+        alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`)
+        return
+      }
+
+      const callSessionId = callSession.id
+
+      await supabase.from("call_events").insert({
+        call_session_id: callSessionId,
+        actor_id: userId,
+        event_type: "invite",
+        payload: {
+          conversationId,
+        },
+      })
+
+      const channel = supabase.channel(`call:conversation:${conversationId}`)
+      await channel.subscribe()
+
+      await channel.send({
+        type: "broadcast",
+        event: "call_invite",
+        payload: {
+          type: "call_invite",
+          callSessionId,
+          conversationId,
+          fromUserId: userId,
+          toUserId: otherMember.member_id,
+        },
+      })
+
+      setCurrentCallSessionId(callSessionId)
+      setCallUiState("outgoing")
+    } catch (error) {
+      console.error("Start call error:", error)
+      alert("Nu am putut porni apelul.")
+    } finally {
+      setCallBusy(false)
+    }
+  }
+
+  async function handleAcceptCall() {
+    if (!userId || !incomingCall?.callSessionId) return
+
+    try {
+      setCallBusy(true)
+
+      const callSessionId = incomingCall.callSessionId
+
+      const { error: updateError } = await supabase
+        .from("call_sessions")
+        .update({
+          status: "accepted",
+          answered_at: new Date().toISOString(),
+        })
+        .eq("id", callSessionId)
+
+      if (updateError) {
+        alert(`Nu am putut accepta apelul: ${updateError.message}`)
+        return
+      }
+
+      await supabase.from("call_events").insert({
+        call_session_id: callSessionId,
+        actor_id: userId,
+        event_type: "accept",
+        payload: {
+          conversationId,
+        },
+      })
+
+      const channel = supabase.channel(`call:conversation:${conversationId}`)
+      await channel.subscribe()
+
+      await channel.send({
+        type: "broadcast",
+        event: "call_accept",
+        payload: {
+          type: "call_accept",
+          callSessionId,
+          conversationId,
+          fromUserId: userId,
+        },
+      })
+
+      setIncomingCall(null)
+      setCurrentCallSessionId(callSessionId)
+      setCallUiState("connected")
+    } catch (error) {
+      console.error("Accept call error:", error)
+      alert("Nu am putut accepta apelul.")
+    } finally {
+      setCallBusy(false)
+    }
+  }
+
+  async function handleRejectCall() {
+    if (!userId || !incomingCall?.callSessionId) return
+
+    try {
+      setCallBusy(true)
+
+      const callSessionId = incomingCall.callSessionId
+
+      await supabase
+        .from("call_sessions")
+        .update({
+          status: "rejected",
+          ended_at: new Date().toISOString(),
+        })
+        .eq("id", callSessionId)
+
+      await supabase.from("call_events").insert({
+        call_session_id: callSessionId,
+        actor_id: userId,
+        event_type: "reject",
+        payload: {
+          conversationId,
+        },
+      })
+
+      const channel = supabase.channel(`call:conversation:${conversationId}`)
+      await channel.subscribe()
+
+      await channel.send({
+        type: "broadcast",
+        event: "call_reject",
+        payload: {
+          type: "call_reject",
+          callSessionId,
+          conversationId,
+          fromUserId: userId,
+        },
+      })
+
+      setIncomingCall(null)
+      setCurrentCallSessionId(null)
+      setCallUiState("idle")
+    } catch (error) {
+      console.error("Reject call error:", error)
+      alert("Nu am putut respinge apelul.")
+    } finally {
+      setCallBusy(false)
+    }
+  }
+
+  async function handleEndCall() {
+    if (!userId || !currentCallSessionId) {
+      setIncomingCall(null)
+      setCallUiState("idle")
+      setCurrentCallSessionId(null)
+      return
+    }
+
+    try {
+      setCallBusy(true)
+
+      await supabase
+        .from("call_sessions")
+        .update({
+          status: "ended",
+          ended_at: new Date().toISOString(),
+        })
+        .eq("id", currentCallSessionId)
+
+      await supabase.from("call_events").insert({
+        call_session_id: currentCallSessionId,
+        actor_id: userId,
+        event_type: "end",
+        payload: {
+          conversationId,
+        },
+      })
+
+      const channel = supabase.channel(`call:conversation:${conversationId}`)
+      await channel.subscribe()
+
+      await channel.send({
+        type: "broadcast",
+        event: "call_end",
+        payload: {
+          type: "call_end",
+          callSessionId: currentCallSessionId,
+          conversationId,
+          fromUserId: userId,
+        },
+      })
+    } catch (error) {
+      console.error("End call error:", error)
+    } finally {
+      setIncomingCall(null)
+      setCurrentCallSessionId(null)
+      setCallUiState("idle")
+      setCallBusy(false)
+    }
+  }
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
@@ -343,10 +619,73 @@ export default function ConversationPage() {
             <h1 className="text-3xl font-semibold">{otherName}</h1>
           </div>
 
-          <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/messages")}>
-            Înapoi la mesaje
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            {callUiState === "idle" ? (
+              <Button className="rounded-2xl" onClick={handleStartCall} disabled={callBusy || !otherMember}>
+                {callBusy ? "Se inițiază..." : "Apelează"}
+              </Button>
+            ) : null}
+
+            {callUiState === "outgoing" ? (
+              <Button variant="outline" className="rounded-2xl" onClick={handleEndCall} disabled={callBusy}>
+                {callBusy ? "Se închide..." : "Anulează apelul"}
+              </Button>
+            ) : null}
+
+            {callUiState === "connected" ? (
+              <Button variant="outline" className="rounded-2xl" onClick={handleEndCall} disabled={callBusy}>
+                {callBusy ? "Se închide..." : "Închide apelul"}
+              </Button>
+            ) : null}
+
+            <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/messages")}>
+              Înapoi la mesaje
+            </Button>
+          </div>
         </div>
+
+        {callUiState === "outgoing" ? (
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl">Apel în curs de inițiere</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600">Sună către {otherName}...</p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {callUiState === "connected" ? (
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl">Apel activ</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600">Conectat cu {otherName}. Următorul pas va fi audio WebRTC.</p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {callUiState === "incoming" && incomingCall ? (
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl">Apel incoming</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-600">{otherName} te apelează.</p>
+
+              <div className="flex flex-wrap gap-3">
+                <Button className="rounded-2xl" onClick={handleAcceptCall} disabled={callBusy}>
+                  {callBusy ? "Se acceptă..." : "Acceptă"}
+                </Button>
+
+                <Button variant="outline" className="rounded-2xl" onClick={handleRejectCall} disabled={callBusy}>
+                  {callBusy ? "Se respinge..." : "Respinge"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card className="rounded-3xl border-0 shadow-sm">
           <CardHeader>

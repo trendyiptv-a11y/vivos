@@ -490,6 +490,7 @@ export default function ConversationPage() {
       setCurrentCallSessionId(null)
       return
     }
+
     if (!callChannelRef.current) {
       setIncomingCall(null)
       setCurrentCallSessionId(null)
@@ -758,9 +759,3 @@ export default function ConversationPage() {
     </main>
   )
 }
-"""
-path = Path("/mnt/data/conversation_page_with_call_signaling_fixed.tsx")
-path.write_text(code, encoding="utf-8")
-print(path.as_posix())
-򐠎 to=python_user_visible.exec code execution_output from commentary  天天中彩票微信 to=python_user_visible.exec code execution_output code omitted  无码av code execution_output
-/mnt/data/conversation_page_with_call_signaling_fixed.tsx

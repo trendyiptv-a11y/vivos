@@ -133,8 +133,8 @@ export default function ConversationPage() {
 
         audioEl.srcObject = remoteStream
         audioEl.autoplay = true
-        audioEl.playsInline = true
         audioEl.muted = false
+        audioEl.setAttribute("playsinline", "true")
 
         try {
           await audioEl.play()

@@ -645,6 +645,81 @@ export default function ConversationPage() {
         }),
       })
 
+async function handleStartCall() {
+  if (!userId || !otherMember?.member_id || callUiState !== "idle") return
+  if (!callChannelRef.current) {
+    alert("Canalul de apel nu este pregătit.")
+    return
+  }
+
+  try {
+    setCallBusy(true)
+    await ensureLocalStream()
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session?.access_token) {
+      alert("Sesiunea nu este validă. Reautentifică-te.")
+      cleanupAudioCall()
+      return
+    }
+
+    const { data: callSession, error: callSessionError } = await supabase
+      .from("call_sessions")
+      .insert({
+        conversation_id: conversationId,
+        caller_id: userId,
+        callee_id: otherMember.member_id,
+        status: "ringing",
+      })
+      .select("id")
+      .single()
+
+    if (callSessionError || !callSession?.id) {
+      alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`)
+      cleanupAudioCall()
+      return
+    }
+
+    const callSessionId = callSession.id
+
+    await supabase.from("call_events").insert({
+      call_session_id: callSessionId,
+      actor_id: userId,
+      event_type: "invite",
+      payload: {
+        conversationId,
+      },
+    })
+
+    await callChannelRef.current.send({
+      type: "broadcast",
+      event: "call_invite",
+      payload: {
+        type: "call_invite",
+        callSessionId,
+        conversationId,
+        fromUserId: userId,
+        toUserId: otherMember.member_id,
+      },
+    })
+
+    try {
+      const pushResponse = await fetch("/api/notifications/send-call-push", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          conversationId,
+          callSessionId,
+          calleeId: otherMember.member_id,
+        }),
+      })
+
       if (!pushResponse.ok) {
         const pushResult = await pushResponse.json().catch(() => null)
         console.error("Call push send error:", pushResult)
@@ -663,7 +738,6 @@ export default function ConversationPage() {
     setCallBusy(false)
   }
 }
-
       await callChannelRef.current.send({
         type: "broadcast",
         event: "call_invite",

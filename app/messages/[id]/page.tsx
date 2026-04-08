@@ -833,41 +833,47 @@ export default function ConversationPage() {
     }
   }
 
-  async function handleHideConversation() {
-    if (!userId) return
+ async function handleHideConversation() {
+  if (!userId) return
 
-    const confirmed = window.confirm(
-      "Sigur vrei să elimini această conversație din lista ta?"
-    )
+  const confirmed = window.confirm(
+    "Sigur vrei să elimini această conversație din lista ta?"
+  )
 
-    if (!confirmed) return
+  if (!confirmed) return
 
-    try {
-      setHidingConversation(true)
+  try {
+    setHidingConversation(true)
 
-      await handleEndCall()
+    await handleEndCall()
 
-      const { error } = await supabase
-        .from("conversation_hidden_for_users")
-        .upsert({
+    const { error } = await supabase
+      .from("conversation_hidden_for_users")
+      .upsert(
+        {
           conversation_id: conversationId,
           user_id: userId,
           hidden_at: new Date().toISOString(),
-        })
+        },
+        {
+          onConflict: "conversation_id,user_id",
+        }
+      )
 
-      if (error) {
-        alert(`Conversația nu a putut fi ascunsă: ${error.message}`)
-        setHidingConversation(false)
-        return
-      }
-
-      router.push("/messages")
-    } catch (error: any) {
-      console.error("Hide conversation error:", error)
-      alert(error?.message || "Conversația nu a putut fi ascunsă.")
+    if (error) {
+      alert(`Conversația nu a putut fi ascunsă: ${error.message}`)
       setHidingConversation(false)
+      return
     }
+
+    router.push("/messages")
+    router.refresh()
+  } catch (error: any) {
+    console.error("Hide conversation error:", error)
+    alert(error?.message || "Conversația nu a putut fi ascunsă.")
+    setHidingConversation(false)
   }
+}
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()

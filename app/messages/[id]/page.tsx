@@ -55,6 +55,7 @@ export default function ConversationPage() {
   const [callBusy, setCallBusy] = useState(false)
   const [currentCallSessionId, setCurrentCallSessionId] = useState<string | null>(null)
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null)
+  const [hidingConversation, setHidingConversation] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -832,6 +833,42 @@ export default function ConversationPage() {
     }
   }
 
+  async function handleHideConversation() {
+    if (!userId) return
+
+    const confirmed = window.confirm(
+      "Sigur vrei să elimini această conversație din lista ta?"
+    )
+
+    if (!confirmed) return
+
+    try {
+      setHidingConversation(true)
+
+      await handleEndCall()
+
+      const { error } = await supabase
+        .from("conversation_hidden_for_users")
+        .upsert({
+          conversation_id: conversationId,
+          user_id: userId,
+          hidden_at: new Date().toISOString(),
+        })
+
+      if (error) {
+        alert(`Conversația nu a putut fi ascunsă: ${error.message}`)
+        setHidingConversation(false)
+        return
+      }
+
+      router.push("/messages")
+    } catch (error: any) {
+      console.error("Hide conversation error:", error)
+      alert(error?.message || "Conversația nu a putut fi ascunsă.")
+      setHidingConversation(false)
+    }
+  }
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
     if (!body.trim() || !userId) return
@@ -945,6 +982,15 @@ export default function ConversationPage() {
                 {callBusy ? "Se închide..." : "Închide apelul"}
               </Button>
             ) : null}
+
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={handleHideConversation}
+              disabled={hidingConversation}
+            >
+              {hidingConversation ? "Se elimină..." : "Șterge pentru mine"}
+            </Button>
 
             <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/messages")}>
               Înapoi la mesaje

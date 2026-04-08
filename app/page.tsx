@@ -1027,41 +1027,43 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
-    async function loadMarketPosts() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+  async function loadMarketPosts() {
+    const { data, error } = await supabase
+      .from("market_posts")
+      .select(
+        "id, author_id, post_type, title, category, description, value_text, location, status, created_at"
+      )
+      .order("created_at", { ascending: false })
+      .limit(20)
 
-      if (!session?.user) {
-        setMarketPosts([])
-        return
-      }
-
-      const { data, error } = await supabase
-        .from("market_posts")
-        .select("id, author_id, post_type, title, category, description, value_text, location, status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(20)
-
-      if (!error && data) {
-        setMarketPosts(data as MarketPost[])
-      } else {
-        setMarketPosts([])
-      }
+    if (!error && data) {
+      setMarketPosts(data as MarketPost[])
+    } else {
+      setMarketPosts([])
     }
+  }
 
-    loadMarketPosts()
+  loadMarketPosts()
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      loadMarketPosts()
-    })
+  const channel = supabase
+    .channel("market-posts")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "market_posts",
+      },
+      () => {
+        loadMarketPosts()
+      }
+    )
+    .subscribe()
 
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}, [])
 
   useEffect(() => {
     async function loadFundRequests() {

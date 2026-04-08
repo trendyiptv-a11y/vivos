@@ -21,7 +21,7 @@ type ConversationProfile = {
 type MemberRow = {
   conversation_id: string
   member_id: string
-  profiles: ConversationProfile | null
+  profile: ConversationProfile | null
 }
 
 type MessageRow = {
@@ -61,10 +61,19 @@ export default function MessagesPage() {
 
       setUserId(session.user.id)
 
-      const { data: convData } = await supabase
+      const { data: convData, error: convError } = await supabase
         .from("conversations")
         .select("id, created_at")
         .order("created_at", { ascending: false })
+
+      if (convError) {
+        console.error("Load conversations error:", convError)
+        setConversations([])
+        setMembers([])
+        setLatestMessages([])
+        setLoading(false)
+        return
+      }
 
       const conversationIds = (convData ?? []).map((c) => c.id)
 
@@ -76,24 +85,63 @@ export default function MessagesPage() {
         return
       }
 
-      const [{ data: membersData }, { data: messagesData }] = await Promise.all([
-        supabase
-          .from("conversation_members")
-          .select(
-            "conversation_id, member_id, profiles:profiles!conversation_members_member_id_fkey(id, name, alias, email)"
-          )
-          .in("conversation_id", conversationIds),
-        supabase
-          .from("messages")
-          .select("conversation_id, body, created_at")
-          .in("conversation_id", conversationIds)
-          .order("created_at", { ascending: false }),
-      ])
+      const [{ data: membersData, error: membersError }, { data: messagesData, error: messagesError }] =
+        await Promise.all([
+          supabase
+            .from("conversation_members")
+            .select("conversation_id, member_id")
+            .in("conversation_id", conversationIds),
+          supabase
+            .from("messages")
+            .select("conversation_id, body, created_at")
+            .in("conversation_id", conversationIds)
+            .order("created_at", { ascending: false }),
+        ])
 
-      const normalizedMembers: MemberRow[] = (membersData ?? []).map((item: any) => ({
+      if (membersError) {
+        console.error("Load conversation members error:", membersError)
+      }
+
+      if (messagesError) {
+        console.error("Load messages error:", messagesError)
+      }
+
+      const rawMembers = (membersData ?? []).map((item: any) => ({
+        conversation_id: item.conversation_id as string,
+        member_id: item.member_id as string,
+      }))
+
+      const memberIds = Array.from(new Set(rawMembers.map((item) => item.member_id)))
+
+      let profilesMap = new Map<string, ConversationProfile>()
+
+      if (memberIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, name, alias, email")
+          .in("id", memberIds)
+
+        if (profilesError) {
+          console.error("Load profiles error:", profilesError)
+        } else {
+          profilesMap = new Map(
+            (profilesData ?? []).map((profile: any) => [
+              profile.id,
+              {
+                id: profile.id,
+                name: profile.name ?? null,
+                alias: profile.alias ?? null,
+                email: profile.email ?? null,
+              } as ConversationProfile,
+            ])
+          )
+        }
+      }
+
+      const normalizedMembers: MemberRow[] = rawMembers.map((item) => ({
         conversation_id: item.conversation_id,
         member_id: item.member_id,
-        profiles: Array.isArray(item.profiles) ? item.profiles[0] ?? null : item.profiles ?? null,
+        profile: profilesMap.get(item.member_id) ?? null,
       }))
 
       const normalizedMessages: MessageRow[] = (messagesData ?? []).map((item: any) => ({
@@ -114,7 +162,7 @@ export default function MessagesPage() {
   const conversationCards = useMemo<ConversationCard[]>(() => {
     return conversations.map((conv) => {
       const other = members.find((m) => m.conversation_id === conv.id && m.member_id !== userId)
-      const profile = other?.profiles ?? null
+      const profile = other?.profile ?? null
       const latest = latestMessages.find((m) => m.conversation_id === conv.id)
 
       const displayName =
@@ -153,7 +201,9 @@ export default function MessagesPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {loading ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă mesajele...</div>
+              <div className="rounded-2xl border p-4 text-sm text-slate-600">
+                Se încarcă mesajele...
+              </div>
             ) : conversationCards.length === 0 ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">
                 Nu există încă conversații. Începe una din piață, fond sau profilul unui membru.

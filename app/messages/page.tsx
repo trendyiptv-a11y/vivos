@@ -194,19 +194,28 @@ export default function MessagesPage() {
                   className="block w-full rounded-2xl border p-4 text-left transition hover:bg-slate-50"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-900">{item.name}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate pr-3 text-lg font-semibold text-slate-900">
+                        {item.name}
+                      </p>
+
                       {item.email && item.email !== item.name ? (
-                        <p className="truncate text-sm text-slate-500">{item.email}</p>
+                        <p className="mt-1 truncate text-sm text-slate-500">{item.email}</p>
                       ) : null}
                     </div>
 
                     <p className="shrink-0 text-xs text-slate-500">
-                      {new Date(item.date).toLocaleString("ro-RO")}
+                      {new Date(item.date).toLocaleString("ro-RO", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
 
-                  <p className="mt-2 text-sm text-slate-600">{item.preview}</p>
+                  <p className="mt-3 truncate text-sm text-slate-600">{item.preview}</p>
                 </button>
               ))
             )}

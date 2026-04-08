@@ -352,46 +352,81 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
             <div className="rounded-2xl border p-4 text-sm text-slate-600">
               Nu există încă postări reale. Intră în piață și publică prima ofertă sau cerere.
             </div>
-          ) : (
-            marketPosts.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center md:justify-between"
-              >
-                <div>
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="rounded-xl">
-                      {item.post_type === "offer" ? "Ofertă" : "Cerere"}
-                    </Badge>
-                    <Badge variant="outline" className="rounded-xl">
-                      {item.category || "General"}
-                    </Badge>
-                    <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
-                      {item.status === "in_progress"
-                        ? "În lucru"
-                        : item.status === "closed"
-                        ? "Închis"
-                        : "Activ"}
-                    </Badge>
-                  </div>
+function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
+  const offersCount = marketPosts.filter((item) => item.post_type === "offer").length
+  const requestsCount = marketPosts.filter((item) => item.post_type === "request").length
 
-                  <p className="font-medium">{item.title}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {(item.location || "Necompletat")} · {(item.value_text || "Necompletat")}
-                  </p>
-                </div>
+  return (
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Bine ai venit în VIVOS</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Platforma este în construcție, dar baza reală există deja: membri autentificați,
+            profiluri reale și piață comunitară funcțională.
+          </p>
 
-                <Button
-                  className="rounded-2xl"
-                  onClick={() => {
-                    window.location.href = "/market"
-                  }}
-                >
-                  Vezi detalii
-                </Button>
-              </div>
-            ))
-          )}
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/market/new"
+              }}
+            >
+              Publică ofertă
+            </Button>
+
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/profile"
+              }}
+            >
+              Actualizează profil
+            </Button>
+
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => {
+                window.location.href = "/market"
+              }}
+            >
+              Vezi piața reală
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-xl">Nevoi și oferte recente</CardTitle>
+          <Button
+            variant="outline"
+            className="rounded-2xl"
+            onClick={() => {
+              window.location.href = "/market"
+            }}
+          >
+            Toată piața
+          </Button>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border p-4">
+              <p className="text-sm text-slate-500">Oferte</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">{offersCount}</p>
+            </div>
+
+            <div className="rounded-2xl border p-4">
+              <p className="text-sm text-slate-500">Nevoi</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">{requestsCount}</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

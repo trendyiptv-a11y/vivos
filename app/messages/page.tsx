@@ -11,6 +11,10 @@ type ConversationRow = {
   created_at: string
 }
 
+type HiddenConversationRow = {
+  conversation_id: string
+}
+
 type RpcMemberRow = {
   member_id: string
   name: string | null
@@ -60,10 +64,17 @@ export default function MessagesPage() {
 
       setUserId(session.user.id)
 
-      const { data: convData, error: convError } = await supabase
-        .from("conversations")
-        .select("id, created_at")
-        .order("created_at", { ascending: false })
+      const [{ data: convData, error: convError }, { data: hiddenData, error: hiddenError }] =
+        await Promise.all([
+          supabase
+            .from("conversations")
+            .select("id, created_at")
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("conversation_hidden_for_users")
+            .select("conversation_id")
+            .eq("user_id", session.user.id),
+        ])
 
       if (convError) {
         console.error("Load conversations error:", convError)
@@ -74,7 +85,18 @@ export default function MessagesPage() {
         return
       }
 
-      const normalizedConversations = (convData as ConversationRow[]) ?? []
+      if (hiddenError) {
+        console.error("Load hidden conversations error:", hiddenError)
+      }
+
+      const hiddenIds = new Set(
+        ((hiddenData ?? []) as HiddenConversationRow[]).map((item) => item.conversation_id)
+      )
+
+      const normalizedConversations = ((convData as ConversationRow[]) ?? []).filter(
+        (conv) => !hiddenIds.has(conv.id)
+      )
+
       const conversationIds = normalizedConversations.map((c) => c.id)
 
       if (conversationIds.length === 0) {

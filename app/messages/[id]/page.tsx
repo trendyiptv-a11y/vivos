@@ -833,7 +833,7 @@ export default function ConversationPage() {
     }
   }
 
- async function handleHideConversation() {
+async function handleHideConversation() {
   if (!userId) return
 
   const confirmed = window.confirm(
@@ -849,21 +849,22 @@ export default function ConversationPage() {
 
     const { error } = await supabase
       .from("conversation_hidden_for_users")
-      .upsert(
-        {
-          conversation_id: conversationId,
-          user_id: userId,
-          hidden_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "conversation_id,user_id",
-        }
-      )
+      .insert({
+        conversation_id: conversationId,
+        user_id: userId,
+        hidden_at: new Date().toISOString(),
+      })
 
     if (error) {
-      alert(`Conversația nu a putut fi ascunsă: ${error.message}`)
-      setHidingConversation(false)
-      return
+      const alreadyHidden =
+        error.message?.includes("duplicate key") ||
+        error.message?.includes("unique constraint")
+
+      if (!alreadyHidden) {
+        alert(`Conversația nu a putut fi ascunsă: ${error.message}`)
+        setHidingConversation(false)
+        return
+      }
     }
 
     router.push("/messages")

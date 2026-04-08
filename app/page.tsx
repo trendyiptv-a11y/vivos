@@ -527,7 +527,7 @@ function MembersScreen({
           </CardHeader>
           <CardContent>
             <div className="rounded-2xl border p-5 text-center">
-              <p className="text-sm text-slate-500">Număr membri reali</p>
+              <p className="text-sm text-slate-500">Număr membri</p>
               <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-900">
                 {isLoggedIn ? members.length : publicMembersCount}
               </p>
@@ -1016,39 +1016,37 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
-    async function loadPublicMembersCount() {
-      const { count, error } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
+  async function loadPublicMembersCount() {
+    const { data, error } = await supabase.rpc("get_public_profiles_count")
 
-      if (!error && typeof count === "number") {
-        setPublicMembersCount(count)
-      } else {
-        setPublicMembersCount(0)
+    if (!error && typeof data === "number") {
+      setPublicMembersCount(data)
+    } else {
+      setPublicMembersCount(0)
+    }
+  }
+
+  loadPublicMembersCount()
+
+  const channel = supabase
+    .channel("profiles-count")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "profiles",
+      },
+      () => {
+        loadPublicMembersCount()
       }
-    }
+    )
+    .subscribe()
 
-    loadPublicMembersCount()
-
-    const channel = supabase
-      .channel("profiles-count")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "profiles",
-        },
-        () => {
-          loadPublicMembersCount()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [])
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}, [])
 
   useEffect(() => {
   async function loadMarketPosts() {

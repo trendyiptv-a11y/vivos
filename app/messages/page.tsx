@@ -11,17 +11,16 @@ type ConversationRow = {
   created_at: string
 }
 
-type ConversationProfile = {
-  id: string
+type RpcMemberRow = {
+  member_id: string
   name: string | null
   alias: string | null
   email: string | null
 }
 
-type MemberRow = {
+type ConversationMemberGroup = {
   conversation_id: string
-  member_id: string
-  profile: ConversationProfile | null
+  members: RpcMemberRow[]
 }
 
 type MessageRow = {
@@ -43,7 +42,7 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
-  const [members, setMembers] = useState<MemberRow[]>([])
+  const [conversationMembers, setConversationMembers] = useState<ConversationMemberGroup[]>([])
   const [latestMessages, setLatestMessages] = useState<MessageRow[]>([])
 
   useEffect(() => {
@@ -69,89 +68,68 @@ export default function MessagesPage() {
       if (convError) {
         console.error("Load conversations error:", convError)
         setConversations([])
-        setMembers([])
+        setConversationMembers([])
         setLatestMessages([])
         setLoading(false)
         return
       }
 
-      const conversationIds = (convData ?? []).map((c) => c.id)
+      const normalizedConversations = (convData as ConversationRow[]) ?? []
+      const conversationIds = normalizedConversations.map((c) => c.id)
 
       if (conversationIds.length === 0) {
         setConversations([])
-        setMembers([])
+        setConversationMembers([])
         setLatestMessages([])
         setLoading(false)
         return
       }
 
-      const [{ data: membersData, error: membersError }, { data: messagesData, error: messagesError }] =
-        await Promise.all([
-          supabase
-            .from("conversation_members")
-            .select("conversation_id, member_id")
-            .in("conversation_id", conversationIds),
-          supabase
-            .from("messages")
-            .select("conversation_id, body, created_at")
-            .in("conversation_id", conversationIds)
-            .order("created_at", { ascending: false }),
-        ])
+      const [membersResults, messagesResult] = await Promise.all([
+        Promise.all(
+          conversationIds.map(async (conversationId) => {
+            const { data, error } = await supabase.rpc("get_conversation_members_with_profiles", {
+              p_conversation_id: conversationId,
+            })
 
-      if (membersError) {
-        console.error("Load conversation members error:", membersError)
-      }
+            if (error) {
+              console.error(`Load members RPC error for conversation ${conversationId}:`, error)
+              return {
+                conversation_id: conversationId,
+                members: [],
+              } as ConversationMemberGroup
+            }
 
-      if (messagesError) {
-        console.error("Load messages error:", messagesError)
-      }
+            return {
+              conversation_id: conversationId,
+              members: ((data ?? []) as any[]).map((item) => ({
+                member_id: item.member_id,
+                name: item.name ?? null,
+                alias: item.alias ?? null,
+                email: item.email ?? null,
+              })),
+            } as ConversationMemberGroup
+          })
+        ),
+        supabase
+          .from("messages")
+          .select("conversation_id, body, created_at")
+          .in("conversation_id", conversationIds)
+          .order("created_at", { ascending: false }),
+      ])
 
-      const rawMembers = (membersData ?? []).map((item: any) => ({
-        conversation_id: item.conversation_id as string,
-        member_id: item.member_id as string,
-      }))
-
-      const memberIds = Array.from(new Set(rawMembers.map((item) => item.member_id)))
-
-      let profilesMap = new Map<string, ConversationProfile>()
-
-      if (memberIds.length > 0) {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, name, alias, email")
-          .in("id", memberIds)
-
-        if (profilesError) {
-          console.error("Load profiles error:", profilesError)
-        } else {
-          profilesMap = new Map(
-            (profilesData ?? []).map((profile: any) => [
-              profile.id,
-              {
-                id: profile.id,
-                name: profile.name ?? null,
-                alias: profile.alias ?? null,
-                email: profile.email ?? null,
-              } as ConversationProfile,
-            ])
-          )
-        }
-      }
-
-      const normalizedMembers: MemberRow[] = rawMembers.map((item) => ({
-        conversation_id: item.conversation_id,
-        member_id: item.member_id,
-        profile: profilesMap.get(item.member_id) ?? null,
-      }))
-
-      const normalizedMessages: MessageRow[] = (messagesData ?? []).map((item: any) => ({
+      const normalizedMessages: MessageRow[] = ((messagesResult.data ?? []) as any[]).map((item) => ({
         conversation_id: item.conversation_id,
         body: item.body,
         created_at: item.created_at,
       }))
 
-      setConversations((convData as ConversationRow[]) ?? [])
-      setMembers(normalizedMembers)
+      if (messagesResult.error) {
+        console.error("Load messages error:", messagesResult.error)
+      }
+
+      setConversations(normalizedConversations)
+      setConversationMembers(membersResults)
       setLatestMessages(normalizedMessages)
       setLoading(false)
     }
@@ -161,25 +139,25 @@ export default function MessagesPage() {
 
   const conversationCards = useMemo<ConversationCard[]>(() => {
     return conversations.map((conv) => {
-      const other = members.find((m) => m.conversation_id === conv.id && m.member_id !== userId)
-      const profile = other?.profile ?? null
+      const memberGroup = conversationMembers.find((group) => group.conversation_id === conv.id)
+      const other = memberGroup?.members.find((m) => m.member_id !== userId) ?? null
       const latest = latestMessages.find((m) => m.conversation_id === conv.id)
 
       const displayName =
-        profile?.name?.trim() ||
-        profile?.alias?.trim() ||
-        profile?.email?.trim() ||
+        other?.name?.trim() ||
+        other?.alias?.trim() ||
+        other?.email?.trim() ||
         "Membru"
 
       return {
         id: conv.id,
         name: displayName,
-        email: profile?.email?.trim() || null,
+        email: other?.email?.trim() || null,
         preview: latest?.body || "Fără mesaje încă",
         date: latest?.created_at || conv.created_at,
       }
     })
-  }, [conversations, members, latestMessages, userId])
+  }, [conversations, conversationMembers, latestMessages, userId])
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">

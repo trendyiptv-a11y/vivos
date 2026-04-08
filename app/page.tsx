@@ -373,11 +373,13 @@ function MembersScreen({
   loading,
   isLoggedIn,
   onStartChat,
+  publicMembersCount,
 }: {
   members: ProfileMember[]
   loading: boolean
   isLoggedIn: boolean
   onStartChat: (memberId: string) => void
+  publicMembersCount: number
 }) {
   return (
     <div className="space-y-6">
@@ -521,28 +523,14 @@ function MembersScreen({
 
         <Card className="rounded-3xl border-0 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl">Filtre și structură</CardTitle>
+            <CardTitle className="text-xl">Membri înregistrați</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="mb-2 text-sm font-medium">Acces membri</p>
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Vizibil doar pentru utilizatori autentificați.
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-2 text-sm font-medium">Ce poți vedea după login</p>
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Profiluri, competențe, ce oferă și ce caută membrii comunității.
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2 text-sm text-slate-600">
-              <p>Total membri reali: {isLoggedIn ? members.length : 0}</p>
-              <p>Încărcare: {loading ? "da" : "nu"}</p>
+          <CardContent>
+            <div className="rounded-2xl border p-5 text-center">
+              <p className="text-sm text-slate-500">Număr membri reali</p>
+              <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-900">
+                {isLoggedIn ? members.length : publicMembersCount}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -936,6 +924,7 @@ export default function Page() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [members, setMembers] = useState<ProfileMember[]>([])
   const [membersLoading, setMembersLoading] = useState(true)
+  const [publicMembersCount, setPublicMembersCount] = useState(0)
   const [marketPosts, setMarketPosts] = useState<MarketPost[]>([])
   const [fundRequests, setFundRequests] = useState<MutualFundRequest[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -1023,6 +1012,41 @@ export default function Page() {
 
     return () => {
       subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    async function loadPublicMembersCount() {
+      const { count, error } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+
+      if (!error && typeof count === "number") {
+        setPublicMembersCount(count)
+      } else {
+        setPublicMembersCount(0)
+      }
+    }
+
+    loadPublicMembersCount()
+
+    const channel = supabase
+      .channel("profiles-count")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+        },
+        () => {
+          loadPublicMembersCount()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
   }, [])
 
@@ -1214,6 +1238,7 @@ export default function Page() {
             loading={membersLoading}
             isLoggedIn={!!userEmail}
             onStartChat={handleStartChat}
+            publicMembersCount={publicMembersCount}
           />
         )
       case "messages":
@@ -1237,7 +1262,7 @@ export default function Page() {
       default:
         return <DashboardScreen marketPosts={marketPosts} />
     }
-  }, [active, members, membersLoading, userEmail, marketPosts, fundRequests])
+  }, [active, members, membersLoading, userEmail, marketPosts, fundRequests, publicMembersCount])
 
   return (
     <Shell

@@ -288,6 +288,9 @@ function StatCard({
 }
 
 function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
+  const offersCount = marketPosts.filter((item) => item.post_type === "offer").length
+  const requestsCount = marketPosts.filter((item) => item.post_type === "request").length
+
   return (
     <div className="space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">

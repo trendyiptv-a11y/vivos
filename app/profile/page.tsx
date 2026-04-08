@@ -38,6 +38,9 @@ export default function ProfilePage() {
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState("")
 
+  const [deletingAccount, setDeletingAccount] = useState(false)
+  const [deleteMessage, setDeleteMessage] = useState("")
+
   useEffect(() => {
     async function loadProfile() {
       setLoading(true)
@@ -143,6 +146,60 @@ export default function ProfilePage() {
     setConfirmPassword("")
     setPasswordMessage("Parola a fost schimbată cu succes.")
     setPasswordSaving(false)
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteMessage("")
+
+    const confirmed = window.confirm(
+      "Sigur vrei să-ți ștergi contul? Acțiunea este permanentă și îți va elimina profilul, mesajele și datele asociate."
+    )
+
+    if (!confirmed) return
+
+    const confirmedAgain = window.confirm(
+      "Confirmi definitiv ștergerea contului tău VIVOS?"
+    )
+
+    if (!confirmedAgain) return
+
+    try {
+      setDeletingAccount(true)
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        setDeleteMessage("Sesiunea nu este validă. Reautentifică-te.")
+        setDeletingAccount(false)
+        return
+      }
+
+      const response = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        setDeleteMessage(result?.error || "Contul nu a putut fi șters.")
+        setDeletingAccount(false)
+        return
+      }
+
+      await supabase.auth.signOut()
+      router.push("/")
+      router.refresh()
+    } catch (error: any) {
+      console.error("Delete account error:", error)
+      setDeleteMessage(error?.message || "Contul nu a putut fi șters.")
+      setDeletingAccount(false)
+    }
   }
 
   if (loading) {
@@ -314,6 +371,36 @@ export default function ProfilePage() {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border border-red-200 bg-red-50 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl text-red-700">Ștergere cont</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-red-700">
+              Această acțiune este permanentă. Contul tău, profilul și datele asociate vor fi
+              șterse definitiv din platformă.
+            </p>
+
+            {deleteMessage && (
+              <div className="rounded-2xl border border-red-200 bg-white p-3 text-sm text-red-700">
+                {deleteMessage}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-2xl border-red-300 text-red-700 hover:bg-red-100"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+              >
+                {deletingAccount ? "Se șterge contul..." : "Șterge contul meu"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

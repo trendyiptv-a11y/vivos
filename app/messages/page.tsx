@@ -30,6 +30,14 @@ type MessageRow = {
   created_at: string
 }
 
+type ConversationCard = {
+  id: string
+  name: string
+  email: string | null
+  preview: string
+  date: string
+}
+
 export default function MessagesPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -71,7 +79,9 @@ export default function MessagesPage() {
       const [{ data: membersData }, { data: messagesData }] = await Promise.all([
         supabase
           .from("conversation_members")
-          .select("conversation_id, member_id, profiles:profiles!conversation_members_member_id_fkey(id, name, alias, email)")
+          .select(
+            "conversation_id, member_id, profiles:profiles!conversation_members_member_id_fkey(id, name, alias, email)"
+          )
           .in("conversation_id", conversationIds),
         supabase
           .from("messages")
@@ -101,12 +111,13 @@ export default function MessagesPage() {
     load()
   }, [router])
 
-  const conversationCards = useMemo(() => {
+  const conversationCards = useMemo<ConversationCard[]>(() => {
     return conversations.map((conv) => {
       const other = members.find((m) => m.conversation_id === conv.id && m.member_id !== userId)
       const profile = other?.profiles ?? null
       const latest = latestMessages.find((m) => m.conversation_id === conv.id)
-      const name =
+
+      const displayName =
         profile?.name?.trim() ||
         profile?.alias?.trim() ||
         profile?.email?.trim() ||
@@ -114,7 +125,8 @@ export default function MessagesPage() {
 
       return {
         id: conv.id,
-        name,
+        name: displayName,
+        email: profile?.email?.trim() || null,
         preview: latest?.body || "Fără mesaje încă",
         date: latest?.created_at || conv.created_at,
       }
@@ -153,12 +165,19 @@ export default function MessagesPage() {
                   onClick={() => router.push(`/messages/${item.id}`)}
                   className="block w-full rounded-2xl border p-4 text-left transition hover:bg-slate-50"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-xs text-slate-500">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900">{item.name}</p>
+                      {item.email && item.email !== item.name ? (
+                        <p className="truncate text-sm text-slate-500">{item.email}</p>
+                      ) : null}
+                    </div>
+
+                    <p className="shrink-0 text-xs text-slate-500">
                       {new Date(item.date).toLocaleString("ro-RO")}
                     </p>
                   </div>
+
                   <p className="mt-2 text-sm text-slate-600">{item.preview}</p>
                 </button>
               ))

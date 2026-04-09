@@ -121,9 +121,10 @@ export default function ConversationPage() {
     async (currentUserId: string) => {
       if (peerConnectionRef.current) return peerConnectionRef.current
 
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
-      })
+      const res = await fetch("/api/turn-credentials")
+      const { iceServers } = await res.json()
+
+      const pc = new RTCPeerConnection({ iceServers })
 
       pc.ontrack = async (event) => {
         const [remoteStream] = event.streams

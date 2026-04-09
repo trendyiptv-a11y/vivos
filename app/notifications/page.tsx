@@ -35,8 +35,8 @@ function getNotificationHref(item: NotificationRow) {
     return "/market"
   }
 
-  if (item.event_type === "user_registered") {
-    return "/members"
+  if (item.event_type === "user_registered" && item.ref_id) {
+    return `/member/${item.ref_id}`
   }
 
   if (item.event_type === "fund_request_created") {

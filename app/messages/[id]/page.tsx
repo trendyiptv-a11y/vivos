@@ -149,18 +149,7 @@ export default function ConversationPage() {
       if (peerConnectionRef.current) return peerConnectionRef.current
 
       const pc = new RTCPeerConnection({
-        iceServers: [
-          { urls: ["stun:stun.l.google.com:19302"] },
-          {
-            urls: [
-              "turn:openrelay.metered.ca:80",
-              "turn:openrelay.metered.ca:443",
-              "turn:openrelay.metered.ca:443?transport=tcp",
-            ],
-            username: "openrelayproject",
-            credential: "openrelayproject",
-          },
-        ],
+        iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
       })
 
       pc.ontrack = async (event) => {
@@ -507,10 +496,7 @@ export default function ConversationPage() {
       })
       .on("broadcast", { event: "call_end" }, ({ payload }) => {
         if (!payload) return
-        if (
-          currentCallSessionIdRef.current &&
-          payload.callSessionId !== currentCallSessionIdRef.current
-        ) return
+        if (currentCallSessionIdRef.current && payload.callSessionId !== currentCallSessionIdRef.current) return
 
         stopRingtone()
         cleanupAudioCall()
@@ -595,16 +581,6 @@ export default function ConversationPage() {
       setCallBusy(true)
       await ensureLocalStream()
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session?.access_token) {
-        alert("Sesiunea nu este validă. Reautentifică-te.")
-        cleanupAudioCall()
-        return
-      }
-
       const { data: callSession, error: callSessionError } = await supabase
         .from("call_sessions")
         .insert({
@@ -644,28 +620,6 @@ export default function ConversationPage() {
           toUserId: otherMember.member_id,
         },
       })
-
-      try {
-        const pushResponse = await fetch("/api/notifications/send-call-push", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            conversationId,
-            callSessionId,
-            calleeId: otherMember.member_id,
-          }),
-        })
-
-        if (!pushResponse.ok) {
-          const pushResult = await pushResponse.json().catch(() => null)
-          console.error("Call push send error:", pushResult)
-        }
-      } catch (pushError) {
-        console.error("Call push request failed:", pushError)
-      }
 
       setCurrentCallSessionId(callSessionId)
       setCallUiState("outgoing")

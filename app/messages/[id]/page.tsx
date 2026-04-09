@@ -58,7 +58,6 @@ export default function ConversationPage() {
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
-  const ringtoneRef = useRef<HTMLAudioElement | null>(null)
   const callChannelRef = useRef<any>(null)
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
@@ -72,37 +71,11 @@ export default function ConversationPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [])
 
-  const stopRingtone = useCallback(() => {
-    const el = ringtoneRef.current
-    if (!el) return
-
-    try {
-      el.pause()
-      el.currentTime = 0
-    } catch (error) {
-      console.error("Stop ringtone error:", error)
-    }
-  }, [])
-
-  const playRingtone = useCallback(async () => {
-    const el = ringtoneRef.current
-    if (!el) return
-
-    try {
-      el.loop = true
-      await el.play()
-    } catch (error) {
-      console.error("Play ringtone error:", error)
-    }
-  }, [])
-
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
   const cleanupAudioCall = useCallback(() => {
-    stopRingtone()
-
     if (peerConnectionRef.current) {
       peerConnectionRef.current.ontrack = null
       peerConnectionRef.current.onicecandidate = null
@@ -122,7 +95,7 @@ export default function ConversationPage() {
       } catch {}
       remoteAudioRef.current.srcObject = null
     }
-  }, [stopRingtone])
+  }, [])
 
   const ensureLocalStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current
@@ -149,19 +122,8 @@ export default function ConversationPage() {
       if (peerConnectionRef.current) return peerConnectionRef.current
 
       const pc = new RTCPeerConnection({
-  iceServers: [
-    { urls: ["stun:stun.l.google.com:19302"] },
-    {
-      urls: [
-        "turn:openrelay.metered.ca:80",
-        "turn:openrelay.metered.ca:443",
-        "turn:openrelay.metered.ca:443?transport=tcp",
-      ],
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-  ],
-})
+        iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
+      })
 
       pc.ontrack = async (event) => {
         const [remoteStream] = event.streams
@@ -183,32 +145,26 @@ export default function ConversationPage() {
       }
 
       pc.onicecandidate = async (event) => {
-  if (event.candidate) {
-    console.log("ICE candidate:", event.candidate.candidate)
-  } else {
-    console.log("ICE gathering complete")
-  }
+        if (!event.candidate) return
+        if (!callChannelRef.current) return
+        if (!currentCallSessionIdRef.current) return
 
-  if (!event.candidate) return
-  if (!callChannelRef.current) return
-  if (!currentCallSessionIdRef.current) return
-
-  try {
-    await callChannelRef.current.send({
-      type: "broadcast",
-      event: "ice_candidate",
-      payload: {
-        type: "ice_candidate",
-        callSessionId: currentCallSessionIdRef.current,
-        conversationId,
-        fromUserId: currentUserId,
-        candidate: event.candidate.toJSON(),
-      },
-    })
-  } catch (error) {
-    console.error("ICE send error:", error)
-  }
-}
+        try {
+          await callChannelRef.current.send({
+            type: "broadcast",
+            event: "ice_candidate",
+            payload: {
+              type: "ice_candidate",
+              callSessionId: currentCallSessionIdRef.current,
+              conversationId,
+              fromUserId: currentUserId,
+              candidate: event.candidate.toJSON(),
+            },
+          })
+        } catch (error) {
+          console.error("ICE send error:", error)
+        }
+      }
 
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState
@@ -349,15 +305,6 @@ export default function ConversationPage() {
       if (document.visibilityState === "visible") {
         await markActiveConversation(userId)
         await loadMessagesOnly()
-
-        const audioEl = remoteAudioRef.current
-        if (audioEl?.srcObject) {
-          try {
-            await audioEl.play()
-          } catch (error) {
-            console.error("Resume remote audio error:", error)
-          }
-        }
       } else {
         await clearActiveConversation(userId)
       }
@@ -366,15 +313,6 @@ export default function ConversationPage() {
     const handleFocus = async () => {
       await markActiveConversation(userId)
       await loadMessagesOnly()
-
-      const audioEl = remoteAudioRef.current
-      if (audioEl?.srcObject) {
-        try {
-          await audioEl.play()
-        } catch (error) {
-          console.error("Focus remote audio error:", error)
-        }
-      }
     }
 
     const handleOnline = async () => {
@@ -465,7 +403,6 @@ export default function ConversationPage() {
         })
         setCurrentCallSessionId(payload.callSessionId)
         setCallUiState("incoming")
-        playRingtone()
       })
       .on("broadcast", { event: "call_accept" }, async ({ payload }) => {
         if (!payload) return
@@ -473,8 +410,6 @@ export default function ConversationPage() {
         if (!userId) return
 
         try {
-          stopRingtone()
-
           const pc = await ensurePeerConnection(userId)
           const offer = await pc.createOffer()
           await pc.setLocalDescription(offer)
@@ -504,7 +439,6 @@ export default function ConversationPage() {
         if (!payload) return
         if (payload.callSessionId !== currentCallSessionIdRef.current) return
 
-        stopRingtone()
         cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
@@ -515,7 +449,6 @@ export default function ConversationPage() {
         if (!payload) return
         if (currentCallSessionIdRef.current && payload.callSessionId !== currentCallSessionIdRef.current) return
 
-        stopRingtone()
         cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
@@ -585,7 +518,7 @@ export default function ConversationPage() {
       callChannelRef.current = null
       supabase.removeChannel(callChannel)
     }
-  }, [conversationId, userId, ensurePeerConnection, cleanupAudioCall, playRingtone, stopRingtone])
+  }, [conversationId, userId, ensurePeerConnection, cleanupAudioCall])
 
   async function handleStartCall() {
     if (!userId || !otherMember?.member_id || callUiState !== "idle") return
@@ -658,7 +591,6 @@ export default function ConversationPage() {
 
     try {
       setCallBusy(true)
-      stopRingtone()
       await ensureLocalStream()
       await ensurePeerConnection(userId)
 
@@ -719,7 +651,6 @@ export default function ConversationPage() {
 
     try {
       setCallBusy(true)
-      stopRingtone()
 
       const callSessionId = incomingCall.callSessionId
 
@@ -774,7 +705,6 @@ export default function ConversationPage() {
 
     try {
       setCallBusy(true)
-      stopRingtone()
 
       await supabase
         .from("call_sessions")
@@ -900,7 +830,6 @@ export default function ConversationPage() {
   return (
     <main className="min-h-screen bg-slate-50 p-6">
       <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
-      <audio ref={ringtoneRef} src="/sounds/incoming-call.mp3" preload="auto" />
 
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -930,27 +930,33 @@ export default function Page() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
 
-  async function handleStartChat(otherMemberId: string) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+async function handleStartChat(otherMemberId: string) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
-    if (!session?.user) {
-      window.location.href = "/login"
-      return
-    }
-
-    const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
-      other_member_id: otherMemberId,
-    })
-
-    if (error || !data) {
-      alert("Nu am putut porni conversația.")
-      return
-    }
-
-    window.location.href = `/messages/${data}`
+  if (!session?.user) {
+    window.location.href = "/login"
+    return
   }
+
+  const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
+    other_member_id: otherMemberId,
+  })
+
+  if (error || !data) {
+    alert("Nu am putut porni conversația.")
+    return
+  }
+
+  await supabase
+    .from("conversation_hidden_for_users")
+    .delete()
+    .eq("conversation_id", data)
+    .eq("user_id", session.user.id)
+
+  window.location.href = `/messages/${data}`
+}
 
   useEffect(() => {
     async function loadUser() {

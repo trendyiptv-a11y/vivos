@@ -55,7 +55,6 @@ export default function ConversationPage() {
   const [callBusy, setCallBusy] = useState(false)
   const [currentCallSessionId, setCurrentCallSessionId] = useState<string | null>(null)
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null)
-  const [hidingConversation, setHidingConversation] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -833,109 +832,41 @@ export default function ConversationPage() {
     }
   }
 
-async function handleHideConversation() {
-  if (!userId) return
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault()
+    if (!body.trim() || !userId) return
 
-  const confirmed = window.confirm(
-    "Sigur vrei să elimini această conversație din lista ta?"
-  )
+    setSending(true)
 
-  if (!confirmed) return
+    const cleanBody = body.trim()
 
-  try {
-    setHidingConversation(true)
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-    await handleEndCall()
+    if (!session?.access_token) {
+      alert("Sesiunea nu este validă. Reautentifică-te.")
+      setSending(false)
+      return
+    }
 
-    const { error } = await supabase
-      .from("conversation_hidden_for_users")
+    const { data, error } = await supabase
+      .from("messages")
       .insert({
         conversation_id: conversationId,
-        user_id: userId,
-        hidden_at: new Date().toISOString(),
+        sender_id: userId,
+        body: cleanBody,
       })
+      .select("id, sender_id, body, created_at")
+      .single()
 
     if (error) {
-      const alreadyHidden =
-        error.message?.includes("duplicate key") ||
-        error.message?.includes("unique constraint")
-
-      if (!alreadyHidden) {
-        alert(`Conversația nu a putut fi ascunsă: ${error.message}`)
-        setHidingConversation(false)
-        return
-      }
+      alert(`Mesajul nu a putut fi trimis: ${error.message}`)
+      setSending(false)
+      return
     }
 
-    router.push("/messages")
-    router.refresh()
-  } catch (error: any) {
-    console.error("Hide conversation error:", error)
-    alert(error?.message || "Conversația nu a putut fi ascunsă.")
-    setHidingConversation(false)
-  }
-}
-
- async function handleSend(e: React.FormEvent) {
-  e.preventDefault()
-  if (!body.trim() || !userId) return
-
-  setSending(true)
-
-  const cleanBody = body.trim()
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session?.access_token) {
-    alert("Sesiunea nu este validă. Reautentifică-te.")
-    setSending(false)
-    return
-  }
-
-  const { data, error } = await supabase
-    .from("messages")
-    .insert({
-      conversation_id: conversationId,
-      sender_id: userId,
-      body: cleanBody,
-    })
-    .select("id, sender_id, body, created_at")
-    .single()
-
-  if (error) {
-    alert(`Mesajul nu a putut fi trimis: ${error.message}`)
-    setSending(false)
-    return
-  }
-
-  if (data) {
-    const recipientId = members.find((m) => m.member_id !== userId)?.member_id || null
-
-    let shouldNotify = true
-
-    if (recipientId) {
-      const activeThreshold = new Date(Date.now() - 30 * 1000).toISOString()
-
-      const { data: activeConversation, error: activeConversationError } = await supabase
-        .from("active_conversations")
-        .select("user_id, conversation_id, updated_at")
-        .eq("user_id", recipientId)
-        .eq("conversation_id", conversationId)
-        .gte("updated_at", activeThreshold)
-        .maybeSingle()
-
-      if (activeConversationError) {
-        console.error("Active conversation check error:", activeConversationError)
-      }
-
-      if (activeConversation) {
-        shouldNotify = false
-      }
-    }
-
-    if (shouldNotify) {
+    if (data) {
       const { error: notificationError } = await supabase.rpc("create_message_notification", {
         p_conversation_id: conversationId,
         p_message_id: data.id,
@@ -968,22 +899,21 @@ async function handleHideConversation() {
       } catch (pushError) {
         console.error("Push request failed:", pushError)
       }
+
+      setMessages((prev) =>
+        upsertMessage(prev, {
+          id: data.id,
+          sender_id: data.sender_id,
+          body: data.body,
+          created_at: data.created_at,
+        })
+      )
     }
 
-    setMessages((prev) =>
-      upsertMessage(prev, {
-        id: data.id,
-        sender_id: data.sender_id,
-        body: data.body,
-        created_at: data.created_at,
-      })
-    )
+    setBody("")
+    setSending(false)
+    scrollToBottom()
   }
-
-  setBody("")
-  setSending(false)
-  scrollToBottom()
-}
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
@@ -1015,15 +945,6 @@ async function handleHideConversation() {
                 {callBusy ? "Se închide..." : "Închide apelul"}
               </Button>
             ) : null}
-
-            <Button
-              variant="outline"
-              className="rounded-2xl"
-              onClick={handleHideConversation}
-              disabled={hidingConversation}
-            >
-              {hidingConversation ? "Se elimină..." : "Șterge pentru mine"}
-            </Button>
 
             <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/messages")}>
               Înapoi la mesaje

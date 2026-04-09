@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase/client"
 
 type NotificationRow = {
   id: string
+  user_id: string | null
   event_type: string
   title: string
   body: string | null
@@ -20,6 +21,7 @@ type NotificationRow = {
 function eventBadge(eventType: string) {
   if (eventType === "user_registered") return "Membru nou"
   if (eventType === "market_post_created") return "Piață"
+  if (eventType === "new_message") return "Mesaj"
   return "Eveniment"
 }
 
@@ -28,6 +30,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<NotificationRow[]>([])
   const [message, setMessage] = useState("")
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadNotifications() {
@@ -43,9 +46,12 @@ export default function NotificationsPage() {
         return
       }
 
+      setUserId(session.user.id)
+
       const { data, error } = await supabase
         .from("notifications")
-        .select("id, event_type, title, body, ref_id, created_at, is_read")
+        .select("id, user_id, event_type, title, body, ref_id, created_at, is_read")
+        .or(`user_id.eq.${session.user.id},user_id.is.null`)
         .order("created_at", { ascending: false })
         .limit(50)
 
@@ -71,9 +77,22 @@ export default function NotificationsPage() {
           schema: "public",
           table: "notifications",
         },
-        (payload) => {
+        async (payload) => {
           const row = payload.new as NotificationRow
-          setItems((prev) => [row, ...prev])
+
+          const {
+            data: { session },
+          } = await supabase.auth.getSession()
+
+          const currentUserId = session?.user?.id
+
+          if (!currentUserId) return
+          if (row.user_id !== null && row.user_id !== currentUserId) return
+
+          setItems((prev) => {
+            const next = [row, ...prev]
+            return next.slice(0, 50)
+          })
         }
       )
       .subscribe()
@@ -84,7 +103,12 @@ export default function NotificationsPage() {
   }, [router])
 
   async function markAllRead() {
-    const unreadIds = items.filter((x) => !x.is_read).map((x) => x.id)
+    if (!userId) return
+
+    const unreadIds = items
+      .filter((x) => !x.is_read && x.user_id === userId)
+      .map((x) => x.id)
+
     if (!unreadIds.length) return
 
     const { error } = await supabase
@@ -93,7 +117,9 @@ export default function NotificationsPage() {
       .in("id", unreadIds)
 
     if (!error) {
-      setItems((prev) => prev.map((x) => ({ ...x, is_read: true })))
+      setItems((prev) =>
+        prev.map((x) => (x.user_id === userId ? { ...x, is_read: true } : x))
+      )
     }
   }
 
@@ -139,7 +165,14 @@ export default function NotificationsPage() {
                     <Badge variant="secondary" className="rounded-xl">
                       {eventBadge(item.event_type)}
                     </Badge>
-                    {!item.is_read && (
+
+                    {item.user_id === null && (
+                      <Badge variant="secondary" className="rounded-xl">
+                        global
+                      </Badge>
+                    )}
+
+                    {!item.is_read && item.user_id === userId && (
                       <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
                         nou
                       </Badge>

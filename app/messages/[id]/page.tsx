@@ -172,26 +172,32 @@ export default function ConversationPage() {
       }
 
       pc.onicecandidate = async (event) => {
-        if (!event.candidate) return
-        if (!callChannelRef.current) return
-        if (!currentCallSessionIdRef.current) return
+  if (event.candidate) {
+    console.log("ICE candidate:", event.candidate.candidate)
+  } else {
+    console.log("ICE gathering complete")
+  }
 
-        try {
-          await callChannelRef.current.send({
-            type: "broadcast",
-            event: "ice_candidate",
-            payload: {
-              type: "ice_candidate",
-              callSessionId: currentCallSessionIdRef.current,
-              conversationId,
-              fromUserId: currentUserId,
-              candidate: event.candidate.toJSON(),
-            },
-          })
-        } catch (error) {
-          console.error("ICE send error:", error)
-        }
-      }
+  if (!event.candidate) return
+  if (!callChannelRef.current) return
+  if (!currentCallSessionIdRef.current) return
+
+  try {
+    await callChannelRef.current.send({
+      type: "broadcast",
+      event: "ice_candidate",
+      payload: {
+        type: "ice_candidate",
+        callSessionId: currentCallSessionIdRef.current,
+        conversationId,
+        fromUserId: currentUserId,
+        candidate: event.candidate.toJSON(),
+      },
+    })
+  } catch (error) {
+    console.error("ICE send error:", error)
+  }
+}
 
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState

@@ -22,7 +22,28 @@ function eventBadge(eventType: string) {
   if (eventType === "user_registered") return "Membru nou"
   if (eventType === "market_post_created") return "Piață"
   if (eventType === "new_message") return "Mesaj"
+  if (eventType === "fund_request_created") return "Fond mutual"
   return "Eveniment"
+}
+
+function getNotificationHref(item: NotificationRow) {
+  if (item.event_type === "new_message" && item.ref_id) {
+    return `/messages/${item.ref_id}`
+  }
+
+  if (item.event_type === "market_post_created") {
+    return "/market"
+  }
+
+  if (item.event_type === "user_registered") {
+    return "/members"
+  }
+
+  if (item.event_type === "fund_request_created") {
+    return "/fund"
+  }
+
+  return null
 }
 
 export default function NotificationsPage() {
@@ -89,10 +110,7 @@ export default function NotificationsPage() {
           if (!currentUserId) return
           if (row.user_id !== null && row.user_id !== currentUserId) return
 
-          setItems((prev) => {
-            const next = [row, ...prev]
-            return next.slice(0, 50)
-          })
+          setItems((prev) => [row, ...prev].slice(0, 50))
         }
       )
       .subscribe()
@@ -121,6 +139,26 @@ export default function NotificationsPage() {
         prev.map((x) => (x.user_id === userId ? { ...x, is_read: true } : x))
       )
     }
+  }
+
+  async function handleOpen(item: NotificationRow) {
+    const href = getNotificationHref(item)
+    if (!href) return
+
+    if (userId && item.user_id === userId && !item.is_read) {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("id", item.id)
+
+      if (!error) {
+        setItems((prev) =>
+          prev.map((x) => (x.id === item.id ? { ...x, is_read: true } : x))
+        )
+      }
+    }
+
+    router.push(href)
   }
 
   return (
@@ -159,33 +197,49 @@ export default function NotificationsPage() {
                 Nu există încă notificări.
               </div>
             ) : (
-              items.map((item) => (
-                <div key={item.id} className="rounded-2xl border p-4">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="rounded-xl">
-                      {eventBadge(item.event_type)}
-                    </Badge>
+              items.map((item) => {
+                const href = getNotificationHref(item)
 
-                    {item.user_id === null && (
+                return (
+                  <div key={item.id} className="rounded-2xl border p-4">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
                       <Badge variant="secondary" className="rounded-xl">
-                        global
+                        {eventBadge(item.event_type)}
                       </Badge>
-                    )}
 
-                    {!item.is_read && item.user_id === userId && (
-                      <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
-                        nou
-                      </Badge>
-                    )}
+                      {item.user_id === null && (
+                        <Badge variant="secondary" className="rounded-xl">
+                          global
+                        </Badge>
+                      )}
+
+                      {!item.is_read && item.user_id === userId && (
+                        <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
+                          nou
+                        </Badge>
+                      )}
+                    </div>
+
+                    <p className="font-medium">{item.title}</p>
+                    <p className="mt-1 text-sm text-slate-600">{item.body || "Fără detalii"}</p>
+                    <p className="mt-2 text-xs text-slate-500">
+                      {new Date(item.created_at).toLocaleString("ro-RO")}
+                    </p>
+
+                    {href ? (
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          className="rounded-2xl"
+                          onClick={() => handleOpen(item)}
+                        >
+                          Deschide
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
-
-                  <p className="font-medium">{item.title}</p>
-                  <p className="mt-1 text-sm text-slate-600">{item.body || "Fără detalii"}</p>
-                  <p className="mt-2 text-xs text-slate-500">
-                    {new Date(item.created_at).toLocaleString("ro-RO")}
-                  </p>
-                </div>
-              ))
+                )
+              })
             )}
           </CardContent>
         </Card>

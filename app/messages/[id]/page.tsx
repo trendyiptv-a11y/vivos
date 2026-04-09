@@ -876,41 +876,66 @@ async function handleHideConversation() {
   }
 }
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault()
-    if (!body.trim() || !userId) return
+ async function handleSend(e: React.FormEvent) {
+  e.preventDefault()
+  if (!body.trim() || !userId) return
 
-    setSending(true)
+  setSending(true)
 
-    const cleanBody = body.trim()
+  const cleanBody = body.trim()
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
-    if (!session?.access_token) {
-      alert("Sesiunea nu este validă. Reautentifică-te.")
-      setSending(false)
-      return
+  if (!session?.access_token) {
+    alert("Sesiunea nu este validă. Reautentifică-te.")
+    setSending(false)
+    return
+  }
+
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversationId,
+      sender_id: userId,
+      body: cleanBody,
+    })
+    .select("id, sender_id, body, created_at")
+    .single()
+
+  if (error) {
+    alert(`Mesajul nu a putut fi trimis: ${error.message}`)
+    setSending(false)
+    return
+  }
+
+  if (data) {
+    const recipientId = members.find((m) => m.member_id !== userId)?.member_id || null
+
+    let shouldNotify = true
+
+    if (recipientId) {
+      const activeThreshold = new Date(Date.now() - 30 * 1000).toISOString()
+
+      const { data: activeConversation, error: activeConversationError } = await supabase
+        .from("active_conversations")
+        .select("user_id, conversation_id, updated_at")
+        .eq("user_id", recipientId)
+        .eq("conversation_id", conversationId)
+        .gte("updated_at", activeThreshold)
+        .maybeSingle()
+
+      if (activeConversationError) {
+        console.error("Active conversation check error:", activeConversationError)
+      }
+
+      if (activeConversation) {
+        shouldNotify = false
+      }
     }
 
-    const { data, error } = await supabase
-      .from("messages")
-      .insert({
-        conversation_id: conversationId,
-        sender_id: userId,
-        body: cleanBody,
-      })
-      .select("id, sender_id, body, created_at")
-      .single()
-
-    if (error) {
-      alert(`Mesajul nu a putut fi trimis: ${error.message}`)
-      setSending(false)
-      return
-    }
-
-    if (data) {
+    if (shouldNotify) {
       const { error: notificationError } = await supabase.rpc("create_message_notification", {
         p_conversation_id: conversationId,
         p_message_id: data.id,
@@ -943,21 +968,22 @@ async function handleHideConversation() {
       } catch (pushError) {
         console.error("Push request failed:", pushError)
       }
-
-      setMessages((prev) =>
-        upsertMessage(prev, {
-          id: data.id,
-          sender_id: data.sender_id,
-          body: data.body,
-          created_at: data.created_at,
-        })
-      )
     }
 
-    setBody("")
-    setSending(false)
-    scrollToBottom()
+    setMessages((prev) =>
+      upsertMessage(prev, {
+        id: data.id,
+        sender_id: data.sender_id,
+        body: data.body,
+        created_at: data.created_at,
+      })
+    )
   }
+
+  setBody("")
+  setSending(false)
+  scrollToBottom()
+}
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">

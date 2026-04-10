@@ -35,8 +35,8 @@ self.addEventListener("push", (event) => {
       conversationId: payload.conversationId || null,
       notificationType: payload.notificationType || "generic",
     },
-    icon: "/icon-192.png",
-    badge: "/badge-72.png",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
   }
 
   event.waitUntil(self.registration.showNotification(title, options))

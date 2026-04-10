@@ -8,6 +8,12 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Bell,
   BookOpen,
   FileText,
@@ -37,7 +43,7 @@ const navItems = [
   { id: "archive", label: "Arhivă", icon: FileText },
   { id: "governance", label: "Guvernanță", icon: Shield },
   { id: "settings", label: "Setări", icon: Settings },
-]
+] as const
 
 const walletEntries = [
   { label: "Schimb confirmat", amount: "+120", meta: "Reparații electrice" },
@@ -115,6 +121,7 @@ function Shell({
 }: ShellProps) {
   const showUnreadBadge = !!userEmail && unreadCount > 0
   const showPublicBadge = !userEmail && publicPulseCount > 0
+  const activeLabel = navItems.find((x) => x.id === active)?.label || "VIVOS"
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -168,7 +175,7 @@ function Shell({
                   Platforma comunitară
                 </p>
                 <h2 className="truncate text-lg font-semibold sm:text-2xl">
-                  {active === "dashboard" ? "VIVOS" : navItems.find((x) => x.id === active)?.label || "VIVOS"}
+                  {active === "dashboard" ? "VIVOS" : activeLabel}
                 </h2>
               </div>
 
@@ -212,22 +219,38 @@ function Shell({
                       {userEmail}
                     </div>
 
-                    <Button
-                      variant="outline"
-                      className="hidden rounded-2xl sm:inline-flex"
-                      onClick={async () => {
-                        await supabase.auth.signOut()
-                        window.location.href = "/"
-                      }}
-                    >
-                      Logout
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300">
+                          <Avatar className="h-10 w-10 rounded-2xl">
+                            <AvatarFallback className="rounded-2xl bg-slate-900 text-white">
+                              {userEmail.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        </button>
+                      </DropdownMenuTrigger>
 
-                    <Avatar className="h-10 w-10 rounded-2xl">
-                      <AvatarFallback className="rounded-2xl bg-slate-900 text-white">
-                        {userEmail.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                      <DropdownMenuContent align="end" className="w-48 rounded-2xl">
+                        <DropdownMenuItem
+                          className="cursor-pointer rounded-xl"
+                          onClick={() => {
+                            window.location.href = "/profile"
+                          }}
+                        >
+                          Profil
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          className="cursor-pointer rounded-xl"
+                          onClick={async () => {
+                            await supabase.auth.signOut()
+                            window.location.href = "/"
+                          }}
+                        >
+                          Logout
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </>
                 ) : (
                   <Button

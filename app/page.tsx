@@ -5,17 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
 import {
   Bell,
   BookOpen,
-  Coins,
   FileText,
-  HandCoins,
   HeartHandshake,
   LayoutDashboard,
   LifeBuoy,
@@ -49,12 +44,6 @@ const walletEntries = [
   { label: "Contribuție fond mutual", amount: "-30", meta: "Contribuție lunară" },
   { label: "Recompensă implicare", amount: "+25", meta: "Moderare comunitară" },
   { label: "Sprijin primit", amount: "+90", meta: "Transport medical" },
-]
-
-const fundRequests = [
-  { member: "Elena D.", need: "medicamente", urgency: "Ridicată", amount: "300 DKK", status: "În analiză" },
-  { member: "Ana M.", need: "transport", urgency: "Mediu", amount: "150 DKK", status: "Aprobat parțial" },
-  { member: "Mihai C.", need: "hrană", urgency: "Ridicată", amount: "200 DKK", status: "Executat" },
 ]
 
 const archiveItems = [
@@ -116,14 +105,21 @@ type ShellProps = {
   publicPulseCount: number
 }
 
-function Shell({ active, setActive, children, userEmail, unreadCount, publicPulseCount }: ShellProps) {
+function Shell({
+  active,
+  setActive,
+  children,
+  userEmail,
+  unreadCount,
+  publicPulseCount,
+}: ShellProps) {
   const showUnreadBadge = !!userEmail && unreadCount > 0
   const showPublicBadge = !userEmail && publicPulseCount > 0
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="border-r bg-white/90 backdrop-blur">
+      <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
+        <aside className="hidden border-r bg-white/90 backdrop-blur lg:block">
           <div className="flex h-20 items-center gap-3 border-b px-6">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
               <LifeBuoy className="h-5 w-5" />
@@ -150,7 +146,9 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
                     key={item.id}
                     onClick={() => setActive(item.id)}
                     className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
-                      isActive ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
+                      isActive
+                        ? "bg-slate-900 text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -163,14 +161,18 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
         </aside>
 
         <main className="flex min-h-screen flex-col">
-          <header className="sticky top-0 z-10 border-b bg-white/85 backdrop-blur">
-            <div className="flex items-center justify-between gap-4 px-6 py-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Wireframe MVP</p>
-                <h2 className="text-2xl font-semibold">Platforma comunitară VIVOS</h2>
+          <header className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                  Platforma comunitară
+                </p>
+                <h2 className="truncate text-lg font-semibold sm:text-2xl">
+                  {active === "dashboard" ? "VIVOS" : navItems.find((x) => x.id === active)?.label || "VIVOS"}
+                </h2>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="hidden items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2 md:flex">
                   <Search className="h-4 w-4 text-slate-500" />
                   <Input
@@ -182,13 +184,13 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
                 <div className="relative">
                   <Button
                     variant="outline"
-                    className="rounded-2xl"
+                    className="rounded-2xl px-3 sm:px-4"
                     onClick={() => {
                       window.location.href = "/notifications"
                     }}
                   >
-                    <Bell className="mr-2 h-4 w-4" />
-                    Notificări
+                    <Bell className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Notificări</span>
                   </Button>
 
                   {showUnreadBadge && (
@@ -206,13 +208,13 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
 
                 {userEmail ? (
                   <>
-                    <div className="max-w-[120px] truncate rounded-2xl border bg-white px-3 py-2 text-xs text-slate-600 sm:max-w-[180px] sm:text-sm">
+                    <div className="hidden max-w-[180px] truncate rounded-2xl border bg-white px-3 py-2 text-sm text-slate-600 sm:block">
                       {userEmail}
                     </div>
 
                     <Button
                       variant="outline"
-                      className="rounded-2xl"
+                      className="hidden rounded-2xl sm:inline-flex"
                       onClick={async () => {
                         await supabase.auth.signOut()
                         window.location.href = "/"
@@ -247,7 +249,7 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.18 }}
-              className="p-6"
+              className="p-4 sm:p-6"
             >
               {children}
             </motion.div>
@@ -258,54 +260,24 @@ function Shell({ active, setActive, children, userEmail, unreadCount, publicPuls
   )
 }
 
-function StatCard({
-  title,
-  value,
-  hint,
-  icon: Icon,
-}: {
-  title: string
-  value: string
-  hint: string
-  icon: React.ComponentType<{ className?: string }>
-}) {
-  return (
-    <Card className="rounded-3xl border-0 shadow-sm">
-      <CardContent className="p-5">
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <p className="text-sm text-slate-500">{title}</p>
-            <p className="mt-2 text-3xl font-semibold tracking-tight">{value}</p>
-          </div>
-          <div className="rounded-2xl bg-slate-100 p-3">
-            <Icon className="h-5 w-5" />
-          </div>
-        </div>
-        <p className="text-sm text-slate-500">{hint}</p>
-      </CardContent>
-    </Card>
-  )
-}
-
 function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
   const offersCount = marketPosts.filter((item) => item.post_type === "offer").length
   const requestsCount = marketPosts.filter((item) => item.post_type === "request").length
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">Bine ai venit în VIVOS</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl sm:text-2xl">Bine ai venit în VIVOS</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-0">
           <p className="text-sm text-slate-600">
-            Platforma este în construcție, dar baza reală există deja: membri autentificați,
-            profiluri reale și piață comunitară funcțională.
+            Spațiul comunitar pentru schimb, sprijin mutual și colaborare directă între membri.
           </p>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="grid gap-3">
             <Button
-              className="rounded-2xl"
+              className="h-12 rounded-2xl"
               onClick={() => {
                 window.location.href = "/market/new"
               }}
@@ -315,7 +287,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
 
             <Button
               variant="outline"
-              className="rounded-2xl"
+              className="h-12 rounded-2xl"
               onClick={() => {
                 window.location.href = "/profile"
               }}
@@ -325,7 +297,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
 
             <Button
               variant="outline"
-              className="rounded-2xl"
+              className="h-12 rounded-2xl"
               onClick={() => {
                 window.location.href = "/market"
               }}
@@ -336,9 +308,72 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
         </CardContent>
       </Card>
 
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardContent className="p-4 sm:p-5">
+            <p className="text-sm text-slate-500">Oferte</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-900">{offersCount}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardContent className="p-4 sm:p-5">
+            <p className="text-sm text-slate-500">Nevoi</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-900">{requestsCount}</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="rounded-3xl border-0 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-xl">Nevoi și oferte recente</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg sm:text-xl">Acțiuni rapide</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          <Button
+            variant="outline"
+            className="h-12 justify-start rounded-2xl"
+            onClick={() => {
+              window.location.href = "/messages"
+            }}
+          >
+            Mesajele mele
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-12 justify-start rounded-2xl"
+            onClick={() => {
+              window.location.href = "/notifications"
+            }}
+          >
+            Notificări
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-12 justify-start rounded-2xl"
+            onClick={() => {
+              window.location.href = "/fund/new"
+            }}
+          >
+            Cere sprijin
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-12 justify-start rounded-2xl"
+            onClick={() => {
+              window.location.href = "/wallet"
+            }}
+          >
+            Portofel
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-lg sm:text-xl">Piața comunitară</CardTitle>
           <Button
             variant="outline"
             className="rounded-2xl"
@@ -350,16 +385,16 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
           </Button>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border p-4">
-              <p className="text-sm text-slate-500">Oferte</p>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">{offersCount}</p>
+              <p className="text-sm text-slate-500">Oferte active</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">{offersCount}</p>
             </div>
 
             <div className="rounded-2xl border p-4">
-              <p className="text-sm text-slate-500">Nevoi</p>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">{requestsCount}</p>
+              <p className="text-sm text-slate-500">Cereri active</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">{requestsCount}</p>
             </div>
           </div>
         </CardContent>
@@ -382,27 +417,28 @@ function MembersScreen({
   publicMembersCount: number
 }) {
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-xl">Registrul membrilor</CardTitle>
+          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="text-lg sm:text-xl">Registrul membrilor</CardTitle>
             <div className="text-sm text-slate-500">
               {isLoggedIn ? `${members.length} membri` : "acces restricționat"}
             </div>
           </CardHeader>
+
           <CardContent className="space-y-3">
             {loading ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">
                 Se încarcă membrii...
               </div>
             ) : !isLoggedIn ? (
-              <div className="rounded-2xl border p-6">
+              <div className="rounded-2xl border p-5 sm:p-6">
                 <h3 className="text-lg font-semibold">Vezi membrii comunității</h3>
                 <p className="mt-2 text-sm text-slate-600">
                   Autentifică-te pentru a vedea membrii activi, profilurile lor și posibilitățile de colaborare.
                 </p>
-                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
                   <Button
                     className="rounded-2xl"
                     onClick={() => {
@@ -453,29 +489,35 @@ function MembersScreen({
                       window.location.href = `/member/${member.id}`
                     }}
                   >
-                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="flex flex-col gap-4">
                       <div className="flex gap-3">
                         <Avatar className="h-12 w-12 rounded-2xl">
                           <AvatarFallback className="rounded-2xl bg-slate-900 text-white">
                             {initials || "MB"}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
+
+                        <div className="min-w-0">
                           <p className="font-medium">{displayName}</p>
-                          <p className="text-sm text-slate-500">{member.email}</p>
+                          <p className="truncate text-sm text-slate-500">{member.email}</p>
                           <div className="mt-2 flex flex-wrap gap-2">
-                            {(skillsList.length ? skillsList : ["fără competențe completate"]).map((skill, idx) => (
-                              <Badge key={idx} variant="outline" className="rounded-xl">
-                                {skill}
-                              </Badge>
-                            ))}
+                            {(skillsList.length ? skillsList : ["fără competențe completate"]).map(
+                              (skill, idx) => (
+                                <Badge key={idx} variant="outline" className="rounded-xl">
+                                  {skill}
+                                </Badge>
+                              )
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="grid gap-2 text-sm text-slate-600 md:text-right">
+                      <div className="grid gap-2 text-sm text-slate-600">
                         <p>
-                          Rol: <span className="font-medium text-slate-900">{member.role || "member"}</span>
+                          Rol:{" "}
+                          <span className="font-medium text-slate-900">
+                            {member.role || "member"}
+                          </span>
                         </p>
                         <p>
                           Oferă:{" "}
@@ -491,7 +533,8 @@ function MembersScreen({
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+
+                    <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
                       <Button
                         variant="outline"
                         className="rounded-2xl"
@@ -523,7 +566,7 @@ function MembersScreen({
 
         <Card className="rounded-3xl border-0 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl">Membri înregistrați</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Membri înregistrați</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-2xl border p-5 text-center">
@@ -547,13 +590,16 @@ function MarketScreen({
   onStartChat: (memberId: string) => void
 }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h3 className="text-2xl font-semibold">Piața comunitară</h3>
-          <p className="text-slate-500">Oferte, cereri, barter și colaborări directe.</p>
+          <h3 className="text-xl font-semibold sm:text-2xl">Piața comunitară</h3>
+          <p className="text-sm text-slate-500 sm:text-base">
+            Oferte, cereri, barter și colaborări directe.
+          </p>
         </div>
-        <div className="flex gap-3">
+
+        <div className="grid gap-3 sm:flex sm:flex-row">
           <Button
             variant="outline"
             className="rounded-2xl"
@@ -575,10 +621,11 @@ function MarketScreen({
       </div>
 
       <Card className="rounded-3xl border-0 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-xl">Toate postările recente</CardTitle>
+        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-lg sm:text-xl">Toate postările recente</CardTitle>
           <div className="text-sm text-slate-500">{marketPosts.length} postări</div>
         </CardHeader>
+
         <CardContent className="space-y-3">
           {marketPosts.length === 0 ? (
             <div className="rounded-2xl border p-4 text-sm text-slate-600">
@@ -586,55 +633,50 @@ function MarketScreen({
             </div>
           ) : (
             marketPosts.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center md:justify-between"
-              >
-                <div>
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="rounded-xl">
-                      {item.post_type === "offer" ? "Ofertă" : "Cerere"}
-                    </Badge>
-                    <Badge variant="outline" className="rounded-xl">
-                      {item.category || "General"}
-                    </Badge>
-                    <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
-                      {item.status === "in_progress"
-                        ? "În lucru"
-                        : item.status === "closed"
-                        ? "Închis"
-                        : "Activ"}
-                    </Badge>
-                  </div>
-
-                  <p className="font-medium">{item.title}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {(item.location || "Necompletat")} · {(item.value_text || "Necompletat")}
-                  </p>
-
-                  {item.description && (
-                    <p className="mt-2 text-sm text-slate-600">{item.description}</p>
-                  )}
+              <div key={item.id} className="rounded-2xl border p-4">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className="rounded-xl">
+                    {item.post_type === "offer" ? "Ofertă" : "Cerere"}
+                  </Badge>
+                  <Badge variant="outline" className="rounded-xl">
+                    {item.category || "General"}
+                  </Badge>
+                  <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
+                    {item.status === "in_progress"
+                      ? "În lucru"
+                      : item.status === "closed"
+                      ? "Închis"
+                      : "Activ"}
+                  </Badge>
                 </div>
 
-                <div className="flex flex-col gap-3 sm:flex-row">
-                <Button
-                  variant="outline"
-                  className="rounded-2xl"
-                  onClick={() => onStartChat(item.author_id)}
-                >
-                  Contactează autorul
-                </Button>
+                <p className="font-medium">{item.title}</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {(item.location || "Necompletat")} · {(item.value_text || "Necompletat")}
+                </p>
 
-                <Button
-                  className="rounded-2xl"
-                  onClick={() => {
-                    window.location.href = "/market"
-                  }}
-                >
-                  Vezi detalii
-                </Button>
-              </div>
+                {item.description && (
+                  <p className="mt-2 text-sm text-slate-600">{item.description}</p>
+                )}
+
+                <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
+                  <Button
+                    variant="outline"
+                    className="rounded-2xl"
+                    onClick={() => onStartChat(item.author_id)}
+                  >
+                    Contactează autorul
+                  </Button>
+
+                  <Button
+                    className="rounded-2xl"
+                    onClick={() => {
+                      window.location.href = "/market"
+                    }}
+                  >
+                    Vezi detalii
+                  </Button>
+                </div>
               </div>
             ))
           )}
@@ -646,10 +688,10 @@ function MarketScreen({
 
 function AboutScreen() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Despre VIVOS</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">Despre VIVOS</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-600">
@@ -657,7 +699,7 @@ function AboutScreen() {
             Aici păstrăm și documentele de bază ale comunității.
           </p>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="grid gap-3 sm:flex sm:flex-row">
             <Button
               className="rounded-2xl"
               onClick={() => {
@@ -682,7 +724,7 @@ function AboutScreen() {
 
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Talantul VIVOS</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Talantul VIVOS</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-600">
@@ -709,8 +751,8 @@ function AboutScreen() {
           </div>
 
           <div className="rounded-2xl border p-4 text-sm text-slate-600">
-  Talantul VIVOS are o pagină dedicată, unde sunt explicate clar principiile, formula de bază și rolul său în comunitate.
-</div>
+            Talantul VIVOS are o pagină dedicată, unde sunt explicate clar principiile, formula de bază și rolul său în comunitate.
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -719,10 +761,10 @@ function AboutScreen() {
 
 function WalletScreen() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Portofel intern</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Portofel intern</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -752,11 +794,13 @@ function FundScreen({
   onStartChat: (memberId: string) => void
 }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h3 className="text-2xl font-semibold">Fond mutual de sprijin</h3>
-          <p className="text-slate-500">Cereri reale de sprijin, vizibile comunității.</p>
+          <h3 className="text-xl font-semibold sm:text-2xl">Fond mutual de sprijin</h3>
+          <p className="text-sm text-slate-500 sm:text-base">
+            Cereri reale de sprijin, vizibile comunității.
+          </p>
         </div>
 
         <div className="flex gap-3">
@@ -772,10 +816,11 @@ function FundScreen({
       </div>
 
       <Card className="rounded-3xl border-0 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-xl">Cereri recente</CardTitle>
+        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-lg sm:text-xl">Cereri recente</CardTitle>
           <div className="text-sm text-slate-500">{fundRequests.length} cereri</div>
         </CardHeader>
+
         <CardContent className="space-y-3">
           {fundRequests.length === 0 ? (
             <div className="rounded-2xl border p-4 text-sm text-slate-600">
@@ -817,11 +862,13 @@ function FundScreen({
                   <p className="mt-1 text-sm text-slate-500">Cerere de la: {authorName}</p>
                   <p className="mt-2 text-sm text-slate-600">{item.description}</p>
                   <p className="mt-3 text-sm text-slate-500">
-                    {item.amount_talanti ? `${Number(item.amount_talanti).toFixed(2)} talanți` : "Fără sumă specificată"} ·{" "}
-                    {new Date(item.created_at).toLocaleDateString("ro-RO")}
+                    {item.amount_talanti
+                      ? `${Number(item.amount_talanti).toFixed(2)} talanți`
+                      : "Fără sumă specificată"}{" "}
+                    · {new Date(item.created_at).toLocaleDateString("ro-RO")}
                   </p>
 
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
                     <Button
                       variant="outline"
                       className="rounded-2xl"
@@ -840,12 +887,12 @@ function FundScreen({
                         }
 
                         const params = new URLSearchParams({
-  supportRequestId: item.id,
-  supportReceiverId: item.author_id,
-  supportAmount: item.amount_talanti ? String(item.amount_talanti) : "",
-  supportTitle: item.title,
-  supportAuthor: authorName,
-})
+                          supportRequestId: item.id,
+                          supportReceiverId: item.author_id,
+                          supportAmount: item.amount_talanti ? String(item.amount_talanti) : "",
+                          supportTitle: item.title,
+                          supportAuthor: authorName,
+                        })
 
                         window.location.href = `/wallet?${params.toString()}`
                       }}
@@ -865,10 +912,10 @@ function FundScreen({
 
 function ArchiveScreen() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Arhivă și memorie comunitară</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Arhivă și memorie comunitară</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {archiveItems.map((item, i) => (
@@ -887,13 +934,15 @@ function ArchiveScreen() {
 
 function GovernanceScreen() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Guvernanță vie</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Guvernanță vie</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-slate-600">Modul de guvernanță rămâne demo în această versiune.</p>
+          <p className="text-sm text-slate-600">
+            Modul de guvernanță rămâne demo în această versiune.
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -902,18 +951,18 @@ function GovernanceScreen() {
 
 function SettingsScreen() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Setări</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Setări</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-  <p className="text-sm text-slate-600">
-    Activează notificările push pentru a fi anunțat când primești mesaje noi.
-  </p>
+          <p className="text-sm text-slate-600">
+            Activează notificările push pentru a fi anunțat când primești mesaje noi.
+          </p>
 
-  <PushSubscribeButton />
-</CardContent>
+          <PushSubscribeButton />
+        </CardContent>
       </Card>
     </div>
   )
@@ -930,33 +979,33 @@ export default function Page() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
 
-async function handleStartChat(otherMemberId: string) {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  async function handleStartChat(otherMemberId: string) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-  if (!session?.user) {
-    window.location.href = "/login"
-    return
+    if (!session?.user) {
+      window.location.href = "/login"
+      return
+    }
+
+    const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
+      other_member_id: otherMemberId,
+    })
+
+    if (error || !data) {
+      alert("Nu am putut porni conversația.")
+      return
+    }
+
+    await supabase
+      .from("conversation_hidden_for_users")
+      .delete()
+      .eq("conversation_id", data)
+      .eq("user_id", session.user.id)
+
+    window.location.href = `/messages/${data}`
   }
-
-  const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
-    other_member_id: otherMemberId,
-  })
-
-  if (error || !data) {
-    alert("Nu am putut porni conversația.")
-    return
-  }
-
-  await supabase
-    .from("conversation_hidden_for_users")
-    .delete()
-    .eq("conversation_id", data)
-    .eq("user_id", session.user.id)
-
-  window.location.href = `/messages/${data}`
-}
 
   useEffect(() => {
     async function loadUser() {
@@ -1022,104 +1071,89 @@ async function handleStartChat(otherMemberId: string) {
   }, [])
 
   useEffect(() => {
-  async function loadPublicMembersCount() {
-    const { data, error } = await supabase.rpc("get_public_profiles_count")
+    async function loadPublicMembersCount() {
+      const { data, error } = await supabase.rpc("get_public_profiles_count")
 
-    if (!error && typeof data === "number") {
-      setPublicMembersCount(data)
-    } else {
-      setPublicMembersCount(0)
-    }
-  }
-
-  loadPublicMembersCount()
-
-  const channel = supabase
-    .channel("profiles-count")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "profiles",
-      },
-      () => {
-        loadPublicMembersCount()
+      if (!error && typeof data === "number") {
+        setPublicMembersCount(data)
+      } else {
+        setPublicMembersCount(0)
       }
-    )
-    .subscribe()
+    }
 
-  return () => {
-    supabase.removeChannel(channel)
-  }
-}, [])
+    loadPublicMembersCount()
+
+    const channel = supabase
+      .channel("profiles-count")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+        },
+        () => {
+          loadPublicMembersCount()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   useEffect(() => {
-  async function loadMarketPosts() {
-    const { data, error } = await supabase
-      .from("market_posts")
-      .select(
-        "id, author_id, post_type, title, category, description, value_text, location, status, created_at"
-      )
-      .order("created_at", { ascending: false })
-      .limit(20)
+    async function loadMarketPosts() {
+      const { data, error } = await supabase
+        .from("market_posts")
+        .select(
+          "id, author_id, post_type, title, category, description, value_text, location, status, created_at"
+        )
+        .order("created_at", { ascending: false })
+        .limit(20)
 
-    if (!error && data) {
-      setMarketPosts(data as MarketPost[])
-    } else {
-      setMarketPosts([])
-    }
-  }
-
-  loadMarketPosts()
-
-  const channel = supabase
-    .channel("market-posts")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "market_posts",
-      },
-      () => {
-        loadMarketPosts()
+      if (!error && data) {
+        setMarketPosts(data as MarketPost[])
+      } else {
+        setMarketPosts([])
       }
-    )
-    .subscribe()
+    }
 
-  return () => {
-    supabase.removeChannel(channel)
-  }
-}, [])
+    loadMarketPosts()
+
+    const channel = supabase
+      .channel("market-posts")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "market_posts",
+        },
+        () => {
+          loadMarketPosts()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   useEffect(() => {
     async function loadFundRequests() {
       const { data, error } = await supabase
         .from("mutual_fund_requests")
-        .select("id, author_id, title, description, amount_talanti, urgency, status, created_at, author:profiles!mutual_fund_requests_author_id_fkey(name, alias, email)")
+        .select(
+          "id, author_id, title, description, amount_talanti, urgency, status, created_at, author:profiles!mutual_fund_requests_author_id_fkey(name, alias, email)"
+        )
         .order("created_at", { ascending: false })
         .limit(20)
 
       if (!error && data) {
-        const normalized: MutualFundRequest[] = data.map((item: any) => ({
-          id: item.id,
-          author_id: item.author_id,
-          title: item.title,
-          description: item.description,
-          amount_talanti: item.amount_talanti,
-          urgency: item.urgency,
-          status: item.status,
-          created_at: item.created_at,
-          author: item.author
-            ? {
-                name: item.author.name ?? null,
-                alias: item.author.alias ?? null,
-                email: item.author.email ?? null,
-              }
-            : null,
-        }))
-        setFundRequests(normalized)
+        setFundRequests(data as unknown as MutualFundRequest[])
       } else {
         setFundRequests([])
       }
@@ -1161,6 +1195,7 @@ async function handleStartChat(otherMemberId: string) {
       const { count, error } = await supabase
         .from("notifications")
         .select("*", { count: "exact", head: true })
+        .eq("user_id", session.user.id)
         .eq("is_read", false)
 
       if (!error) {
@@ -1245,24 +1280,39 @@ async function handleStartChat(otherMemberId: string) {
             publicMembersCount={publicMembersCount}
           />
         )
+
       case "messages":
         window.location.href = "/messages"
         return <DashboardScreen marketPosts={marketPosts} />
+
       case "market":
         return <MarketScreen marketPosts={marketPosts} onStartChat={handleStartChat} />
+
       case "about":
         return <AboutScreen />
+
       case "wallet":
         window.location.href = "/wallet"
         return <DashboardScreen marketPosts={marketPosts} />
+
       case "fund":
-        return <FundScreen fundRequests={fundRequests} isLoggedIn={!!userEmail} onStartChat={handleStartChat} />
+        return (
+          <FundScreen
+            fundRequests={fundRequests}
+            isLoggedIn={!!userEmail}
+            onStartChat={handleStartChat}
+          />
+        )
+
       case "archive":
         return <ArchiveScreen />
+
       case "governance":
         return <GovernanceScreen />
+
       case "settings":
         return <SettingsScreen />
+
       default:
         return <DashboardScreen marketPosts={marketPosts} />
     }

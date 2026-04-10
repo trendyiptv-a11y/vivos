@@ -1,18 +1,12 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   Bell,
   BookOpen,
@@ -123,6 +117,23 @@ function Shell({
   const showPublicBadge = !userEmail && publicPulseCount > 0
   const activeLabel = navItems.find((x) => x.id === active)?.label || "VIVOS"
 
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const profileMenuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!profileMenuRef.current) return
+      if (!profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
@@ -219,38 +230,43 @@ function Shell({
                       {userEmail}
                     </div>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300">
-                          <Avatar className="h-10 w-10 rounded-2xl">
-                            <AvatarFallback className="rounded-2xl bg-slate-900 text-white">
-                              {userEmail.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        </button>
-                      </DropdownMenuTrigger>
+                    <div className="relative" ref={profileMenuRef}>
+                      <button
+                        className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                        onClick={() => setProfileMenuOpen((prev) => !prev)}
+                      >
+                        <Avatar className="h-10 w-10 rounded-2xl">
+                          <AvatarFallback className="rounded-2xl bg-slate-900 text-white">
+                            {userEmail.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
 
-                      <DropdownMenuContent align="end" className="w-48 rounded-2xl">
-                        <DropdownMenuItem
-                          className="cursor-pointer rounded-xl"
-                          onClick={() => {
-                            window.location.href = "/profile"
-                          }}
-                        >
-                          Profil
-                        </DropdownMenuItem>
+                      {profileMenuOpen && (
+                        <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border bg-white p-2 shadow-lg">
+                          <button
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                            onClick={() => {
+                              setProfileMenuOpen(false)
+                              window.location.href = "/profile"
+                            }}
+                          >
+                            Profil
+                          </button>
 
-                        <DropdownMenuItem
-                          className="cursor-pointer rounded-xl"
-                          onClick={async () => {
-                            await supabase.auth.signOut()
-                            window.location.href = "/"
-                          }}
-                        >
-                          Logout
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <button
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                            onClick={async () => {
+                              setProfileMenuOpen(false)
+                              await supabase.auth.signOut()
+                              window.location.href = "/"
+                            }}
+                          >
+                            Logout
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <Button

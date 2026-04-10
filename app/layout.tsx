@@ -2,6 +2,7 @@ import "./globals.css"
 import type { Metadata, Viewport } from "next"
 import { ReactNode } from "react"
 import ServiceWorkerRegister from "./ServiceWorkerRegister"
+import MobileBottomNav from "@/components/mobile-bottom-nav"
 
 export const metadata: Metadata = {
   title: "VIVOS",
@@ -24,9 +25,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ro">
-      <body>
+      <body className="bg-slate-50">
         <ServiceWorkerRegister />
-        {children}
+        <div className="pb-24 md:pb-0">{children}</div>
+        <MobileBottomNav />
       </body>
     </html>
   )

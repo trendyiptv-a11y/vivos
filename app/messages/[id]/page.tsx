@@ -58,6 +58,7 @@ export default function ConversationPage() {
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
+  const ringtoneRef = useRef<HTMLAudioElement | null>(null)
   const callChannelRef = useRef<any>(null)
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
@@ -75,7 +76,33 @@ export default function ConversationPage() {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
+  const stopRingtone = useCallback(() => {
+    const el = ringtoneRef.current
+    if (!el) return
+
+    try {
+      el.pause()
+      el.currentTime = 0
+    } catch (error) {
+      console.error("Stop ringtone error:", error)
+    }
+  }, [])
+
+  const playRingtone = useCallback(async () => {
+    const el = ringtoneRef.current
+    if (!el) return
+
+    try {
+      el.loop = true
+      await el.play()
+    } catch (error) {
+      console.error("Play ringtone error:", error)
+    }
+  }, [])
+
   const cleanupAudioCall = useCallback(() => {
+    stopRingtone()
+
     if (peerConnectionRef.current) {
       peerConnectionRef.current.ontrack = null
       peerConnectionRef.current.onicecandidate = null
@@ -95,7 +122,7 @@ export default function ConversationPage() {
       } catch {}
       remoteAudioRef.current.srcObject = null
     }
-  }, [])
+  }, [stopRingtone])
 
   const ensureLocalStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current
@@ -404,6 +431,7 @@ export default function ConversationPage() {
         })
         setCurrentCallSessionId(payload.callSessionId)
         setCallUiState("incoming")
+        playRingtone()
       })
       .on("broadcast", { event: "call_accept" }, async ({ payload }) => {
         if (!payload) return
@@ -411,6 +439,8 @@ export default function ConversationPage() {
         if (!userId) return
 
         try {
+          stopRingtone()
+
           const pc = await ensurePeerConnection(userId)
           const offer = await pc.createOffer()
           await pc.setLocalDescription(offer)
@@ -440,6 +470,7 @@ export default function ConversationPage() {
         if (!payload) return
         if (payload.callSessionId !== currentCallSessionIdRef.current) return
 
+        stopRingtone()
         cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
@@ -448,8 +479,13 @@ export default function ConversationPage() {
       })
       .on("broadcast", { event: "call_end" }, ({ payload }) => {
         if (!payload) return
-        if (currentCallSessionIdRef.current && payload.callSessionId !== currentCallSessionIdRef.current) return
+        if (
+          currentCallSessionIdRef.current &&
+          payload.callSessionId !== currentCallSessionIdRef.current
+        )
+          return
 
+        stopRingtone()
         cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
@@ -461,6 +497,8 @@ export default function ConversationPage() {
         if (!userId) return
 
         try {
+          stopRingtone()
+
           const pc = await ensurePeerConnection(userId)
           await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp))
 
@@ -489,6 +527,8 @@ export default function ConversationPage() {
         if (payload.callSessionId !== currentCallSessionIdRef.current) return
 
         try {
+          stopRingtone()
+
           const pc = peerConnectionRef.current
           if (!pc) return
           await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp))
@@ -519,7 +559,14 @@ export default function ConversationPage() {
       callChannelRef.current = null
       supabase.removeChannel(callChannel)
     }
-  }, [conversationId, userId, ensurePeerConnection, cleanupAudioCall])
+  }, [
+    conversationId,
+    userId,
+    ensurePeerConnection,
+    cleanupAudioCall,
+    playRingtone,
+    stopRingtone,
+  ])
 
   async function handleStartCall() {
     if (!userId || !otherMember?.member_id || callUiState !== "idle") return
@@ -592,6 +639,7 @@ export default function ConversationPage() {
 
     try {
       setCallBusy(true)
+      stopRingtone()
       await ensureLocalStream()
       await ensurePeerConnection(userId)
 
@@ -652,6 +700,7 @@ export default function ConversationPage() {
 
     try {
       setCallBusy(true)
+      stopRingtone()
 
       const callSessionId = incomingCall.callSessionId
 
@@ -706,6 +755,7 @@ export default function ConversationPage() {
 
     try {
       setCallBusy(true)
+      stopRingtone()
 
       await supabase
         .from("call_sessions")
@@ -831,6 +881,7 @@ export default function ConversationPage() {
   return (
     <main className="min-h-screen bg-slate-50 p-6">
       <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
+      <audio ref={ringtoneRef} src="/sounds/incoming-call.mp3" preload="auto" />
 
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -841,24 +892,42 @@ export default function ConversationPage() {
 
           <div className="flex flex-wrap gap-3">
             {callUiState === "idle" ? (
-              <Button className="rounded-2xl" onClick={handleStartCall} disabled={callBusy || !otherMember}>
+              <Button
+                className="rounded-2xl"
+                onClick={handleStartCall}
+                disabled={callBusy || !otherMember}
+              >
                 {callBusy ? "Se inițiază..." : "Apelează"}
               </Button>
             ) : null}
 
             {callUiState === "outgoing" ? (
-              <Button variant="outline" className="rounded-2xl" onClick={handleEndCall} disabled={callBusy}>
+              <Button
+                variant="outline"
+                className="rounded-2xl"
+                onClick={handleEndCall}
+                disabled={callBusy}
+              >
                 {callBusy ? "Se închide..." : "Anulează apelul"}
               </Button>
             ) : null}
 
             {callUiState === "connected" ? (
-              <Button variant="outline" className="rounded-2xl" onClick={handleEndCall} disabled={callBusy}>
+              <Button
+                variant="outline"
+                className="rounded-2xl"
+                onClick={handleEndCall}
+                disabled={callBusy}
+              >
                 {callBusy ? "Se închide..." : "Închide apelul"}
               </Button>
             ) : null}
 
-            <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/messages")}>
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => router.push("/messages")}
+            >
               Înapoi la mesaje
             </Button>
           </div>
@@ -900,7 +969,12 @@ export default function ConversationPage() {
                   {callBusy ? "Se acceptă..." : "Acceptă"}
                 </Button>
 
-                <Button variant="outline" className="rounded-2xl" onClick={handleRejectCall} disabled={callBusy}>
+                <Button
+                  variant="outline"
+                  className="rounded-2xl"
+                  onClick={handleRejectCall}
+                  disabled={callBusy}
+                >
                   {callBusy ? "Se respinge..." : "Respinge"}
                 </Button>
               </div>
@@ -928,7 +1002,9 @@ export default function ConversationPage() {
                   return (
                     <div
                       key={msg.id}
-                      className={`rounded-2xl border p-4 ${mine ? "bg-slate-50" : "bg-white"}`}
+                      className={`rounded-2xl border p-4 ${
+                        mine ? "bg-slate-50" : "bg-white"
+                      }`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <p className="font-medium">{mine ? "Tu" : otherName}</p>

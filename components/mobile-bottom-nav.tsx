@@ -21,7 +21,7 @@ const items = [
   { label: "Mesaje", href: "/messages", icon: MessageCircle },
   { label: "Piață", href: "/market", icon: ShoppingBag },
   { label: "Alarme", href: "/notifications", icon: Bell },
-  { label: "Fond", href: "/fund", icon: HeartHandshake },
+  { label: "Fond", href: "/fund/new", icon: HeartHandshake },
   { label: "Profil", href: "/profile", icon: User },
 ]
 

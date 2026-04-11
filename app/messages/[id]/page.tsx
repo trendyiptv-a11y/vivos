@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase/client"
@@ -42,7 +42,6 @@ function upsertMessage(list: Message[], incoming: Message) {
 export default function ConversationPage() {
   const router = useRouter()
   const params = useParams()
-  const searchParams = useSearchParams()
   const conversationId = String(params.id)
 
   const [userId, setUserId] = useState<string | null>(null)
@@ -190,6 +189,33 @@ export default function ConversationPage() {
               candidate: event.candidate.toJSON(),
             },
           })
+          try {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (session?.access_token) {
+    const pushResponse = await fetch("/api/notifications/send-call-push", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        conversationId,
+        callSessionId,
+        calleeId: otherMember.member_id,
+      }),
+    })
+
+    if (!pushResponse.ok) {
+      const pushResult = await pushResponse.json().catch(() => null)
+      console.error("Call push send error:", pushResult)
+    }
+  }
+} catch (pushError) {
+  console.error("Call push request failed:", pushError)
+}
         } catch (error) {
           console.error("ICE send error:", error)
         }
@@ -569,7 +595,7 @@ export default function ConversationPage() {
     stopRingtone,
   ])
 
-  const handleStartCall = useCallback(async () => {
+  async function handleStartCall() {
     if (!userId || !otherMember?.member_id || callUiState !== "idle") return
     if (!callChannelRef.current) {
       alert("Canalul de apel nu este pregătit.")
@@ -629,16 +655,9 @@ export default function ConversationPage() {
     } finally {
       setCallBusy(false)
     }
-  }, [
-    userId,
-    otherMember,
-    callUiState,
-    ensureLocalStream,
-    conversationId,
-    cleanupAudioCall,
-  ])
+  }
 
-  const handleAcceptCall = useCallback(async () => {
+  async function handleAcceptCall() {
     if (!userId || !incomingCall?.callSessionId) return
     if (!callChannelRef.current) {
       alert("Canalul de apel nu este pregătit.")
@@ -697,17 +716,9 @@ export default function ConversationPage() {
     } finally {
       setCallBusy(false)
     }
-  }, [
-    userId,
-    incomingCall,
-    stopRingtone,
-    ensureLocalStream,
-    ensurePeerConnection,
-    conversationId,
-    cleanupAudioCall,
-  ])
+  }
 
-  const handleRejectCall = useCallback(async () => {
+  async function handleRejectCall() {
     if (!userId || !incomingCall?.callSessionId) return
     if (!callChannelRef.current) {
       alert("Canalul de apel nu este pregătit.")
@@ -758,15 +769,9 @@ export default function ConversationPage() {
     } finally {
       setCallBusy(false)
     }
-  }, [
-    userId,
-    incomingCall,
-    conversationId,
-    stopRingtone,
-    cleanupAudioCall,
-  ])
+  }
 
-  const handleEndCall = useCallback(async () => {
+  async function handleEndCall() {
     if (!userId || !currentCallSessionId) {
       cleanupAudioCall()
       setIncomingCall(null)
@@ -815,60 +820,7 @@ export default function ConversationPage() {
       setCallUiState("idle")
       setCallBusy(false)
     }
-  }, [userId, currentCallSessionId, stopRingtone, cleanupAudioCall, conversationId])
-
-  useEffect(() => {
-    const shouldAnswer = searchParams.get("answer") === "1"
-    const shouldDecline = searchParams.get("decline") === "1"
-    const targetCallSessionId = searchParams.get("callSessionId")
-
-    if (!targetCallSessionId) return
-    if (!shouldAnswer && !shouldDecline) return
-
-    let cancelled = false
-    let attempts = 0
-
-    const timer = window.setInterval(() => {
-      attempts += 1
-
-      if (cancelled) {
-        window.clearInterval(timer)
-        return
-      }
-
-      if (
-        incomingCall?.callSessionId === targetCallSessionId &&
-        callUiState === "incoming" &&
-        !callBusy
-      ) {
-        window.clearInterval(timer)
-
-        if (shouldAnswer) {
-          handleAcceptCall()
-        } else if (shouldDecline) {
-          handleRejectCall()
-        }
-
-        return
-      }
-
-      if (attempts >= 12) {
-        window.clearInterval(timer)
-      }
-    }, 500)
-
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-    }
-  }, [
-    searchParams,
-    incomingCall,
-    callUiState,
-    callBusy,
-    handleAcceptCall,
-    handleRejectCall,
-  ])
+  }
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()

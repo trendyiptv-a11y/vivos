@@ -1,6 +1,6 @@
-const SW_VERSION = "vivos-sw-v3-call-actions"
+const SW_VERSION = "vivos-sw-v4-call-action"
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting()
 })
 
@@ -43,7 +43,6 @@ self.addEventListener("push", (event) => {
       conversationId: payload.conversationId || null,
       callSessionId: payload.callSessionId || null,
       notificationType,
-      swVersion: SW_VERSION,
     },
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
@@ -65,9 +64,9 @@ self.addEventListener("notificationclick", (event) => {
 
   if (notificationType === "incoming_call" && conversationId && callSessionId) {
     if (action === "answer") {
-      targetUrl = `/messages/${conversationId}?answer=1&callSessionId=${callSessionId}`
+      targetUrl = `/messages/${conversationId}?callAction=answer&callSessionId=${callSessionId}`
     } else if (action === "decline") {
-      targetUrl = `/messages/${conversationId}?decline=1&callSessionId=${callSessionId}`
+      targetUrl = `/messages/${conversationId}?callAction=decline&callSessionId=${callSessionId}`
     } else {
       targetUrl = `/messages/${conversationId}`
     }

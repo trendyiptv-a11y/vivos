@@ -570,12 +570,144 @@ export default function ConversationPage() {
     stopRingtone,
   ])
 
+  const handleAcceptCall = useCallback(async () => {
+    if (!userId || !incomingCall?.callSessionId) return
+    if (!callChannelRef.current) {
+      alert("Canalul de apel nu este pregătit.")
+      return
+    }
+
+    try {
+      setCallBusy(true)
+      stopRingtone()
+      await ensureLocalStream()
+      await ensurePeerConnection(userId)
+
+      const callSessionId = incomingCall.callSessionId
+
+      const { error: updateError } = await supabase
+        .from("call_sessions")
+        .update({
+          status: "accepted",
+          answered_at: new Date().toISOString(),
+        })
+        .eq("id", callSessionId)
+
+      if (updateError) {
+        alert(`Nu am putut accepta apelul: ${updateError.message}`)
+        cleanupAudioCall()
+        return
+      }
+
+      await supabase.from("call_events").insert({
+        call_session_id: callSessionId,
+        actor_id: userId,
+        event_type: "accept",
+        payload: {
+          conversationId,
+        },
+      })
+
+      await callChannelRef.current.send({
+        type: "broadcast",
+        event: "call_accept",
+        payload: {
+          type: "call_accept",
+          callSessionId,
+          conversationId,
+          fromUserId: userId,
+        },
+      })
+
+      setIncomingCall(null)
+      setCurrentCallSessionId(callSessionId)
+      setCallUiState("connected")
+    } catch (error: any) {
+      console.error("Accept call error:", error)
+      alert(error?.message || "Nu am putut accepta apelul.")
+      cleanupAudioCall()
+    } finally {
+      setCallBusy(false)
+    }
+  }, [
+    userId,
+    incomingCall,
+    conversationId,
+    stopRingtone,
+    ensureLocalStream,
+    ensurePeerConnection,
+    cleanupAudioCall,
+  ])
+
+  const handleRejectCall = useCallback(async () => {
+    if (!userId || !incomingCall?.callSessionId) return
+    if (!callChannelRef.current) {
+      alert("Canalul de apel nu este pregătit.")
+      return
+    }
+
+    try {
+      setCallBusy(true)
+      stopRingtone()
+
+      const callSessionId = incomingCall.callSessionId
+
+      await supabase
+        .from("call_sessions")
+        .update({
+          status: "rejected",
+          ended_at: new Date().toISOString(),
+        })
+        .eq("id", callSessionId)
+
+      await supabase.from("call_events").insert({
+        call_session_id: callSessionId,
+        actor_id: userId,
+        event_type: "reject",
+        payload: {
+          conversationId,
+        },
+      })
+
+      await callChannelRef.current.send({
+        type: "broadcast",
+        event: "call_reject",
+        payload: {
+          type: "call_reject",
+          callSessionId,
+          conversationId,
+          fromUserId: userId,
+        },
+      })
+
+      cleanupAudioCall()
+      setIncomingCall(null)
+      setCurrentCallSessionId(null)
+      setCallUiState("idle")
+    } catch (error) {
+      console.error("Reject call error:", error)
+      alert("Nu am putut respinge apelul.")
+    } finally {
+      setCallBusy(false)
+    }
+  }, [
+    userId,
+    incomingCall,
+    conversationId,
+    stopRingtone,
+    cleanupAudioCall,
+  ])
+
   useEffect(() => {
     if (!userId) return
 
-    let cancelled = false
+    const callAction = searchParams.get("callAction")
+    const targetCallSessionId = searchParams.get("callSessionId")
 
-    async function restoreIncomingCallFromDb() {
+    let cancelled = false
+    let attempts = 0
+
+    async function syncIncomingCallFromDb() {
       const { data, error } = await supabase
         .from("call_sessions")
         .select("id, caller_id, callee_id, status, created_at")
@@ -586,24 +718,76 @@ export default function ConversationPage() {
         .limit(1)
         .maybeSingle()
 
-      if (cancelled || error || !data?.id) return
-      if (callUiState !== "idle") return
+      if (cancelled || error || !data?.id) return null
 
-      setIncomingCall({
-        callSessionId: data.id,
-        fromUserId: data.caller_id,
-      })
-      setCurrentCallSessionId(data.id)
-      setCallUiState("incoming")
-      playRingtone()
+      if (!incomingCall || incomingCall.callSessionId !== data.id) {
+        setIncomingCall({
+          callSessionId: data.id,
+          fromUserId: data.caller_id,
+        })
+        setCurrentCallSessionId(data.id)
+        setCallUiState("incoming")
+        playRingtone()
+      }
+
+      return data
     }
 
-    restoreIncomingCallFromDb()
+    const timer = window.setInterval(async () => {
+      attempts += 1
+
+      if (cancelled) {
+        window.clearInterval(timer)
+        return
+      }
+
+      const dbCall = await syncIncomingCallFromDb()
+      if (!dbCall?.id) {
+        if (attempts >= 12) window.clearInterval(timer)
+        return
+      }
+
+      if (!targetCallSessionId || dbCall.id !== targetCallSessionId) {
+        if (attempts >= 12) window.clearInterval(timer)
+        return
+      }
+
+      if (callBusy) {
+        if (attempts >= 12) window.clearInterval(timer)
+        return
+      }
+
+      if (callAction === "answer") {
+        window.clearInterval(timer)
+        await handleAcceptCall()
+        return
+      }
+
+      if (callAction === "decline") {
+        window.clearInterval(timer)
+        await handleRejectCall()
+        return
+      }
+
+      if (attempts >= 12) {
+        window.clearInterval(timer)
+      }
+    }, 500)
 
     return () => {
       cancelled = true
+      window.clearInterval(timer)
     }
-  }, [userId, conversationId, callUiState, playRingtone])
+  }, [
+    userId,
+    conversationId,
+    searchParams,
+    incomingCall,
+    callBusy,
+    playRingtone,
+    handleAcceptCall,
+    handleRejectCall,
+  ])
 
   async function handleStartCall() {
     if (!userId || !otherMember?.member_id || callUiState !== "idle") return
@@ -695,134 +879,6 @@ export default function ConversationPage() {
     }
   }
 
-const handleAcceptCall = useCallback(async () => {
-  if (!userId || !incomingCall?.callSessionId) return
-  if (!callChannelRef.current) {
-    alert("Canalul de apel nu este pregătit.")
-    return
-  }
-
-  try {
-    setCallBusy(true)
-    stopRingtone()
-    await ensureLocalStream()
-    await ensurePeerConnection(userId)
-
-    const callSessionId = incomingCall.callSessionId
-
-    const { error: updateError } = await supabase
-      .from("call_sessions")
-      .update({
-        status: "accepted",
-        answered_at: new Date().toISOString(),
-      })
-      .eq("id", callSessionId)
-
-    if (updateError) {
-      alert(`Nu am putut accepta apelul: ${updateError.message}`)
-      cleanupAudioCall()
-      return
-    }
-
-    await supabase.from("call_events").insert({
-      call_session_id: callSessionId,
-      actor_id: userId,
-      event_type: "accept",
-      payload: {
-        conversationId,
-      },
-    })
-
-    await callChannelRef.current.send({
-      type: "broadcast",
-      event: "call_accept",
-      payload: {
-        type: "call_accept",
-        callSessionId,
-        conversationId,
-        fromUserId: userId,
-      },
-    })
-
-    setIncomingCall(null)
-    setCurrentCallSessionId(callSessionId)
-    setCallUiState("connected")
-  } catch (error: any) {
-    console.error("Accept call error:", error)
-    alert(error?.message || "Nu am putut accepta apelul.")
-    cleanupAudioCall()
-  } finally {
-    setCallBusy(false)
-  }
-}, [
-  userId,
-  incomingCall,
-  conversationId,
-  stopRingtone,
-  ensureLocalStream,
-  ensurePeerConnection,
-  cleanupAudioCall,
-])
-
-  const handleRejectCall = useCallback(async () => {
-  if (!userId || !incomingCall?.callSessionId) return
-  if (!callChannelRef.current) {
-    alert("Canalul de apel nu este pregătit.")
-    return
-  }
-
-  try {
-    setCallBusy(true)
-    stopRingtone()
-
-    const callSessionId = incomingCall.callSessionId
-
-    await supabase
-      .from("call_sessions")
-      .update({
-        status: "rejected",
-        ended_at: new Date().toISOString(),
-      })
-      .eq("id", callSessionId)
-
-    await supabase.from("call_events").insert({
-      call_session_id: callSessionId,
-      actor_id: userId,
-      event_type: "reject",
-      payload: {
-        conversationId,
-      },
-    })
-
-    await callChannelRef.current.send({
-      type: "broadcast",
-      event: "call_reject",
-      payload: {
-        type: "call_reject",
-        callSessionId,
-        conversationId,
-        fromUserId: userId,
-      },
-    })
-
-    cleanupAudioCall()
-    setIncomingCall(null)
-    setCurrentCallSessionId(null)
-    setCallUiState("idle")
-  } catch (error) {
-    console.error("Reject call error:", error)
-    alert("Nu am putut respinge apelul.")
-  } finally {
-    setCallBusy(false)
-  }
-}, [
-  userId,
-  incomingCall,
-  conversationId,
-  stopRingtone,
-  cleanupAudioCall,
-])
-
   async function handleEndCall() {
     if (!userId || !currentCallSessionId) {
       cleanupAudioCall()
@@ -873,58 +929,6 @@ const handleAcceptCall = useCallback(async () => {
       setCallBusy(false)
     }
   }
-
-useEffect(() => {
-  const callAction = searchParams.get("callAction")
-  const targetCallSessionId = searchParams.get("callSessionId")
-
-  if (!targetCallSessionId) return
-  if (callAction !== "answer" && callAction !== "decline") return
-
-  let cancelled = false
-  let attempts = 0
-
-  const timer = window.setInterval(() => {
-    attempts += 1
-
-    if (cancelled) {
-      window.clearInterval(timer)
-      return
-    }
-
-    if (
-      incomingCall?.callSessionId === targetCallSessionId &&
-      callUiState === "incoming" &&
-      !callBusy
-    ) {
-      window.clearInterval(timer)
-
-      if (callAction === "answer") {
-        handleAcceptCall()
-      } else if (callAction === "decline") {
-        handleRejectCall()
-      }
-
-      return
-    }
-
-    if (attempts >= 12) {
-      window.clearInterval(timer)
-    }
-  }, 500)
-
-  return () => {
-    cancelled = true
-    window.clearInterval(timer)
-  }
-}, [
-  searchParams,
-  incomingCall,
-  callUiState,
-  callBusy,
-  handleAcceptCall,
-  handleRejectCall,
-])
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()

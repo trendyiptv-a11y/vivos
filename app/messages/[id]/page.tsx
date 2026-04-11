@@ -189,33 +189,6 @@ export default function ConversationPage() {
               candidate: event.candidate.toJSON(),
             },
           })
-          try {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (session?.access_token) {
-    const pushResponse = await fetch("/api/notifications/send-call-push", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        conversationId,
-        callSessionId,
-        calleeId: otherMember.member_id,
-      }),
-    })
-
-    if (!pushResponse.ok) {
-      const pushResult = await pushResponse.json().catch(() => null)
-      console.error("Call push send error:", pushResult)
-    }
-  }
-} catch (pushError) {
-  console.error("Call push request failed:", pushError)
-}
         } catch (error) {
           console.error("ICE send error:", error)
         }
@@ -596,94 +569,94 @@ export default function ConversationPage() {
   ])
 
   async function handleStartCall() {
-  if (!userId || !otherMember?.member_id || callUiState !== "idle") return
-  if (!callChannelRef.current) {
-    alert("Canalul de apel nu este pregătit.")
-    return
-  }
-
-  try {
-    setCallBusy(true)
-    await ensureLocalStream()
-
-    const { data: callSession, error: callSessionError } = await supabase
-      .from("call_sessions")
-      .insert({
-        conversation_id: conversationId,
-        caller_id: userId,
-        callee_id: otherMember.member_id,
-        status: "ringing",
-      })
-      .select("id")
-      .single()
-
-    if (callSessionError || !callSession?.id) {
-      alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`)
-      cleanupAudioCall()
+    if (!userId || !otherMember?.member_id || callUiState !== "idle") return
+    if (!callChannelRef.current) {
+      alert("Canalul de apel nu este pregătit.")
       return
     }
 
-    const callSessionId = callSession.id
-
-    await supabase.from("call_events").insert({
-      call_session_id: callSessionId,
-      actor_id: userId,
-      event_type: "invite",
-      payload: {
-        conversationId,
-      },
-    })
-
-    await callChannelRef.current.send({
-      type: "broadcast",
-      event: "call_invite",
-      payload: {
-        type: "call_invite",
-        callSessionId,
-        conversationId,
-        fromUserId: userId,
-        toUserId: otherMember.member_id,
-      },
-    })
-
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      setCallBusy(true)
+      await ensureLocalStream()
 
-      if (session?.access_token) {
-        const pushResponse = await fetch("/api/notifications/send-call-push", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            conversationId,
-            callSessionId,
-            calleeId: otherMember.member_id,
-          }),
+      const { data: callSession, error: callSessionError } = await supabase
+        .from("call_sessions")
+        .insert({
+          conversation_id: conversationId,
+          caller_id: userId,
+          callee_id: otherMember.member_id,
+          status: "ringing",
         })
+        .select("id")
+        .single()
 
-        if (!pushResponse.ok) {
-          const pushResult = await pushResponse.json().catch(() => null)
-          console.error("Call push send error:", pushResult)
-        }
+      if (callSessionError || !callSession?.id) {
+        alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`)
+        cleanupAudioCall()
+        return
       }
-    } catch (pushError) {
-      console.error("Call push request failed:", pushError)
-    }
 
-    setCurrentCallSessionId(callSessionId)
-    setCallUiState("outgoing")
-  } catch (error: any) {
-    console.error("Start call error:", error)
-    alert(error?.message || "Nu am putut porni apelul.")
-    cleanupAudioCall()
-  } finally {
-    setCallBusy(false)
+      const callSessionId = callSession.id
+
+      await supabase.from("call_events").insert({
+        call_session_id: callSessionId,
+        actor_id: userId,
+        event_type: "invite",
+        payload: {
+          conversationId,
+        },
+      })
+
+      await callChannelRef.current.send({
+        type: "broadcast",
+        event: "call_invite",
+        payload: {
+          type: "call_invite",
+          callSessionId,
+          conversationId,
+          fromUserId: userId,
+          toUserId: otherMember.member_id,
+        },
+      })
+
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session?.access_token) {
+          const pushResponse = await fetch("/api/notifications/send-call-push", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              conversationId,
+              callSessionId,
+              calleeId: otherMember.member_id,
+            }),
+          })
+
+          if (!pushResponse.ok) {
+            const pushResult = await pushResponse.json().catch(() => null)
+            console.error("Call push send error:", pushResult)
+          }
+        }
+      } catch (pushError) {
+        console.error("Call push request failed:", pushError)
+      }
+
+      setCurrentCallSessionId(callSessionId)
+      setCallUiState("outgoing")
+    } catch (error: any) {
+      console.error("Start call error:", error)
+      alert(error?.message || "Nu am putut porni apelul.")
+      cleanupAudioCall()
+    } finally {
+      setCallBusy(false)
+    }
   }
-}
 
   async function handleAcceptCall() {
     if (!userId || !incomingCall?.callSessionId) return

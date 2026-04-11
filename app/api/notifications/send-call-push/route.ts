@@ -84,9 +84,8 @@ export async function POST(req: NextRequest) {
     }
 
     const openUrl = `/messages/${conversationId}`
-    const answerUrl = `/messages/${conversationId}?answer=1&callSessionId=${callSessionId}`
-    const declineUrl = `/messages/${conversationId}?decline=1&callSessionId=${callSessionId}`
-
+    const answerUrl = `/messages/${conversationId}?callAction=answer&callSessionId=${callSessionId}`
+    const declineUrl = `/messages/${conversationId}?callAction=decline&callSessionId=${callSessionId}`
     const notificationPayload = JSON.stringify({
       title: "Apel incoming",
       body: `${callerName} te apelează în VIVOS`,

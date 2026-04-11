@@ -482,8 +482,9 @@ export default function ConversationPage() {
         if (
           currentCallSessionIdRef.current &&
           payload.callSessionId !== currentCallSessionIdRef.current
-        )
+        ) {
           return
+        }
 
         stopRingtone()
         cleanupAudioCall()
@@ -567,6 +568,41 @@ export default function ConversationPage() {
     playRingtone,
     stopRingtone,
   ])
+
+  useEffect(() => {
+    if (!userId) return
+
+    let cancelled = false
+
+    async function restoreIncomingCallFromDb() {
+      const { data, error } = await supabase
+        .from("call_sessions")
+        .select("id, caller_id, callee_id, status, created_at")
+        .eq("conversation_id", conversationId)
+        .eq("callee_id", userId)
+        .eq("status", "ringing")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (cancelled || error || !data?.id) return
+      if (callUiState !== "idle") return
+
+      setIncomingCall({
+        callSessionId: data.id,
+        fromUserId: data.caller_id,
+      })
+      setCurrentCallSessionId(data.id)
+      setCallUiState("incoming")
+      playRingtone()
+    }
+
+    restoreIncomingCallFromDb()
+
+    return () => {
+      cancelled = true
+    }
+  }, [userId, conversationId, callUiState, playRingtone])
 
   async function handleStartCall() {
     if (!userId || !otherMember?.member_id || callUiState !== "idle") return
@@ -1030,9 +1066,7 @@ export default function ConversationPage() {
                   return (
                     <div
                       key={msg.id}
-                      className={`rounded-2xl border p-4 ${
-                        mine ? "bg-slate-50" : "bg-white"
-                      }`}
+                      className={`rounded-2xl border p-4 ${mine ? "bg-slate-50" : "bg-white"}`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <p className="font-medium">{mine ? "Tu" : otherName}</p>

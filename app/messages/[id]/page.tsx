@@ -64,6 +64,8 @@ export default function ConversationPage() {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
   const currentCallSessionIdRef = useRef<string | null>(null)
+  const autoActionHandledRef = useRef<string | null>(null)
+  const acceptedCallSessionRef = useRef<string | null>(null)
 
   useEffect(() => {
     currentCallSessionIdRef.current = currentCallSessionId
@@ -416,6 +418,139 @@ export default function ConversationPage() {
     )
   }, [otherMember])
 
+  const handleAcceptCall = useCallback(async () => {
+    if (!userId || !incomingCall?.callSessionId) return
+    if (!callChannelRef.current) {
+      alert("Canalul de apel nu este pregătit.")
+      return
+    }
+
+    try {
+      setCallBusy(true)
+      stopRingtone()
+      await ensureLocalStream()
+      await ensurePeerConnection(userId)
+
+      const callSessionId = incomingCall.callSessionId
+      acceptedCallSessionRef.current = callSessionId
+
+      const { error: updateError } = await supabase
+        .from("call_sessions")
+        .update({
+          status: "accepted",
+          answered_at: new Date().toISOString(),
+        })
+        .eq("id", callSessionId)
+
+      if (updateError) {
+        alert(`Nu am putut accepta apelul: ${updateError.message}`)
+        cleanupAudioCall()
+        return
+      }
+
+      await supabase.from("call_events").insert({
+        call_session_id: callSessionId,
+        actor_id: userId,
+        event_type: "accept",
+        payload: {
+          conversationId,
+        },
+      })
+
+      await callChannelRef.current.send({
+        type: "broadcast",
+        event: "call_accept",
+        payload: {
+          type: "call_accept",
+          callSessionId,
+          conversationId,
+          fromUserId: userId,
+        },
+      })
+
+      setIncomingCall(null)
+      setCurrentCallSessionId(callSessionId)
+      setCallUiState("connected")
+      router.replace(`/messages/${conversationId}`)
+    } catch (error: any) {
+      console.error("Accept call error:", error)
+      alert(error?.message || "Nu am putut accepta apelul.")
+      cleanupAudioCall()
+    } finally {
+      setCallBusy(false)
+    }
+  }, [
+    userId,
+    incomingCall,
+    conversationId,
+    stopRingtone,
+    ensureLocalStream,
+    ensurePeerConnection,
+    cleanupAudioCall,
+    router,
+  ])
+
+  const handleRejectCall = useCallback(async () => {
+    if (!userId || !incomingCall?.callSessionId) return
+    if (!callChannelRef.current) {
+      alert("Canalul de apel nu este pregătit.")
+      return
+    }
+
+    try {
+      setCallBusy(true)
+      stopRingtone()
+
+      const callSessionId = incomingCall.callSessionId
+
+      await supabase
+        .from("call_sessions")
+        .update({
+          status: "rejected",
+          ended_at: new Date().toISOString(),
+        })
+        .eq("id", callSessionId)
+
+      await supabase.from("call_events").insert({
+        call_session_id: callSessionId,
+        actor_id: userId,
+        event_type: "reject",
+        payload: {
+          conversationId,
+        },
+      })
+
+      await callChannelRef.current.send({
+        type: "broadcast",
+        event: "call_reject",
+        payload: {
+          type: "call_reject",
+          callSessionId,
+          conversationId,
+          fromUserId: userId,
+        },
+      })
+
+      cleanupAudioCall()
+      setIncomingCall(null)
+      setCurrentCallSessionId(null)
+      setCallUiState("idle")
+      router.replace(`/messages/${conversationId}`)
+    } catch (error) {
+      console.error("Reject call error:", error)
+      alert("Nu am putut respinge apelul.")
+    } finally {
+      setCallBusy(false)
+    }
+  }, [
+    userId,
+    incomingCall,
+    conversationId,
+    stopRingtone,
+    cleanupAudioCall,
+    router,
+  ])
+
   useEffect(() => {
     if (!userId) return
 
@@ -470,6 +605,17 @@ export default function ConversationPage() {
       .on("broadcast", { event: "call_reject" }, ({ payload }) => {
         if (!payload) return
         if (payload.callSessionId !== currentCallSessionIdRef.current) return
+
+        if (
+          acceptedCallSessionRef.current &&
+          payload.callSessionId === acceptedCallSessionRef.current
+        ) {
+          return
+        }
+
+        if (callUiState === "connected") {
+          return
+        }
 
         stopRingtone()
         cleanupAudioCall()
@@ -568,134 +714,9 @@ export default function ConversationPage() {
     cleanupAudioCall,
     playRingtone,
     stopRingtone,
-  ])
-
-  const handleAcceptCall = useCallback(async () => {
-    if (!userId || !incomingCall?.callSessionId) return
-    if (!callChannelRef.current) {
-      alert("Canalul de apel nu este pregătit.")
-      return
-    }
-
-    try {
-      setCallBusy(true)
-      stopRingtone()
-      await ensureLocalStream()
-      await ensurePeerConnection(userId)
-
-      const callSessionId = incomingCall.callSessionId
-
-      const { error: updateError } = await supabase
-        .from("call_sessions")
-        .update({
-          status: "accepted",
-          answered_at: new Date().toISOString(),
-        })
-        .eq("id", callSessionId)
-
-      if (updateError) {
-        alert(`Nu am putut accepta apelul: ${updateError.message}`)
-        cleanupAudioCall()
-        return
-      }
-
-      await supabase.from("call_events").insert({
-        call_session_id: callSessionId,
-        actor_id: userId,
-        event_type: "accept",
-        payload: {
-          conversationId,
-        },
-      })
-
-      await callChannelRef.current.send({
-        type: "broadcast",
-        event: "call_accept",
-        payload: {
-          type: "call_accept",
-          callSessionId,
-          conversationId,
-          fromUserId: userId,
-        },
-      })
-
-      setIncomingCall(null)
-      setCurrentCallSessionId(callSessionId)
-      setCallUiState("connected")
-    } catch (error: any) {
-      console.error("Accept call error:", error)
-      alert(error?.message || "Nu am putut accepta apelul.")
-      cleanupAudioCall()
-    } finally {
-      setCallBusy(false)
-    }
-  }, [
-    userId,
-    incomingCall,
-    conversationId,
-    stopRingtone,
-    ensureLocalStream,
-    ensurePeerConnection,
-    cleanupAudioCall,
-  ])
-
-  const handleRejectCall = useCallback(async () => {
-    if (!userId || !incomingCall?.callSessionId) return
-    if (!callChannelRef.current) {
-      alert("Canalul de apel nu este pregătit.")
-      return
-    }
-
-    try {
-      setCallBusy(true)
-      stopRingtone()
-
-      const callSessionId = incomingCall.callSessionId
-
-      await supabase
-        .from("call_sessions")
-        .update({
-          status: "rejected",
-          ended_at: new Date().toISOString(),
-        })
-        .eq("id", callSessionId)
-
-      await supabase.from("call_events").insert({
-        call_session_id: callSessionId,
-        actor_id: userId,
-        event_type: "reject",
-        payload: {
-          conversationId,
-        },
-      })
-
-      await callChannelRef.current.send({
-        type: "broadcast",
-        event: "call_reject",
-        payload: {
-          type: "call_reject",
-          callSessionId,
-          conversationId,
-          fromUserId: userId,
-        },
-      })
-
-      cleanupAudioCall()
-      setIncomingCall(null)
-      setCurrentCallSessionId(null)
-      setCallUiState("idle")
-    } catch (error) {
-      console.error("Reject call error:", error)
-      alert("Nu am putut respinge apelul.")
-    } finally {
-      setCallBusy(false)
-    }
-  }, [
-    userId,
-    incomingCall,
-    conversationId,
-    stopRingtone,
-    cleanupAudioCall,
+    handleAcceptCall,
+    handleRejectCall,
+    callUiState,
   ])
 
   useEffect(() => {
@@ -757,13 +778,20 @@ export default function ConversationPage() {
         return
       }
 
+      if (autoActionHandledRef.current === targetCallSessionId) {
+        window.clearInterval(timer)
+        return
+      }
+
       if (callAction === "answer") {
+        autoActionHandledRef.current = targetCallSessionId
         window.clearInterval(timer)
         await handleAcceptCall()
         return
       }
 
       if (callAction === "decline") {
+        autoActionHandledRef.current = targetCallSessionId
         window.clearInterval(timer)
         await handleRejectCall()
         return

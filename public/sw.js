@@ -26,14 +26,32 @@ self.addEventListener("push", (event) => {
   const body = payload.body || "Ai o notificare nouă."
   const url = payload.url || "/messages"
   const tag = payload.tag || "vivos-notification"
+  const notificationType = payload.notificationType || "generic"
+  const conversationId = payload.conversationId || null
+  const callSessionId = payload.callSessionId || null
+  const answerUrl = payload.answerUrl || url
+  const declineUrl = payload.declineUrl || url
+
+  const isIncomingCall = notificationType === "incoming_call"
 
   const options = {
     body,
     tag,
+    requireInteraction: !!payload.requireInteraction,
+    vibrate: payload.vibrate || undefined,
+    actions: isIncomingCall
+      ? [
+          { action: "answer", title: "Răspunde" },
+          { action: "decline", title: "Respinge" },
+        ]
+      : [],
     data: {
       url,
-      conversationId: payload.conversationId || null,
-      notificationType: payload.notificationType || "generic",
+      answerUrl,
+      declineUrl,
+      conversationId,
+      callSessionId,
+      notificationType,
     },
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
@@ -45,8 +63,21 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close()
 
-  const targetUrl =
-    (event.notification.data && event.notification.data.url) || "/messages"
+  const data = event.notification.data || {}
+  const action = event.action || ""
+  const notificationType = data.notificationType || "generic"
+
+  let targetUrl = data.url || "/messages"
+
+  if (notificationType === "incoming_call") {
+    if (action === "answer") {
+      targetUrl = data.answerUrl || data.url || "/messages"
+    } else if (action === "decline") {
+      targetUrl = data.declineUrl || data.url || "/messages"
+    } else {
+      targetUrl = data.url || "/messages"
+    }
+  }
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
@@ -54,10 +85,18 @@ self.addEventListener("notificationclick", (event) => {
         if ("focus" in client) {
           client.postMessage({
             type: "notification-click",
+            action,
             url: targetUrl,
+            conversationId: data.conversationId || null,
+            callSessionId: data.callSessionId || null,
+            notificationType,
           })
 
-          return client.focus()
+          return client.focus().then(() => {
+            if ("navigate" in client) {
+              return client.navigate(targetUrl)
+            }
+          })
         }
       }
 

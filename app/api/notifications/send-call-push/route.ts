@@ -76,28 +76,32 @@ export async function POST(req: NextRequest) {
       .eq("user_id", calleeId)
 
     if (subscriptionsError) {
-      return NextResponse.json(
-        { error: subscriptionsError.message },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: subscriptionsError.message }, { status: 500 })
     }
 
     if (!subscriptions || subscriptions.length === 0) {
       return NextResponse.json({ ok: true, skipped: "no-subscriptions" })
     }
 
+    const openUrl = `/messages/${conversationId}`
+    const answerUrl = `/messages/${conversationId}?answer=1&callSessionId=${callSessionId}`
+    const declineUrl = `/messages/${conversationId}?decline=1&callSessionId=${callSessionId}`
+
     const notificationPayload = JSON.stringify({
       title: "Apel incoming",
       body: `${callerName} te apelează în VIVOS`,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/badge-72.png",
       tag: `incoming-call-${callSessionId}`,
-      url: `/messages/${conversationId}`,
-      data: {
-        type: "incoming_call",
-        conversationId,
-        callSessionId,
-      },
+      url: openUrl,
+      answerUrl,
+      declineUrl,
+      conversationId,
+      callSessionId,
+      callerName,
+      notificationType: "incoming_call",
+      requireInteraction: true,
+      vibrate: [300, 150, 300, 150, 300],
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
     })
 
     const results = await Promise.allSettled(

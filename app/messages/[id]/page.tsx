@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase/client"
@@ -42,6 +42,7 @@ function upsertMessage(list: Message[], incoming: Message) {
 export default function ConversationPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const conversationId = String(params.id)
 
   const [userId, setUserId] = useState<string | null>(null)
@@ -568,7 +569,7 @@ export default function ConversationPage() {
     stopRingtone,
   ])
 
-  async function handleStartCall() {
+  const handleStartCall = useCallback(async () => {
     if (!userId || !otherMember?.member_id || callUiState !== "idle") return
     if (!callChannelRef.current) {
       alert("Canalul de apel nu este pregătit.")
@@ -628,9 +629,16 @@ export default function ConversationPage() {
     } finally {
       setCallBusy(false)
     }
-  }
+  }, [
+    userId,
+    otherMember,
+    callUiState,
+    ensureLocalStream,
+    conversationId,
+    cleanupAudioCall,
+  ])
 
-  async function handleAcceptCall() {
+  const handleAcceptCall = useCallback(async () => {
     if (!userId || !incomingCall?.callSessionId) return
     if (!callChannelRef.current) {
       alert("Canalul de apel nu este pregătit.")
@@ -689,9 +697,17 @@ export default function ConversationPage() {
     } finally {
       setCallBusy(false)
     }
-  }
+  }, [
+    userId,
+    incomingCall,
+    stopRingtone,
+    ensureLocalStream,
+    ensurePeerConnection,
+    conversationId,
+    cleanupAudioCall,
+  ])
 
-  async function handleRejectCall() {
+  const handleRejectCall = useCallback(async () => {
     if (!userId || !incomingCall?.callSessionId) return
     if (!callChannelRef.current) {
       alert("Canalul de apel nu este pregătit.")
@@ -742,9 +758,15 @@ export default function ConversationPage() {
     } finally {
       setCallBusy(false)
     }
-  }
+  }, [
+    userId,
+    incomingCall,
+    conversationId,
+    stopRingtone,
+    cleanupAudioCall,
+  ])
 
-  async function handleEndCall() {
+  const handleEndCall = useCallback(async () => {
     if (!userId || !currentCallSessionId) {
       cleanupAudioCall()
       setIncomingCall(null)
@@ -793,7 +815,60 @@ export default function ConversationPage() {
       setCallUiState("idle")
       setCallBusy(false)
     }
-  }
+  }, [userId, currentCallSessionId, stopRingtone, cleanupAudioCall, conversationId])
+
+  useEffect(() => {
+    const shouldAnswer = searchParams.get("answer") === "1"
+    const shouldDecline = searchParams.get("decline") === "1"
+    const targetCallSessionId = searchParams.get("callSessionId")
+
+    if (!targetCallSessionId) return
+    if (!shouldAnswer && !shouldDecline) return
+
+    let cancelled = false
+    let attempts = 0
+
+    const timer = window.setInterval(() => {
+      attempts += 1
+
+      if (cancelled) {
+        window.clearInterval(timer)
+        return
+      }
+
+      if (
+        incomingCall?.callSessionId === targetCallSessionId &&
+        callUiState === "incoming" &&
+        !callBusy
+      ) {
+        window.clearInterval(timer)
+
+        if (shouldAnswer) {
+          handleAcceptCall()
+        } else if (shouldDecline) {
+          handleRejectCall()
+        }
+
+        return
+      }
+
+      if (attempts >= 12) {
+        window.clearInterval(timer)
+      }
+    }, 500)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [
+    searchParams,
+    incomingCall,
+    callUiState,
+    callBusy,
+    handleAcceptCall,
+    handleRejectCall,
+  ])
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()

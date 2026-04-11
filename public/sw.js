@@ -7,9 +7,7 @@ self.addEventListener("activate", (event) => {
 })
 
 self.addEventListener("push", (event) => {
-  if (!event.data) {
-    return
-  }
+  if (!event.data) return
 
   let payload = {}
 
@@ -25,12 +23,10 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "VIVOS"
   const body = payload.body || "Ai o notificare nouă."
   const url = payload.url || "/messages"
-  const tag = payload.tag || "vivos-notification"
-  const notificationType = payload.notificationType || "generic"
-  const conversationId = payload.conversationId || null
-  const callSessionId = payload.callSessionId || null
   const answerUrl = payload.answerUrl || url
   const declineUrl = payload.declineUrl || url
+  const tag = payload.tag || "vivos-notification"
+  const notificationType = payload.notificationType || "generic"
 
   const isIncomingCall = notificationType === "incoming_call"
 
@@ -49,8 +45,8 @@ self.addEventListener("push", (event) => {
       url,
       answerUrl,
       declineUrl,
-      conversationId,
-      callSessionId,
+      conversationId: payload.conversationId || null,
+      callSessionId: payload.callSessionId || null,
       notificationType,
     },
     icon: "/icons/icon-192.png",
@@ -74,8 +70,6 @@ self.addEventListener("notificationclick", (event) => {
       targetUrl = data.answerUrl || data.url || "/messages"
     } else if (action === "decline") {
       targetUrl = data.declineUrl || data.url || "/messages"
-    } else {
-      targetUrl = data.url || "/messages"
     }
   }
 

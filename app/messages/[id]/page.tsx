@@ -1038,22 +1038,29 @@ export default function ConversationPage() {
     scrollToBottom()
   }
 
+  const callDisplayName = otherName || "Membru"
+  const callInitial = callDisplayName.trim().charAt(0).toUpperCase() || "M"
+  const showCallOverlay =
+    callUiState === "incoming" ||
+    callUiState === "outgoing" ||
+    callUiState === "connected"
+
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
+    <main className="min-h-screen bg-slate-50">
       <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
       <audio ref={ringtoneRef} src="/sounds/incoming-call.mp3" preload="auto" />
 
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+      <div className="mx-auto flex min-h-screen max-w-4xl flex-col p-4 sm:p-6">
+        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <p className="text-sm text-slate-500">Conversație</p>
-            <h1 className="text-3xl font-semibold">{otherName}</h1>
+            <h1 className="truncate text-2xl font-semibold sm:text-3xl">{otherName}</h1>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {callUiState === "idle" ? (
               <Button
-                className="rounded-2xl"
+                className="rounded-2xl px-5"
                 onClick={handleStartCall}
                 disabled={callBusy || !otherMember}
               >
@@ -1064,142 +1071,179 @@ export default function ConversationPage() {
             {callUiState === "outgoing" ? (
               <Button
                 variant="outline"
-                className="rounded-2xl"
+                className="rounded-2xl px-5"
                 onClick={handleEndCall}
                 disabled={callBusy}
               >
-                {callBusy ? "Se închide..." : "Anulează apelul"}
+                {callBusy ? "Se închide..." : "Anulează"}
               </Button>
             ) : null}
 
             {callUiState === "connected" ? (
               <Button
                 variant="outline"
-                className="rounded-2xl"
+                className="rounded-2xl px-5"
                 onClick={handleEndCall}
                 disabled={callBusy}
               >
-                {callBusy ? "Se închide..." : "Închide apelul"}
+                {callBusy ? "Se închide..." : "Închide"}
               </Button>
             ) : null}
 
             <Button
               variant="outline"
-              className="rounded-2xl"
+              className="rounded-2xl px-5"
               onClick={() => router.push("/messages")}
             >
-              Înapoi la mesaje
+              Înapoi
             </Button>
           </div>
         </div>
 
-        {callUiState === "outgoing" ? (
+        <div className="grid flex-1 gap-4">
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl">Apel în curs de inițiere</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg sm:text-xl">Mesaje</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600">Sună către {otherName}...</p>
-              <p className="mt-2 text-xs text-slate-500">Microfonul este pregătit.</p>
-            </CardContent>
-          </Card>
-        ) : null}
+            <CardContent className="space-y-3">
+              {loading ? (
+                <div className="rounded-2xl border p-4 text-sm text-slate-600">
+                  Se încarcă conversația...
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="rounded-2xl border p-4 text-sm text-slate-600">
+                  Nu există încă mesaje în această conversație.
+                </div>
+              ) : (
+                <>
+                  {messages.map((msg) => {
+                    const mine = msg.sender_id === userId
 
-        {callUiState === "connected" ? (
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl">Apel audio activ</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600">Conectat cu {otherName}.</p>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {callUiState === "incoming" && incomingCall ? (
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl">Apel incoming</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-slate-600">{otherName} te apelează.</p>
-
-              <div className="flex flex-wrap gap-3">
-                <Button className="rounded-2xl" onClick={handleAcceptCall} disabled={callBusy}>
-                  {callBusy ? "Se acceptă..." : "Acceptă"}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="rounded-2xl"
-                  onClick={handleRejectCall}
-                  disabled={callBusy}
-                >
-                  {callBusy ? "Se respinge..." : "Respinge"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">Mesaje</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loading ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Se încarcă conversația...
-              </div>
-            ) : messages.length === 0 ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Nu există încă mesaje în această conversație.
-              </div>
-            ) : (
-              <>
-                {messages.map((msg) => {
-                  const mine = msg.sender_id === userId
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`rounded-2xl border p-4 ${mine ? "bg-slate-50" : "bg-white"}`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-medium">{mine ? "Tu" : otherName}</p>
-                        <p className="text-xs text-slate-500">
-                          {new Date(msg.created_at).toLocaleString("ro-RO")}
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`rounded-2xl border p-4 ${
+                          mine ? "bg-slate-50" : "bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-medium">{mine ? "Tu" : otherName}</p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(msg.created_at).toLocaleString("ro-RO")}
+                          </p>
+                        </div>
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+                          {msg.body}
                         </p>
                       </div>
-                      <p className="mt-2 text-sm text-slate-700">{msg.body}</p>
-                    </div>
-                  )
-                })}
-                <div ref={bottomRef} />
-              </>
-            )}
-          </CardContent>
-        </Card>
+                    )
+                  })}
+                  <div ref={bottomRef} />
+                </>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">Trimite mesaj</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSend} className="space-y-4">
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                className="min-h-[120px] w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                placeholder="Scrie mesajul tău..."
-              />
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg sm:text-xl">Trimite mesaj</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSend} className="space-y-4">
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  className="min-h-[120px] w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  placeholder="Scrie mesajul tău..."
+                />
 
-              <Button type="submit" className="rounded-2xl" disabled={sending}>
-                {sending ? "Se trimite..." : "Trimite"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                <Button type="submit" className="rounded-2xl px-6" disabled={sending}>
+                  {sending ? "Se trimite..." : "Trimite"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {showCallOverlay ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-[2rem] bg-white p-6 shadow-2xl sm:p-8">
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-5 flex h-24 w-24 items-center justify-center rounded-full bg-slate-100 text-3xl font-semibold text-slate-700 sm:h-28 sm:w-28 sm:text-4xl">
+                {callInitial}
+              </div>
+
+              <h2 className="max-w-full truncate text-2xl font-semibold text-slate-900">
+                {callDisplayName}
+              </h2>
+
+              {callUiState === "incoming" ? (
+                <>
+                  <p className="mt-2 text-sm text-slate-500">Apel incoming</p>
+                  <p className="mt-1 text-xs text-slate-400">Te apelează acum</p>
+
+                  <div className="mt-8 grid w-full grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleAcceptCall}
+                      disabled={callBusy}
+                      className="rounded-2xl bg-emerald-600 px-4 py-4 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      {callBusy ? "Se acceptă..." : "Răspunde"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleRejectCall}
+                      disabled={callBusy}
+                      className="rounded-2xl bg-red-600 px-4 py-4 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60"
+                    >
+                      {callBusy ? "Se respinge..." : "Respinge"}
+                    </button>
+                  </div>
+                </>
+              ) : null}
+
+              {callUiState === "outgoing" ? (
+                <>
+                  <p className="mt-2 text-sm text-slate-500">Se apelează...</p>
+                  <p className="mt-1 text-xs text-slate-400">Așteptăm răspunsul</p>
+
+                  <button
+                    type="button"
+                    onClick={handleEndCall}
+                    disabled={callBusy}
+                    className="mt-8 w-full rounded-2xl bg-red-600 px-4 py-4 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {callBusy ? "Se închide..." : "Anulează apelul"}
+                  </button>
+                </>
+              ) : null}
+
+              {callUiState === "connected" ? (
+                <>
+                  <p className="mt-2 text-sm text-emerald-600">Conectat</p>
+                  <p className="mt-1 text-xs text-slate-400">Apel audio activ</p>
+
+                  <div className="mt-6 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    Microfon activ
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleEndCall}
+                    disabled={callBusy}
+                    className="mt-8 w-full rounded-2xl bg-red-600 px-4 py-4 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {callBusy ? "Se închide..." : "Închide apelul"}
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   )
 }

@@ -875,12 +875,11 @@ const handleAcceptCall = useCallback(async () => {
   }
 
 useEffect(() => {
-  const shouldAnswer = searchParams.get("answer") === "1"
-  const shouldDecline = searchParams.get("decline") === "1"
+  const callAction = searchParams.get("callAction")
   const targetCallSessionId = searchParams.get("callSessionId")
 
   if (!targetCallSessionId) return
-  if (!shouldAnswer && !shouldDecline) return
+  if (callAction !== "answer" && callAction !== "decline") return
 
   let cancelled = false
   let attempts = 0
@@ -900,9 +899,9 @@ useEffect(() => {
     ) {
       window.clearInterval(timer)
 
-      if (shouldAnswer) {
+      if (callAction === "answer") {
         handleAcceptCall()
-      } else if (shouldDecline) {
+      } else if (callAction === "decline") {
         handleRejectCall()
       }
 

@@ -1,4 +1,4 @@
-const SW_VERSION = "vivos-sw-v4-call-action"
+const SW_VERSION = "vivos-sw-v5-answer-only"
 
 self.addEventListener("install", () => {
   self.skipWaiting()
@@ -33,10 +33,7 @@ self.addEventListener("push", (event) => {
     vibrate: payload.vibrate || undefined,
     actions:
       notificationType === "incoming_call"
-        ? [
-            { action: "answer", title: "Răspunde" },
-            { action: "decline", title: "Respinge" },
-          ]
+        ? [{ action: "answer", title: "Răspunde" }]
         : [],
     data: {
       url: payload.url || "/messages",
@@ -65,8 +62,6 @@ self.addEventListener("notificationclick", (event) => {
   if (notificationType === "incoming_call" && conversationId && callSessionId) {
     if (action === "answer") {
       targetUrl = `/messages/${conversationId}?callAction=answer&callSessionId=${callSessionId}`
-    } else if (action === "decline") {
-      targetUrl = `/messages/${conversationId}?callAction=decline&callSessionId=${callSessionId}`
     } else {
       targetUrl = `/messages/${conversationId}`
     }

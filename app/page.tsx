@@ -1051,17 +1051,24 @@ function FundScreen({
 }) {
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h3 className="text-xl font-semibold sm:text-2xl">Fond mutual de sprijin</h3>
-          <p className="text-sm text-slate-500 sm:text-base">
-            Cereri reale de sprijin, vizibile comunității.
-          </p>
+      <div className="rounded-3xl bg-gradient-to-br from-[#173F74] via-[#204E8C] to-[#F6BC3E] p-5 text-white shadow-sm sm:p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
+            <HeartHandshake className="h-6 w-6" />
+          </div>
+
+          <div className="min-w-0">
+            <h3 className="text-2xl font-semibold sm:text-3xl">Fond mutual de sprijin</h3>
+            <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">
+              Cereri reale de sprijin, vizibile comunității și deschise contribuției directe.
+            </p>
+          </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="mt-5 flex gap-3">
           <Button
-            className="rounded-2xl"
+            variant="fund"
+            className="h-12"
             onClick={() => {
               window.location.href = isLoggedIn ? "/fund/new" : "/login"
             }}
@@ -1071,16 +1078,19 @@ function FundScreen({
         </div>
       </div>
 
-      <Card className="rounded-3xl border-0 shadow-sm">
+      <Card className="vivos-card border-0">
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-lg sm:text-xl">Cereri recente</CardTitle>
-          <div className="text-sm text-slate-500">{fundRequests.length} cereri</div>
+          <div className="text-sm vivos-muted">{fundRequests.length} cereri</div>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           {fundRequests.length === 0 ? (
-            <div className="rounded-2xl border p-4 text-sm text-slate-600">
-              Nu există încă cereri în fondul mutual de sprijin.
+            <div className="rounded-3xl border border-dashed border-slate-300 p-6 text-center">
+              <p className="text-base font-medium">Nu există încă cereri în fondul mutual</p>
+              <p className="mt-2 text-sm vivos-muted">
+                Când apare o nevoie reală, comunitatea o poate vedea și sprijini direct.
+              </p>
             </div>
           ) : (
             fundRequests.map((item) => {
@@ -1090,52 +1100,94 @@ function FundScreen({
                 item.author?.email?.trim() ||
                 "Membru comunității"
 
+              const urgencyLabel =
+                item.urgency === "ridicata"
+                  ? "Urgență ridicată"
+                  : item.urgency === "medie"
+                  ? "Urgență medie"
+                  : "Urgență scăzută"
+
+              const statusLabel =
+                item.status === "in_review"
+                  ? "În analiză"
+                  : item.status === "approved"
+                  ? "Aprobat"
+                  : item.status === "supported"
+                  ? "Sprijinit"
+                  : item.status === "closed"
+                  ? "Închis"
+                  : "Nou"
+
               return (
-                <div key={item.id} className="rounded-2xl border p-4">
+                <div
+                  key={item.id}
+                  className="rounded-3xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-md"
+                >
                   <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="rounded-xl">
-                      {item.urgency === "ridicata"
-                        ? "Urgență ridicată"
-                        : item.urgency === "medie"
-                        ? "Urgență medie"
-                        : "Urgență scăzută"}
+                    <Badge
+                      variant={
+                        item.urgency === "ridicata"
+                          ? "fund"
+                          : item.urgency === "medie"
+                          ? "market"
+                          : "outline"
+                      }
+                    >
+                      {urgencyLabel}
                     </Badge>
 
-                    <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
-                      {item.status === "in_review"
-                        ? "În analiză"
-                        : item.status === "approved"
-                        ? "Aprobat"
-                        : item.status === "supported"
-                        ? "Sprijinit"
-                        : item.status === "closed"
-                        ? "Închis"
-                        : "Nou"}
+                    <Badge
+                      variant={
+                        item.status === "supported"
+                          ? "fund"
+                          : item.status === "approved"
+                          ? "members"
+                          : item.status === "in_review"
+                          ? "messages"
+                          : item.status === "closed"
+                          ? "soft"
+                          : "outline"
+                      }
+                    >
+                      {statusLabel}
                     </Badge>
                   </div>
 
-                  <p className="font-medium">{item.title}</p>
-                  <p className="mt-1 text-sm text-slate-500">Cerere de la: {authorName}</p>
-                  <p className="mt-2 text-sm text-slate-600">{item.description}</p>
-                  <p className="mt-3 text-sm text-slate-500">
-                    {item.amount_talanti
-                      ? `${Number(item.amount_talanti).toFixed(2)} talanți`
-                      : "Fără sumă specificată"}{" "}
-                    · {new Date(item.created_at).toLocaleDateString("ro-RO")}
-                  </p>
+                  <p className="text-base font-semibold vivos-title">{item.title}</p>
+                  <p className="mt-1 text-sm vivos-muted">Cerere de la: {authorName}</p>
 
-                  <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs uppercase tracking-wide vivos-muted">Sumă</p>
+                      <p className="mt-1 text-sm font-medium text-[#173F74]">
+                        {item.amount_talanti
+                          ? `${Number(item.amount_talanti).toFixed(2)} talanți`
+                          : "Fără sumă specificată"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs uppercase tracking-wide vivos-muted">Data</p>
+                      <p className="mt-1 text-sm font-medium text-[#173F74]">
+                        {new Date(item.created_at).toLocaleDateString("ro-RO")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
                     <Button
                       variant="outline"
-                      className="rounded-2xl"
+                      className="flex-1"
                       onClick={() => onStartChat(item.author_id)}
                     >
                       Scrie autorului
                     </Button>
 
                     <Button
-                      variant="outline"
-                      className="rounded-2xl"
+                      variant="fund"
+                      className="flex-1"
                       onClick={() => {
                         if (!isLoggedIn) {
                           window.location.href = "/login"

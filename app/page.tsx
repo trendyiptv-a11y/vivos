@@ -404,72 +404,77 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <Card className="rounded-3xl border-0 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xl sm:text-2xl">Bine ai venit în VIVOS</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-0">
-          <p className="text-sm text-slate-600">
-            Spațiul comunitar pentru schimb, sprijin mutual și colaborare directă între membri.
-          </p>
-
-          <div className="grid gap-3">
-            <Button
-              className="h-12 rounded-2xl"
-              onClick={() => {
-                window.location.href = "/market/new"
-              }}
-            >
-              Publică ofertă
-            </Button>
-
-            <Button
-              variant="outline"
-              className="h-12 rounded-2xl"
-              onClick={() => {
-                window.location.href = "/profile"
-              }}
-            >
-              Actualizează profil
-            </Button>
-
-            <Button
-              variant="outline"
-              className="h-12 rounded-2xl"
-              onClick={() => {
-                window.location.href = "/market"
-              }}
-            >
-              Vezi piața reală
-            </Button>
+      <div className="vivos-hero p-5 sm:p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
+            <LayoutDashboard className="h-6 w-6" />
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="min-w-0">
+            <h3 className="text-2xl font-semibold sm:text-3xl">Bine ai venit în VIVOS</h3>
+            <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">
+              Spațiul comunitar pentru schimb, sprijin mutual și colaborare directă între membri.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <Button
+            className="h-12 bg-white text-[#173F74] hover:bg-white"
+            onClick={() => {
+              window.location.href = "/market/new"
+            }}
+          >
+            Publică ofertă
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-12 border-white/30 bg-white/10 text-white hover:bg-white/15"
+            onClick={() => {
+              window.location.href = "/profile"
+            }}
+          >
+            Actualizează profil
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-12 border-white/30 bg-white/10 text-white hover:bg-white/15"
+            onClick={() => {
+              window.location.href = "/market"
+            }}
+          >
+            Vezi piața reală
+          </Button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Card className="rounded-3xl border-0 shadow-sm">
+        <Card className="vivos-card border-0">
           <CardContent className="p-4 sm:p-5">
-            <p className="text-sm text-slate-500">Oferte</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-900">{offersCount}</p>
+            <p className="text-sm vivos-muted">Oferte</p>
+            <p className="mt-2 text-3xl font-semibold text-[#173F74]">{offersCount}</p>
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-0 shadow-sm">
+        <Card className="vivos-card border-0">
           <CardContent className="p-4 sm:p-5">
-            <p className="text-sm text-slate-500">Nevoi</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-900">{requestsCount}</p>
+            <p className="text-sm vivos-muted">Nevoi</p>
+            <p className="mt-2 text-3xl font-semibold text-[#173F74]">{requestsCount}</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="rounded-3xl border-0 shadow-sm">
+      <Card className="vivos-card border-0">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg sm:text-xl">Acțiuni rapide</CardTitle>
         </CardHeader>
+
         <CardContent className="grid gap-3 sm:grid-cols-2">
           <Button
             variant="outline"
-            className="h-12 justify-start rounded-2xl"
+            className="h-12 justify-start"
             onClick={() => {
               window.location.href = "/messages"
             }}
@@ -479,7 +484,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
 
           <Button
             variant="outline"
-            className="h-12 justify-start rounded-2xl"
+            className="h-12 justify-start"
             onClick={() => {
               window.location.href = "/notifications"
             }}
@@ -488,8 +493,8 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
           </Button>
 
           <Button
-            variant="outline"
-            className="h-12 justify-start rounded-2xl"
+            variant="fund"
+            className="h-12 justify-start"
             onClick={() => {
               window.location.href = "/fund/new"
             }}
@@ -499,7 +504,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
 
           <Button
             variant="outline"
-            className="h-12 justify-start rounded-2xl"
+            className="h-12 justify-start"
             onClick={() => {
               window.location.href = "/wallet"
             }}
@@ -509,12 +514,12 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl border-0 shadow-sm">
+      <Card className="vivos-card border-0">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg sm:text-xl">Piața comunitară</CardTitle>
+
           <Button
             variant="outline"
-            className="rounded-2xl"
             onClick={() => {
               window.location.href = "/market"
             }}
@@ -525,14 +530,14 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
 
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border p-4">
-              <p className="text-sm text-slate-500">Oferte active</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{offersCount}</p>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm vivos-muted">Oferte active</p>
+              <p className="mt-2 text-2xl font-semibold text-[#173F74]">{offersCount}</p>
             </div>
 
-            <div className="rounded-2xl border p-4">
-              <p className="text-sm text-slate-500">Cereri active</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{requestsCount}</p>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm vivos-muted">Cereri active</p>
+              <p className="mt-2 text-2xl font-semibold text-[#173F74]">{requestsCount}</p>
             </div>
           </div>
         </CardContent>

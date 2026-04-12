@@ -821,26 +821,34 @@ function MarketScreen({
 }) {
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h3 className="text-xl font-semibold sm:text-2xl">Piața comunitară</h3>
-          <p className="text-sm text-slate-500 sm:text-base">
-            Oferte, cereri, barter și colaborări directe.
-          </p>
+      <div className="rounded-3xl bg-gradient-to-br from-[#173F74] via-[#204E8C] to-[#F39A3D] p-5 text-white shadow-sm sm:p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
+            <ShoppingBag className="h-6 w-6" />
+          </div>
+
+          <div className="min-w-0">
+            <h3 className="text-2xl font-semibold sm:text-3xl">Piața comunitară</h3>
+            <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">
+              Oferte, cereri, barter și colaborări directe între membrii comunității.
+            </p>
+          </div>
         </div>
 
-        <div className="grid gap-3 sm:flex sm:flex-row">
+        <div className="mt-5 grid gap-3 sm:flex sm:flex-row">
           <Button
             variant="outline"
-            className="rounded-2xl"
+            className="h-12 border-white/30 bg-white/10 text-white hover:bg-white/15"
             onClick={() => {
               window.location.href = "/market/new"
             }}
           >
             Publică cerere
           </Button>
+
           <Button
-            className="rounded-2xl"
+            variant="market"
+            className="h-12"
             onClick={() => {
               window.location.href = "/market/new"
             }}
@@ -850,28 +858,44 @@ function MarketScreen({
         </div>
       </div>
 
-      <Card className="rounded-3xl border-0 shadow-sm">
+      <Card className="vivos-card border-0">
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-lg sm:text-xl">Toate postările recente</CardTitle>
-          <div className="text-sm text-slate-500">{marketPosts.length} postări</div>
+          <div className="text-sm vivos-muted">{marketPosts.length} postări</div>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           {marketPosts.length === 0 ? (
-            <div className="rounded-2xl border p-4 text-sm text-slate-600">
-              Nu există încă postări în piață.
+            <div className="rounded-3xl border border-dashed border-slate-300 p-6 text-center">
+              <p className="text-base font-medium">Nu există încă postări în piață</p>
+              <p className="mt-2 text-sm vivos-muted">
+                Publică prima ofertă sau prima cerere și pornește schimbul în comunitate.
+              </p>
             </div>
           ) : (
             marketPosts.map((item) => (
-              <div key={item.id} className="rounded-2xl border p-4">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Badge variant="secondary" className="rounded-xl">
+              <div
+                key={item.id}
+                className="rounded-3xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <Badge variant="market">
                     {item.post_type === "offer" ? "Ofertă" : "Cerere"}
                   </Badge>
-                  <Badge variant="outline" className="rounded-xl">
+
+                  <Badge variant="outline">
                     {item.category || "General"}
                   </Badge>
-                  <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
+
+                  <Badge
+                    variant={
+                      item.status === "closed"
+                        ? "soft"
+                        : item.status === "in_progress"
+                        ? "messages"
+                        : "market"
+                    }
+                  >
                     {item.status === "in_progress"
                       ? "În lucru"
                       : item.status === "closed"
@@ -880,26 +904,28 @@ function MarketScreen({
                   </Badge>
                 </div>
 
-                <p className="font-medium">{item.title}</p>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="text-base font-semibold vivos-title">{item.title}</p>
+
+                <p className="mt-1 text-sm vivos-muted">
                   {(item.location || "Necompletat")} · {(item.value_text || "Necompletat")}
                 </p>
 
                 {item.description && (
-                  <p className="mt-2 text-sm text-slate-600">{item.description}</p>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
                 )}
 
-                <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
+                <div className="mt-4 flex gap-2">
                   <Button
                     variant="outline"
-                    className="rounded-2xl"
+                    className="flex-1"
                     onClick={() => onStartChat(item.author_id)}
                   >
                     Contactează autorul
                   </Button>
 
                   <Button
-                    className="rounded-2xl"
+                    variant="market"
+                    className="flex-1"
                     onClick={() => {
                       window.location.href = "/market"
                     }}

@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useEffect, useMemo, useRef, useState } from "react"
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -111,6 +112,40 @@ type ShellProps = {
   userEmail: string | null
   unreadCount: number
   publicPulseCount: number
+}
+
+function TabSync({ setActive }: { setActive: (value: string) => void }) {
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const tab = searchParams.get("tab")
+
+    const validTabs = new Set([
+      "dashboard",
+      "members",
+      "messages",
+      "market",
+      "about",
+      "wallet",
+      "fund",
+      "archive",
+      "governance",
+      "settings",
+    ])
+
+    if (!tab) {
+      setActive("dashboard")
+      return
+    }
+
+    if (validTabs.has(tab)) {
+      setActive(tab)
+    } else {
+      setActive("dashboard")
+    }
+  }, [searchParams, setActive])
+
+  return null
 }
 
 function Shell({
@@ -1077,32 +1112,6 @@ export default function Page() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
 
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const params = new URLSearchParams(window.location.search)
-    const tab = params.get("tab")
-
-    if (!tab) return
-
-    const validTabs = new Set([
-      "dashboard",
-      "members",
-      "messages",
-      "market",
-      "about",
-      "wallet",
-      "fund",
-      "archive",
-      "governance",
-      "settings",
-    ])
-
-    if (validTabs.has(tab)) {
-      setActive(tab)
-    }
-  }, [])
-
   async function handleStartChat(otherMemberId: string) {
     const {
       data: { session },
@@ -1443,14 +1452,20 @@ export default function Page() {
   }, [active, members, membersLoading, userEmail, marketPosts, fundRequests, publicMembersCount])
 
   return (
-    <Shell
-      active={active}
-      setActive={setActive}
-      userEmail={userEmail}
-      unreadCount={unreadCount}
-      publicPulseCount={publicPulseCount}
-    >
-      {screen}
-    </Shell>
+    <>
+      <Suspense fallback={null}>
+        <TabSync setActive={setActive} />
+      </Suspense>
+
+      <Shell
+        active={active}
+        setActive={setActive}
+        userEmail={userEmail}
+        unreadCount={unreadCount}
+        publicPulseCount={publicPulseCount}
+      >
+        {screen}
+      </Shell>
+    </>
   )
 }

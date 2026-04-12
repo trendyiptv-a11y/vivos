@@ -35,6 +35,51 @@ export default function MarketPage() {
   const [loading, setLoading] = useState(true)
   const [posts, setPosts] = useState<MarketPost[]>([])
   const [message, setMessage] = useState("")
+  const [busyAuthorId, setBusyAuthorId] = useState<string | null>(null)
+
+  async function handleStartChat(otherMemberId: string) {
+    try {
+      setBusyAuthorId(otherMemberId)
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.user) {
+        router.push("/login")
+        return
+      }
+
+      const currentUserId = session.user.id
+
+      if (currentUserId === otherMemberId) {
+        router.push("/messages")
+        return
+      }
+
+      const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
+        other_member_id: otherMemberId,
+      })
+
+      if (error || !data) {
+        alert("Nu am putut porni conversația.")
+        return
+      }
+
+      await supabase
+        .from("conversation_hidden_for_users")
+        .delete()
+        .eq("conversation_id", data)
+        .eq("user_id", currentUserId)
+
+      router.push(`/messages/${data}`)
+    } catch (error) {
+      console.error("Start chat error:", error)
+      alert("Nu am putut porni conversația.")
+    } finally {
+      setBusyAuthorId(null)
+    }
+  }
 
   useEffect(() => {
     async function loadPosts() {
@@ -52,7 +97,9 @@ export default function MarketPage() {
 
       const { data, error } = await supabase
         .from("market_posts")
-        .select("id, author_id, post_type, title, category, description, value_text, location, status, created_at")
+        .select(
+          "id, author_id, post_type, title, category, description, value_text, location, status, created_at"
+        )
         .order("created_at", { ascending: false })
 
       if (error) {
@@ -93,6 +140,7 @@ export default function MarketPage() {
             <CardTitle className="text-2xl">Listă postări</CardTitle>
             <div className="text-sm text-slate-500">{posts.length} postări</div>
           </CardHeader>
+
           <CardContent className="space-y-4">
             {loading ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">
@@ -137,6 +185,26 @@ export default function MarketPage() {
                     <p>Locație: {post.location?.trim() || "Necompletat"}</p>
                     <p>Valoare: {post.value_text?.trim() || "Necompletat"}</p>
                     <p>Creat la: {new Date(post.created_at).toLocaleString("ro-RO")}</p>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Button
+                      variant="outline"
+                      className="rounded-2xl"
+                      onClick={() => router.push(`/member/${post.author_id}`)}
+                    >
+                      Vezi profil
+                    </Button>
+
+                    <Button
+                      className="rounded-2xl"
+                      onClick={() => handleStartChat(post.author_id)}
+                      disabled={busyAuthorId === post.author_id}
+                    >
+                      {busyAuthorId === post.author_id
+                        ? "Se deschide..."
+                        : "Contactează autorul"}
+                    </Button>
                   </div>
                 </div>
               ))

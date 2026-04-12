@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useEffect, useMemo, useRef, useState } from "react"
-import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -1068,8 +1067,6 @@ function SettingsScreen() {
 }
 
 export default function Page() {
-  const searchParams = useSearchParams()
-
   const [active, setActive] = useState("dashboard")
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [members, setMembers] = useState<ProfileMember[]>([])
@@ -1081,7 +1078,10 @@ export default function Page() {
   const [publicPulseCount, setPublicPulseCount] = useState(0)
 
   useEffect(() => {
-    const tab = searchParams.get("tab")
+    if (typeof window === "undefined") return
+
+    const params = new URLSearchParams(window.location.search)
+    const tab = params.get("tab")
 
     if (!tab) return
 
@@ -1101,7 +1101,7 @@ export default function Page() {
     if (validTabs.has(tab)) {
       setActive(tab)
     }
-  }, [searchParams])
+  }, [])
 
   async function handleStartChat(otherMemberId: string) {
     const {

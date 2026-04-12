@@ -180,26 +180,29 @@ function Shell({
   }, [])
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="vivos-shell">
       <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
-        <aside className="hidden border-r bg-white/90 backdrop-blur lg:block">
-          <div className="flex h-20 items-center gap-3 border-b px-6">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
+        <aside className="hidden border-r border-slate-200 bg-white/95 backdrop-blur lg:block">
+          <div className="flex h-20 items-center gap-3 border-b border-slate-200 px-6">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#173F74] text-white shadow-sm">
               <LifeBuoy className="h-5 w-5" />
             </div>
+
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Rețea vie</p>
-              <h1 className="text-xl font-semibold">VIVOS</h1>
+              <p className="text-xs uppercase tracking-[0.2em] vivos-muted">Rețea vie</p>
+              <h1 className="text-xl font-semibold vivos-title">VIVOS</h1>
             </div>
           </div>
 
           <div className="p-4">
-            <div className="mb-4 rounded-2xl border bg-slate-50 p-3">
-              <p className="text-xs text-slate-500">Spațiu comunitar</p>
-              <p className="mt-1 text-sm font-medium">Ordine vie, schimb și sprijin mutual</p>
+            <div className="mb-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs vivos-muted">Spațiu comunitar</p>
+              <p className="mt-1 text-sm font-medium vivos-title">
+                Ordine vie, schimb și sprijin mutual
+              </p>
             </div>
 
-            <nav className="space-y-1">
+            <nav className="space-y-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive = active === item.id
@@ -210,7 +213,7 @@ function Shell({
                     onClick={() => setActive(item.id)}
                     className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
                       isActive
-                        ? "bg-slate-900 text-white shadow-sm"
+                        ? "bg-[#173F74] text-white shadow-sm"
                         : "text-slate-600 hover:bg-slate-100"
                     }`}
                   >
@@ -224,19 +227,19 @@ function Shell({
         </aside>
 
         <main className="flex min-h-screen flex-col pb-24 lg:pb-0">
-          <header className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur">
+          <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
             <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                <p className="text-xs uppercase tracking-[0.2em] vivos-muted">
                   Platforma comunitară
                 </p>
-                <h2 className="truncate text-lg font-semibold sm:text-2xl">
+                <h2 className="truncate text-lg font-semibold sm:text-2xl vivos-title">
                   {active === "dashboard" ? "VIVOS" : activeLabel}
                 </h2>
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="hidden items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2 md:flex">
+                <div className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 md:flex">
                   <Search className="h-4 w-4 text-slate-500" />
                   <Input
                     className="h-auto w-48 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
@@ -257,13 +260,13 @@ function Shell({
                   </Button>
 
                   {showUnreadBadge && (
-                    <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-900 px-2 text-xs font-semibold text-white">
+                    <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#9A6FC0] px-2 text-xs font-semibold text-white shadow-sm">
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </div>
                   )}
 
                   {showPublicBadge && (
-                    <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-600 px-2 text-xs font-semibold text-white">
+                    <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#46C2D8] px-2 text-xs font-semibold text-white shadow-sm">
                       {publicPulseCount > 99 ? "99+" : publicPulseCount}
                     </div>
                   )}
@@ -271,24 +274,24 @@ function Shell({
 
                 {userEmail ? (
                   <>
-                    <div className="hidden max-w-[180px] truncate rounded-2xl border bg-white px-3 py-2 text-sm text-slate-600 sm:block">
+                    <div className="hidden max-w-[180px] truncate rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm vivos-muted sm:block">
                       {userEmail}
                     </div>
 
                     <div className="relative" ref={profileMenuRef}>
                       <button
-                        className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                        className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#56B6DE]"
                         onClick={() => setProfileMenuOpen((prev) => !prev)}
                       >
-                        <Avatar className="h-10 w-10 rounded-2xl">
-                          <AvatarFallback className="rounded-2xl bg-slate-900 text-white">
+                        <Avatar className="h-10 w-10 rounded-2xl border border-slate-200">
+                          <AvatarFallback className="rounded-2xl bg-[#173F74] text-white">
                             {userEmail.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                       </button>
 
                       {profileMenuOpen && (
-                        <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border bg-white p-2 shadow-lg">
+                        <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
                           <button
                             className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
                             onClick={() => {
@@ -359,7 +362,7 @@ function Shell({
             </motion.div>
           </ScrollArea>
 
-          <nav className="fixed inset-x-0 bottom-0 z-20 border-t bg-white/95 backdrop-blur lg:hidden">
+          <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
             <div className="grid grid-cols-5 gap-1 px-2 py-2">
               {mobileNavItems.map((item) => {
                 const Icon = item.icon
@@ -372,7 +375,7 @@ function Shell({
                     onClick={() => setActive(item.id)}
                     className={`relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] transition ${
                       isActive
-                        ? "bg-slate-900 text-white shadow-sm"
+                        ? "bg-[#173F74] text-white shadow-sm"
                         : "text-slate-600 hover:bg-slate-100"
                     }`}
                   >
@@ -380,7 +383,7 @@ function Shell({
                     <span className="leading-none">{item.label}</span>
 
                     {showItemBadge && (
-                      <div className="absolute right-3 top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-semibold text-white">
+                      <div className="absolute right-3 top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#9A6FC0] px-1.5 text-[10px] font-semibold text-white shadow-sm">
                         {unreadCount > 99 ? "99+" : unreadCount}
                       </div>
                     )}

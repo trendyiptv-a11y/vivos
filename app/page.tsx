@@ -114,8 +114,6 @@ type ShellProps = {
   publicPulseCount: number
 }
 
-type MemberFilter = "all" | "offers" | "needs" | "skills"
-
 function TabSync({ setActive }: { setActive: (value: string) => void }) {
   const searchParams = useSearchParams()
 
@@ -591,29 +589,49 @@ function MembersScreen({
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-lg sm:text-xl">Registrul membrilor</CardTitle>
-            <div className="text-sm text-slate-500">
-              {isLoggedIn ? `${filteredMembers.length} membri` : "acces restricționat"}
+      <div className="vivos-hero p-5 sm:p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
+            <Users className="h-6 w-6" />
+          </div>
+
+          <div className="min-w-0">
+            <h3 className="text-2xl font-semibold sm:text-3xl">Membri</h3>
+            <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">
+              Descoperă membrii comunității, vezi ce oferă, ce caută și pornește rapid o conversație.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+        <Card className="vivos-card border-0">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-lg sm:text-xl">Registrul membrilor</CardTitle>
+
+              <div className="text-sm vivos-muted">
+                {isLoggedIn ? `${filteredMembers.length} membri` : "acces restricționat"}
+              </div>
             </div>
           </CardHeader>
 
           <div className="px-6 pb-2">
             <div className="grid gap-3">
-              <Input
-                value={memberSearch}
-                onChange={(e) => setMemberSearch(e.target.value)}
-                placeholder="Caută după nume, email, alias, skill..."
-                className="rounded-2xl"
-              />
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
+                  placeholder="Caută după nume, alias, email, skill..."
+                  className="h-11 rounded-2xl border-slate-200 pl-10 focus-visible:ring-2 focus-visible:ring-[#56B6DE]"
+                />
+              </div>
 
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant={memberFilter === "all" ? "default" : "outline"}
-                  className="rounded-2xl"
                   onClick={() => setMemberFilter("all")}
                 >
                   Toți
@@ -621,8 +639,7 @@ function MembersScreen({
 
                 <Button
                   type="button"
-                  variant={memberFilter === "offers" ? "default" : "outline"}
-                  className="rounded-2xl"
+                  variant={memberFilter === "offers" ? "members" : "outline"}
                   onClick={() => setMemberFilter("offers")}
                 >
                   Cu oferte
@@ -630,8 +647,7 @@ function MembersScreen({
 
                 <Button
                   type="button"
-                  variant={memberFilter === "needs" ? "default" : "outline"}
-                  className="rounded-2xl"
+                  variant={memberFilter === "needs" ? "messages" : "outline"}
                   onClick={() => setMemberFilter("needs")}
                 >
                   Cu nevoi
@@ -639,8 +655,7 @@ function MembersScreen({
 
                 <Button
                   type="button"
-                  variant={memberFilter === "skills" ? "default" : "outline"}
-                  className="rounded-2xl"
+                  variant={memberFilter === "skills" ? "market" : "outline"}
                   onClick={() => setMemberFilter("skills")}
                 >
                   Cu skill-uri
@@ -649,29 +664,40 @@ function MembersScreen({
             </div>
           </div>
 
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {loading ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Se încarcă membrii...
+              <div className="grid gap-4 md:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="rounded-3xl border border-slate-200 p-4 animate-pulse">
+                    <div className="flex gap-3">
+                      <div className="h-12 w-12 rounded-2xl bg-slate-200" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-40 rounded bg-slate-200" />
+                        <div className="h-3 w-52 rounded bg-slate-200" />
+                        <div className="h-3 w-full rounded bg-slate-200" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : !isLoggedIn ? (
-              <div className="rounded-2xl border p-5 sm:p-6">
+              <div className="rounded-3xl border border-dashed border-slate-300 p-6">
                 <h3 className="text-lg font-semibold">Vezi membrii comunității</h3>
-                <p className="mt-2 text-sm text-slate-600">
+                <p className="mt-2 text-sm vivos-muted">
                   Autentifică-te pentru a vedea membrii activi, profilurile lor și posibilitățile de colaborare.
                 </p>
+
                 <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
                   <Button
-                    className="rounded-2xl"
                     onClick={() => {
                       window.location.href = "/login"
                     }}
                   >
                     Login
                   </Button>
+
                   <Button
                     variant="outline"
-                    className="rounded-2xl"
                     onClick={() => {
                       window.location.href = "/signup"
                     }}
@@ -681,120 +707,152 @@ function MembersScreen({
                 </div>
               </div>
             ) : filteredMembers.length === 0 ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Nu există membri care să corespundă căutării sau filtrului selectat.
+              <div className="rounded-3xl border border-dashed border-slate-300 p-6 text-center">
+                <p className="text-base font-medium">Nu am găsit membri</p>
+                <p className="mt-2 text-sm vivos-muted">
+                  Încearcă alt termen de căutare sau schimbă filtrul selectat.
+                </p>
               </div>
             ) : (
-              filteredMembers.map((member) => {
-                const displayName =
-                  member.name?.trim() ||
-                  member.alias?.trim() ||
-                  member.email?.split("@")[0] ||
-                  "Membru"
+              <div className="grid gap-4 md:grid-cols-2">
+                {filteredMembers.map((member) => {
+                  const displayName =
+                    member.name?.trim() ||
+                    member.alias?.trim() ||
+                    member.email?.split("@")[0] ||
+                    "Membru"
 
-                const initials = displayName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase()
+                  const initials = displayName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()
 
-                const skillsList = member.skills
-                  ? member.skills.split(",").map((s) => s.trim()).filter(Boolean)
-                  : []
+                  const skillsList = member.skills
+                    ? member.skills.split(",").map((s) => s.trim()).filter(Boolean)
+                    : []
 
-                return (
-                  <div
-                    key={member.id}
-                    className="cursor-pointer rounded-2xl border p-4 transition hover:bg-slate-50"
-                    onClick={() => {
-                      window.location.href = `/member/${member.id}`
-                    }}
-                  >
-                    <div className="flex flex-col gap-4">
-                      <div className="flex gap-3">
-                        <Avatar className="h-12 w-12 rounded-2xl">
-                          <AvatarFallback className="rounded-2xl bg-slate-900 text-white">
-                            {initials || "MB"}
-                          </AvatarFallback>
-                        </Avatar>
-
-                        <div className="min-w-0">
-                          <p className="font-medium">{displayName}</p>
-                          <p className="truncate text-sm text-slate-500">{member.email}</p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {(skillsList.length ? skillsList : ["fără competențe completate"]).map(
-                              (skill, idx) => (
-                                <Badge key={idx} variant="outline" className="rounded-xl">
-                                  {skill}
-                                </Badge>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid gap-2 text-sm text-slate-600">
-                        <p>
-                          Rol:{" "}
-                          <span className="font-medium text-slate-900">
-                            {member.role || "member"}
-                          </span>
-                        </p>
-                        <p>
-                          Oferă:{" "}
-                          <span className="font-medium text-slate-900">
-                            {member.offers_summary?.trim() || "necompletat"}
-                          </span>
-                        </p>
-                        <p>
-                          Caută:{" "}
-                          <span className="font-medium text-slate-900">
-                            {member.needs_summary?.trim() || "necompletat"}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
-                      <Button
-                        variant="outline"
-                        className="rounded-2xl"
-                        onClick={(e) => {
-                          e.stopPropagation()
+                  return (
+                    <div
+                      key={member.id}
+                      className="rounded-3xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => {
                           window.location.href = `/member/${member.id}`
                         }}
                       >
-                        Vezi profil
-                      </Button>
+                        <div className="flex items-start gap-3">
+                          <Avatar className="h-12 w-12 rounded-2xl border">
+                            <AvatarFallback className="rounded-2xl bg-[#56B6DE]/15 text-[#173F74]">
+                              {initials || "MB"}
+                            </AvatarFallback>
+                          </Avatar>
 
-                      <Button
-                        variant="outline"
-                        className="rounded-2xl"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onStartChat(member.id)
-                        }}
-                      >
-                        Trimite mesaj
-                      </Button>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold">{displayName}</p>
+                              <Badge variant="members">{member.role || "member"}</Badge>
+                            </div>
+
+                            <p className="truncate text-sm vivos-muted">{member.email}</p>
+
+                            {member.alias?.trim() ? (
+                              <p className="mt-1 text-xs vivos-muted">@{member.alias.trim()}</p>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-2 text-sm">
+                          <div className="rounded-2xl bg-slate-50 p-3">
+                            <p className="font-medium text-[#173F74]">Oferă</p>
+                            <p className="mt-1 text-slate-600">
+                              {member.offers_summary?.trim() || "Necompletat"}
+                            </p>
+                          </div>
+
+                          <div className="rounded-2xl bg-slate-50 p-3">
+                            <p className="font-medium text-[#173F74]">Caută</p>
+                            <p className="mt-1 text-slate-600">
+                              {member.needs_summary?.trim() || "Necompletat"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {(skillsList.length ? skillsList.slice(0, 4) : ["fără competențe"]).map(
+                            (skill, idx) => (
+                              <Badge key={idx} variant="members">
+                                {skill}
+                              </Badge>
+                            )
+                          )}
+
+                          {skillsList.length > 4 && (
+                            <Badge variant="outline">+{skillsList.length - 4}</Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            window.location.href = `/member/${member.id}`
+                          }}
+                        >
+                          Vezi profil
+                        </Button>
+
+                        <Button
+                          variant="members"
+                          className="flex-1"
+                          onClick={() => onStartChat(member.id)}
+                        >
+                          Trimite mesaj
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )
-              })
+                  )
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-0 shadow-sm">
+        <Card className="vivos-card border-0">
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Membri înregistrați</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Panou membri</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="rounded-2xl border p-5 text-center">
-              <p className="text-sm text-slate-500">Număr membri</p>
-              <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-900">
+
+          <CardContent className="space-y-4">
+            <div className="rounded-3xl border bg-slate-50 p-5 text-center">
+              <p className="text-sm vivos-muted">Număr membri</p>
+              <p className="mt-2 text-4xl font-semibold tracking-tight">
                 {isLoggedIn ? filteredMembers.length : publicMembersCount}
+              </p>
+            </div>
+
+            <div className="rounded-3xl border bg-slate-50 p-4">
+              <p className="text-sm font-medium text-[#173F74]">Filtru activ</p>
+              <p className="mt-1 text-sm vivos-muted">
+                {memberFilter === "all"
+                  ? "Toți membrii"
+                  : memberFilter === "offers"
+                  ? "Doar membri cu oferte"
+                  : memberFilter === "needs"
+                  ? "Doar membri cu nevoi"
+                  : "Doar membri cu skill-uri"}
+              </p>
+            </div>
+
+            <div className="rounded-3xl border bg-slate-50 p-4">
+              <p className="text-sm font-medium text-[#173F74]">Sugestie</p>
+              <p className="mt-1 text-sm vivos-muted">
+                Intră pe profilul unui membru pentru a vedea mai clar competențele și a porni o conversație directă.
               </p>
             </div>
           </CardContent>
@@ -1200,8 +1258,6 @@ export default function Page() {
   const [fundRequests, setFundRequests] = useState<MutualFundRequest[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
-  const [memberSearch, setMemberSearch] = useState("")
-  const [memberFilter, setMemberFilter] = useState<MemberFilter>("all")
 
   async function handleStartChat(otherMemberId: string) {
     const {
@@ -1502,10 +1558,6 @@ export default function Page() {
             isLoggedIn={!!userEmail}
             onStartChat={handleStartChat}
             publicMembersCount={publicMembersCount}
-            memberSearch={memberSearch}
-            setMemberSearch={setMemberSearch}
-            memberFilter={memberFilter}
-            setMemberFilter={setMemberFilter}
           />
         )
 
@@ -1544,17 +1596,7 @@ export default function Page() {
       default:
         return <DashboardScreen marketPosts={marketPosts} />
     }
-  }, [
-    active,
-    members,
-    membersLoading,
-    userEmail,
-    marketPosts,
-    fundRequests,
-    publicMembersCount,
-    memberSearch,
-    memberFilter,
-  ])
+  }, [active, members, membersLoading, userEmail, marketPosts, fundRequests, publicMembersCount])
 
   return (
     <>

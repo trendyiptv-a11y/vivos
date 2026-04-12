@@ -1,14 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
-  Bell,
   HeartHandshake,
   Home,
   MessageCircle,
   ShoppingBag,
-  User,
   Users,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
@@ -23,7 +21,6 @@ const items = [
   { label: "Mesaje", href: "/messages", icon: MessageCircle },
   { label: "Piață", href: "/market", icon: ShoppingBag },
   { label: "Fond", href: "/fund/new", icon: HeartHandshake },
-  { label: "Profil", href: "/profile", icon: User },
 ]
 
 function BadgeBubble({ count }: { count: number }) {
@@ -41,8 +38,8 @@ function BadgeBubble({ count }: { count: number }) {
 export default function MobileBottomNav() {
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-  const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => {
@@ -52,7 +49,6 @@ export default function MobileBottomNav() {
       } = await supabase.auth.getSession()
 
       if (!session?.user) {
-        setUnreadNotifications(0)
         setUnreadMessages(0)
         return
       }
@@ -67,13 +63,11 @@ export default function MobileBottomNav() {
 
       if (error) {
         console.error("Unread notifications load error:", error)
-        setUnreadNotifications(0)
         setUnreadMessages(0)
         return
       }
 
       const rows = (data ?? []) as NotificationCountRow[]
-      setUnreadNotifications(rows.length)
       setUnreadMessages(rows.filter((row) => row.event_type === "new_message").length)
     }
 
@@ -105,23 +99,21 @@ export default function MobileBottomNav() {
         return { ...item, badge: unreadMessages }
       }
 
-      if (item.href === "/notifications") {
-        return { ...item, badge: unreadNotifications }
-      }
-
       return { ...item, badge: 0 }
     })
-  }, [unreadMessages, unreadNotifications])
+  }, [unreadMessages])
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
-      <div className="mx-auto grid max-w-lg grid-cols-6">
+      <div className="mx-auto grid max-w-lg grid-cols-5">
         {itemsWithBadges.map((item) => {
           const Icon = item.icon
 
           const active =
-            item.href === "/?tab=members"
-              ? pathname === "/"
+            item.href === "/"
+              ? pathname === "/" && !searchParams.get("tab")
+              : item.href === "/?tab=members"
+              ? pathname === "/" && searchParams.get("tab") === "members"
               : pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
 
           return (

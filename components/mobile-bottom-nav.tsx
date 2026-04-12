@@ -9,6 +9,7 @@ import {
   MessageCircle,
   ShoppingBag,
   User,
+  Users,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 
@@ -18,9 +19,9 @@ type NotificationCountRow = {
 
 const items = [
   { label: "Acasă", href: "/", icon: Home },
+  { label: "Membri", href: "/?tab=members", icon: Users },
   { label: "Mesaje", href: "/messages", icon: MessageCircle },
   { label: "Piață", href: "/market", icon: ShoppingBag },
-  { label: "Alarme", href: "/notifications", icon: Bell },
   { label: "Fond", href: "/fund/new", icon: HeartHandshake },
   { label: "Profil", href: "/profile", icon: User },
 ]
@@ -41,7 +42,6 @@ export default function MobileBottomNav() {
   const router = useRouter()
   const pathname = usePathname()
 
-  const [userId, setUserId] = useState<string | null>(null)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
@@ -52,14 +52,12 @@ export default function MobileBottomNav() {
       } = await supabase.auth.getSession()
 
       if (!session?.user) {
-        setUserId(null)
         setUnreadNotifications(0)
         setUnreadMessages(0)
         return
       }
 
       const currentUserId = session.user.id
-      setUserId(currentUserId)
 
       const { data, error } = await supabase
         .from("notifications")
@@ -120,9 +118,11 @@ export default function MobileBottomNav() {
       <div className="mx-auto grid max-w-lg grid-cols-6">
         {itemsWithBadges.map((item) => {
           const Icon = item.icon
+
           const active =
-            pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href))
+            item.href === "/?tab=members"
+              ? pathname === "/"
+              : pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
 
           return (
             <button

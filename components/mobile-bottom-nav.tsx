@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   HeartHandshake,
   Home,
@@ -38,7 +38,6 @@ function BadgeBubble({ count }: { count: number }) {
 export default function MobileBottomNav() {
   const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
 
   const [unreadMessages, setUnreadMessages] = useState(0)
 
@@ -111,9 +110,9 @@ export default function MobileBottomNav() {
 
           const active =
             item.href === "/"
-              ? pathname === "/" && !searchParams.get("tab")
+              ? pathname === "/"
               : item.href === "/?tab=members"
-              ? pathname === "/" && searchParams.get("tab") === "members"
+              ? pathname === "/"
               : pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
 
           return (

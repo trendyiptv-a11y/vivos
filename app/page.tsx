@@ -39,6 +39,14 @@ const navItems = [
   { id: "settings", label: "Setări", icon: Settings },
 ] as const
 
+const mobileNavItems = [
+  { id: "dashboard", label: "Acasă", icon: LayoutDashboard },
+  { id: "members", label: "Membri", icon: Users },
+  { id: "messages", label: "Mesaje", icon: MessageSquare },
+  { id: "market", label: "Piață", icon: ShoppingBag },
+  { id: "fund", label: "Fond", icon: HeartHandshake },
+] as const
+
 const walletEntries = [
   { label: "Schimb confirmat", amount: "+120", meta: "Reparații electrice" },
   { label: "Contribuție fond mutual", amount: "-30", meta: "Contribuție lunară" },
@@ -178,7 +186,7 @@ function Shell({
           </div>
         </aside>
 
-        <main className="flex min-h-screen flex-col">
+        <main className="flex min-h-screen flex-col pb-24 lg:pb-0">
           <header className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur">
             <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
               <div className="min-w-0">
@@ -255,24 +263,25 @@ function Shell({
                           </button>
 
                           <button
-  className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
-  onClick={() => {
-    setProfileMenuOpen(false)
-    setActive("settings")
-  }}
->
-  Setări
-</button>
-                          
-<button
-  className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
-  onClick={() => {
-    setProfileMenuOpen(false)
-    setActive("about")
-  }}
->
-  Despre
-</button>
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                            onClick={() => {
+                              setProfileMenuOpen(false)
+                              setActive("settings")
+                            }}
+                          >
+                            Setări
+                          </button>
+
+                          <button
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                            onClick={() => {
+                              setProfileMenuOpen(false)
+                              setActive("about")
+                            }}
+                          >
+                            Despre
+                          </button>
+
                           <button
                             className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
                             onClick={async () => {
@@ -312,6 +321,37 @@ function Shell({
               {children}
             </motion.div>
           </ScrollArea>
+
+          <nav className="fixed inset-x-0 bottom-0 z-20 border-t bg-white/95 backdrop-blur lg:hidden">
+            <div className="grid grid-cols-5 gap-1 px-2 py-2">
+              {mobileNavItems.map((item) => {
+                const Icon = item.icon
+                const isActive = active === item.id
+                const showItemBadge = item.id === "messages" && showUnreadBadge
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActive(item.id)}
+                    className={`relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] transition ${
+                      isActive
+                        ? "bg-slate-900 text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="leading-none">{item.label}</span>
+
+                    {showItemBadge && (
+                      <div className="absolute right-3 top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-semibold text-white">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </nav>
         </main>
       </div>
     </div>

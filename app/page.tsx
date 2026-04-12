@@ -114,6 +114,8 @@ type ShellProps = {
   publicPulseCount: number
 }
 
+type MemberFilter = "all" | "offers" | "needs" | "skills"
+
 function TabSync({ setActive }: { setActive: (value: string) => void }) {
   const searchParams = useSearchParams()
 
@@ -542,13 +544,51 @@ function MembersScreen({
   isLoggedIn,
   onStartChat,
   publicMembersCount,
+  memberSearch,
+  setMemberSearch,
+  memberFilter,
+  setMemberFilter,
 }: {
   members: ProfileMember[]
   loading: boolean
   isLoggedIn: boolean
   onStartChat: (memberId: string) => void
   publicMembersCount: number
+  memberSearch: string
+  setMemberSearch: (value: string) => void
+  memberFilter: MemberFilter
+  setMemberFilter: (value: MemberFilter) => void
 }) {
+  const normalizedSearch = memberSearch.trim().toLowerCase()
+
+  const filteredMembers = members.filter((member) => {
+    const haystack = [
+      member.name || "",
+      member.alias || "",
+      member.email || "",
+      member.role || "",
+      member.skills || "",
+      member.offers_summary || "",
+      member.needs_summary || "",
+    ]
+      .join(" ")
+      .toLowerCase()
+
+    const matchesSearch = !normalizedSearch || haystack.includes(normalizedSearch)
+
+    const hasOffers = !!member.offers_summary?.trim()
+    const hasNeeds = !!member.needs_summary?.trim()
+    const hasSkills = !!member.skills?.trim()
+
+    const matchesFilter =
+      memberFilter === "all" ||
+      (memberFilter === "offers" && hasOffers) ||
+      (memberFilter === "needs" && hasNeeds) ||
+      (memberFilter === "skills" && hasSkills)
+
+    return matchesSearch && matchesFilter
+  })
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
@@ -556,9 +596,58 @@ function MembersScreen({
           <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg sm:text-xl">Registrul membrilor</CardTitle>
             <div className="text-sm text-slate-500">
-              {isLoggedIn ? `${members.length} membri` : "acces restricționat"}
+              {isLoggedIn ? `${filteredMembers.length} membri` : "acces restricționat"}
             </div>
           </CardHeader>
+
+          <div className="px-6 pb-2">
+            <div className="grid gap-3">
+              <Input
+                value={memberSearch}
+                onChange={(e) => setMemberSearch(e.target.value)}
+                placeholder="Caută după nume, email, alias, skill..."
+                className="rounded-2xl"
+              />
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={memberFilter === "all" ? "default" : "outline"}
+                  className="rounded-2xl"
+                  onClick={() => setMemberFilter("all")}
+                >
+                  Toți
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={memberFilter === "offers" ? "default" : "outline"}
+                  className="rounded-2xl"
+                  onClick={() => setMemberFilter("offers")}
+                >
+                  Cu oferte
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={memberFilter === "needs" ? "default" : "outline"}
+                  className="rounded-2xl"
+                  onClick={() => setMemberFilter("needs")}
+                >
+                  Cu nevoi
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={memberFilter === "skills" ? "default" : "outline"}
+                  className="rounded-2xl"
+                  onClick={() => setMemberFilter("skills")}
+                >
+                  Cu skill-uri
+                </Button>
+              </div>
+            </div>
+          </div>
 
           <CardContent className="space-y-3">
             {loading ? (
@@ -591,12 +680,12 @@ function MembersScreen({
                   </Button>
                 </div>
               </div>
-            ) : members.length === 0 ? (
+            ) : filteredMembers.length === 0 ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Nu există încă membri înregistrați în tabelul profiles.
+                Nu există membri care să corespundă căutării sau filtrului selectat.
               </div>
             ) : (
-              members.map((member) => {
+              filteredMembers.map((member) => {
                 const displayName =
                   member.name?.trim() ||
                   member.alias?.trim() ||
@@ -705,7 +794,7 @@ function MembersScreen({
             <div className="rounded-2xl border p-5 text-center">
               <p className="text-sm text-slate-500">Număr membri</p>
               <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-900">
-                {isLoggedIn ? members.length : publicMembersCount}
+                {isLoggedIn ? filteredMembers.length : publicMembersCount}
               </p>
             </div>
           </CardContent>
@@ -1111,6 +1200,8 @@ export default function Page() {
   const [fundRequests, setFundRequests] = useState<MutualFundRequest[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
+  const [memberSearch, setMemberSearch] = useState("")
+  const [memberFilter, setMemberFilter] = useState<MemberFilter>("all")
 
   async function handleStartChat(otherMemberId: string) {
     const {
@@ -1411,6 +1502,10 @@ export default function Page() {
             isLoggedIn={!!userEmail}
             onStartChat={handleStartChat}
             publicMembersCount={publicMembersCount}
+            memberSearch={memberSearch}
+            setMemberSearch={setMemberSearch}
+            memberFilter={memberFilter}
+            setMemberFilter={setMemberFilter}
           />
         )
 
@@ -1449,7 +1544,17 @@ export default function Page() {
       default:
         return <DashboardScreen marketPosts={marketPosts} />
     }
-  }, [active, members, membersLoading, userEmail, marketPosts, fundRequests, publicMembersCount])
+  }, [
+    active,
+    members,
+    membersLoading,
+    userEmail,
+    marketPosts,
+    fundRequests,
+    publicMembersCount,
+    memberSearch,
+    memberFilter,
+  ])
 
   return (
     <>

@@ -114,7 +114,7 @@ type ShellProps = {
   publicPulseCount: number
 }
 
-type MemberFilter = "all" | "offers" | "needs" | "skills"
+
 
 function TabSync({ setActive }: { setActive: (value: string) => void }) {
   const searchParams = useSearchParams()

@@ -8,10 +8,108 @@ body,
   height: 100%;
 }
 
-body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+@layer base {
+  :root {
+    --vivos-navy: #173f74;
+    --vivos-navy-2: #204e8c;
+    --vivos-bg: #f4f7fb;
+    --vivos-surface: #ffffff;
+    --vivos-border: #d9e3f0;
+    --vivos-text: #18324b;
+    --vivos-text-muted: #5c708a;
+
+    --vivos-yellow: #f6bc3e;
+    --vivos-orange: #f39a3d;
+    --vivos-pink: #d26aa0;
+    --vivos-purple: #9a6fc0;
+    --vivos-cyan: #56b6de;
+    --vivos-teal: #46c2d8;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply antialiased;
+    background-color: var(--vivos-bg);
+    color: var(--vivos-text);
+  }
 }
 
-* {
-  box-sizing: border-box;
+@layer components {
+  .vivos-shell {
+    @apply min-h-screen;
+    background-color: var(--vivos-bg);
+    color: var(--vivos-text);
+  }
+
+  .vivos-card {
+    @apply rounded-3xl border bg-white shadow-sm;
+    border-color: var(--vivos-border);
+  }
+
+  .vivos-soft-panel {
+    @apply rounded-3xl border;
+    background-color: #f8fbff;
+    border-color: var(--vivos-border);
+  }
+
+  .vivos-title {
+    color: var(--vivos-text);
+  }
+
+  .vivos-muted {
+    color: var(--vivos-text-muted);
+  }
+
+  .vivos-members {
+    color: var(--vivos-cyan);
+  }
+
+  .vivos-messages {
+    color: var(--vivos-purple);
+  }
+
+  .vivos-market {
+    color: var(--vivos-orange);
+  }
+
+  .vivos-fund {
+    color: var(--vivos-yellow);
+  }
+
+  .vivos-hero {
+    background: linear-gradient(
+      135deg,
+      var(--vivos-navy) 0%,
+      var(--vivos-navy-2) 55%,
+      var(--vivos-cyan) 100%
+    );
+    @apply rounded-3xl text-white shadow-sm;
+  }
+
+  .vivos-chip-members {
+    background-color: rgba(86, 182, 222, 0.12);
+    color: var(--vivos-navy);
+    border: 1px solid rgba(86, 182, 222, 0.28);
+  }
+
+  .vivos-chip-messages {
+    background-color: rgba(154, 111, 192, 0.12);
+    color: var(--vivos-navy);
+    border: 1px solid rgba(154, 111, 192, 0.25);
+  }
+
+  .vivos-chip-market {
+    background-color: rgba(243, 154, 61, 0.12);
+    color: var(--vivos-navy);
+    border: 1px solid rgba(243, 154, 61, 0.25);
+  }
+
+  .vivos-chip-fund {
+    background-color: rgba(246, 188, 62, 0.14);
+    color: var(--vivos-navy);
+    border: 1px solid rgba(246, 188, 62, 0.3);
+  }
 }

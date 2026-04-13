@@ -14,7 +14,6 @@ import {
   FileText,
   HeartHandshake,
   LayoutDashboard,
-  LifeBuoy,
   MessageSquare,
   Search,
   Settings,
@@ -177,9 +176,9 @@ function Shell({
       <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
         <aside className="hidden border-r border-slate-200 bg-white/95 backdrop-blur lg:block">
           <div className="flex h-20 items-center gap-3 border-b border-slate-200 px-6">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#173F74] text-white shadow-sm">
-              <LifeBuoy className="h-5 w-5" />
-            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl overflow-hidden shadow-sm">
+  <img src="/icons/icon-192.png" alt="VIVOS" className="h-11 w-11 object-cover" />
+</div>
 
             <div>
               <p className="text-xs uppercase tracking-[0.2em] vivos-muted">Rețea vie</p>

@@ -182,9 +182,9 @@ export default function MessagesPage() {
   }, [conversations, conversationMembers, latestMessages, userId])
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
+    <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky top-0 z-10 flex flex-col gap-3 bg-slate-50 px-6 pb-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-slate-500">Mesaje</p>
             <h1 className="text-3xl font-semibold">Conversații</h1>
@@ -195,7 +195,7 @@ export default function MessagesPage() {
           </Button>
         </div>
 
-        <Card className="rounded-3xl border-0 shadow-sm">
+        <Card className="mx-6 mb-24 rounded-3xl border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="text-xl">Chat între membri</CardTitle>
           </CardHeader>

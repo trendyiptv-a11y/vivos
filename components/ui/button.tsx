@@ -23,7 +23,7 @@ const buttonVariants = cva(
         market:
           "bg-[#F39A3D] text-white hover:bg-[#E58E34] focus-visible:ring-[#F39A3D]",
         fund:
-          "bg-[#F8E7A8] text-[#173F74] hover:bg-[#F3DE93] focus-visible:ring-[#F6BC3E]",
+          "border border-[#D9E3F0] bg-white text-[#173F74] hover:bg-[#F4F7FB] focus-visible:ring-[#56B6DE]",
       },
       size: {
         default: "h-10 px-4 py-2",

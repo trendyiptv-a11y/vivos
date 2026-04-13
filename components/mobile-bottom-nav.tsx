@@ -111,12 +111,11 @@ function MobileBottomNavInner() {
               <AnimatePresence>
                 {active && (
                   <motion.span
-                    layoutId="nav-pill"
                     className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-slate-900"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    initial={{ opacity: 0, scaleX: 0 }}
+                    animate={{ opacity: 1, scaleX: 1 }}
+                    exit={{ opacity: 0, scaleX: 0 }}
+                    transition={{ duration: 0.2 }}
                   />
                 )}
               </AnimatePresence>

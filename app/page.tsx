@@ -15,6 +15,7 @@ import {
   HeartHandshake,
   MessageSquare,
   Search,
+  LayoutDashboard, 
   Settings,
   Shield,
   ShoppingBag,

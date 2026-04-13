@@ -1,249 +1,148 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useMemo, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import {
+  HeartHandshake,
+  Home,
+  MessageCircle,
+  ShoppingBag,
+  Users,
+} from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
+import { motion, AnimatePresence } from "framer-motion"
 
-type NotificationRow = {
-  id: string
-  user_id: string | null
+type NotificationCountRow = {
   event_type: string
-  title: string
-  body: string | null
-  ref_id: string | null
-  created_at: string
   is_read: boolean
+  user_id: string | null
 }
 
-function eventBadge(eventType: string) {
-  if (eventType === "user_registered") return "Membru nou"
-  if (eventType === "market_post_created") return "Piață"
-  if (eventType === "new_message") return "Mesaj"
-  if (eventType === "fund_request_created") return "Fond mutual"
-  return "Eveniment"
+const items = [
+  { label: "Acasă", href: "/", tab: null, icon: Home, eventTypes: ["user_registered"] },
+  { label: "Membri", href: "/", tab: "members", icon: Users, eventTypes: [] },
+  { label: "Mesaje", href: "/messages", tab: null, icon: MessageCircle, eventTypes: ["new_message"] },
+  { label: "Piață", href: "/market", tab: null, icon: ShoppingBag, eventTypes: ["market_post_created"] },
+  { label: "Fond", href: "/fund/new", tab: null, icon: HeartHandshake, eventTypes: ["fund_request_created"] },
+]
+
+function BadgeBubble({ count }: { count: number }) {
+  return (
+    <AnimatePresence>
+      {count > 0 && (
+        <motion.span
+          key="badge"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 500, damping: 25 }}
+          className="absolute -right-1.5 -top-1.5 min-w-[18px] rounded-full bg-rose-500 px-1 py-0.5 text-center text-[9px] font-bold leading-none text-white shadow-sm"
+        >
+          {count > 99 ? "99+" : count}
+        </motion.span>
+      )}
+    </AnimatePresence>
+  )
 }
 
-function getNotificationHref(item: NotificationRow) {
-  if (item.event_type === "new_message" && item.ref_id) {
-    return `/messages/${item.ref_id}`
-  }
-
-  if (item.event_type === "market_post_created") {
-    return "/market"
-  }
-
-  if (item.event_type === "user_registered" && item.ref_id) {
-    return `/member/${item.ref_id}`
-  }
-
-  if (item.event_type === "fund_request_created") {
-    return "/fund"
-  }
-
-  return null
-}
-
-export default function NotificationsPage() {
+export default function MobileBottomNav() {
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [items, setItems] = useState<NotificationRow[]>([])
-  const [message, setMessage] = useState("")
-  const [userId, setUserId] = useState<string | null>(null)
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const currentTab = searchParams.get("tab")
+
+  const [badges, setBadges] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    async function loadNotifications() {
-      setLoading(true)
-      setMessage("")
+    async function loadCounts() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) { setBadges({}); return }
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session?.user) {
-        router.push("/login")
-        return
-      }
-
-      setUserId(session.user.id)
+      const userId = session.user.id
 
       const { data, error } = await supabase
         .from("notifications")
-        .select("id, user_id, event_type, title, body, ref_id, created_at, is_read")
-        .or(`user_id.eq.${session.user.id},user_id.is.null`)
-        .order("created_at", { ascending: false })
-        .limit(50)
+        .select("event_type, is_read, user_id")
+        .or(`user_id.eq.${userId},user_id.is.null`)
+        .eq("is_read", false)
 
-      if (error) {
-        setItems([])
-        setMessage(error.message)
-        setLoading(false)
-        return
-      }
+      if (error) { setBadges({}); return }
 
-      setItems((data ?? []) as NotificationRow[])
-      setLoading(false)
+      const rows = (data ?? []) as NotificationCountRow[]
+      const counts: Record<string, number> = {}
+      rows.forEach((row) => { counts[row.event_type] = (counts[row.event_type] ?? 0) + 1 })
+      setBadges(counts)
     }
 
-    loadNotifications()
+    loadCounts()
 
     const channel = supabase
-      .channel("notifications-live")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-        },
-        async (payload) => {
-          const row = payload.new as NotificationRow
-
-          const {
-            data: { session },
-          } = await supabase.auth.getSession()
-
-          const currentUserId = session?.user?.id
-
-          if (!currentUserId) return
-          if (row.user_id !== null && row.user_id !== currentUserId) return
-
-          setItems((prev) => [row, ...prev].slice(0, 50))
-        }
-      )
+      .channel("nav-badge-counts")
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, loadCounts)
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [router])
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
-  async function markAllRead() {
-    if (!userId) return
-
-    const unreadIds = items
-      .filter((x) => !x.is_read && x.user_id === userId)
-      .map((x) => x.id)
-
-    if (!unreadIds.length) return
-
-    const { error } = await supabase
-      .from("notifications")
-      .update({ is_read: true })
-      .in("id", unreadIds)
-
-    if (!error) {
-      setItems((prev) =>
-        prev.map((x) => (x.user_id === userId ? { ...x, is_read: true } : x))
-      )
-    }
-  }
-
-  async function handleOpen(item: NotificationRow) {
-    const href = getNotificationHref(item)
-    if (!href) return
-
-    if (userId && item.user_id === userId && !item.is_read) {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("id", item.id)
-
-      if (!error) {
-        setItems((prev) =>
-          prev.map((x) => (x.id === item.id ? { ...x, is_read: true } : x))
-        )
-      }
-    }
-
-    router.push(href)
-  }
+  const itemsWithBadges = useMemo(() => {
+    return items.map((item) => ({
+      ...item,
+      badge: item.eventTypes.reduce((sum, et) => sum + (badges[et] ?? 0), 0),
+    }))
+  }, [badges])
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-slate-500">Monitorizare</p>
-            <h1 className="text-3xl font-semibold">Notificări</h1>
-          </div>
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-100 bg-white/90 backdrop-blur-xl md:hidden">
+      <div className="mx-auto grid max-w-lg grid-cols-5 pb-safe">
+        {itemsWithBadges.map((item) => {
+          const Icon = item.icon
+          const active = item.tab
+            ? pathname === "/" && currentTab === item.tab
+            : item.href === "/"
+            ? pathname === "/" && !currentTab
+            : pathname === item.href || pathname.startsWith(item.href + "/")
 
-          <div className="flex gap-3">
-            <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/")}>
-              Înapoi
-            </Button>
-            <Button className="rounded-2xl" onClick={markAllRead}>
-              Marchează tot ca citit
-            </Button>
-          </div>
-        </div>
+          return (
+            <button
+              key={`${item.href}-${item.tab}`}
+              onClick={() => router.push(item.tab ? `${item.href}?tab=${item.tab}` : item.href)}
+              className="relative flex flex-col items-center justify-center gap-1 px-1 py-3 text-[10px] font-medium"
+            >
+              {/* Active indicator pill */}
+              <AnimatePresence>
+                {active && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-slate-900"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+              </AnimatePresence>
 
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-2xl">Ultimele evenimente</CardTitle>
-            <div className="text-sm text-slate-500">{items.length} notificări</div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {loading ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Se încarcă notificările...
-              </div>
-            ) : message ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">{message}</div>
-            ) : items.length === 0 ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Nu există încă notificări.
-              </div>
-            ) : (
-              items.map((item) => {
-                const href = getNotificationHref(item)
+              <motion.span
+                className="relative"
+                animate={{ scale: active ? 1.1 : 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              >
+                <Icon
+                  className={`h-5 w-5 transition-colors duration-200 ${
+                    active ? "text-slate-900" : "text-slate-400"
+                  }`}
+                  strokeWidth={active ? 2.4 : 1.8}
+                />
+                <BadgeBubble count={item.badge} />
+              </motion.span>
 
-                return (
-                  <div key={item.id} className="rounded-2xl border p-4">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary" className="rounded-xl">
-                        {eventBadge(item.event_type)}
-                      </Badge>
-
-                      {item.user_id === null && (
-                        <Badge variant="secondary" className="rounded-xl">
-                          global
-                        </Badge>
-                      )}
-
-                      {!item.is_read && item.user_id === userId && (
-                        <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
-                          nou
-                        </Badge>
-                      )}
-                    </div>
-
-                    <p className="font-medium">{item.title}</p>
-                    <p className="mt-1 text-sm text-slate-600">{item.body || "Fără detalii"}</p>
-                    <p className="mt-2 text-xs text-slate-500">
-                      {new Date(item.created_at).toLocaleString("ro-RO")}
-                    </p>
-
-                    {href ? (
-                      <div className="mt-4">
-                        <Button
-                          variant="outline"
-                          className="rounded-2xl"
-                          onClick={() => handleOpen(item)}
-                        >
-                          Deschide
-                        </Button>
-                      </div>
-                    ) : null}
-                  </div>
-                )
-              })
-            )}
-          </CardContent>
-        </Card>
+              <span className={`transition-colors duration-200 ${active ? "text-slate-900" : "text-slate-400"}`}>
+                {item.label}
+              </span>
+            </button>
+          )
+        })}
       </div>
-    </main>
+    </nav>
   )
 }

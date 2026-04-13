@@ -221,9 +221,9 @@ export default function WalletPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
+    <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky top-0 z-10 flex flex-col gap-3 bg-slate-50 px-6 pb-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-slate-500">Wallet intern</p>
             <h1 className="text-3xl font-semibold">Talanți</h1>
@@ -234,7 +234,7 @@ export default function WalletPage() {
           </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 px-6 md:grid-cols-3">
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Sold curent</CardTitle>
@@ -266,7 +266,7 @@ export default function WalletPage() {
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+        <div className="grid gap-6 px-6 pb-24 lg:grid-cols-[1fr_1.1fr]">
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="text-xl">Trimite talanți</CardTitle>

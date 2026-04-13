@@ -117,9 +117,9 @@ export default function MarketPage() {
   }, [router])
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
+    <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky top-0 z-10 mb-6 flex flex-col gap-3 bg-slate-50 px-6 pb-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-slate-500">Piață comunitară</p>
             <h1 className="text-3xl font-semibold">Oferte și cereri reale</h1>
@@ -135,7 +135,7 @@ export default function MarketPage() {
           </div>
         </div>
 
-        <Card className="rounded-3xl border-0 shadow-sm">
+        <Card className="mx-6 mb-6 rounded-3xl border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-2xl">Listă postări</CardTitle>
             <div className="text-sm text-slate-500">{posts.length} postări</div>

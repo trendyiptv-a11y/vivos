@@ -215,9 +215,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
+    <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-3xl space-y-6">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky top-0 z-10 mb-6 flex flex-col gap-3 bg-slate-50 px-6 pb-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-slate-500">Membru autentificat</p>
             <h1 className="text-3xl font-semibold">Profil VIVOS</h1>
@@ -228,181 +228,183 @@ export default function ProfilePage() {
           </Button>
         </div>
 
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl">Actualizează profilul</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
-                  <Input value={email} readOnly className="rounded-2xl bg-slate-100" />
+        <div className="space-y-6 px-6 pb-24">
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl">Actualizează profilul</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSave} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Email</label>
+                    <Input value={email} readOnly className="rounded-2xl bg-slate-100" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Rol</label>
+                    <Input
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      className="rounded-2xl"
+                      placeholder="member"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Nume</label>
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="rounded-2xl"
+                      placeholder="Numele tău"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Alias</label>
+                    <Input
+                      value={alias}
+                      onChange={(e) => setAlias(e.target.value)}
+                      className="rounded-2xl"
+                      placeholder="Alias comunitar"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Rol</label>
-                  <Input
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="member"
+                  <label className="text-sm font-medium">Competențe</label>
+                  <textarea
+                    value={skills}
+                    onChange={(e) => setSkills(e.target.value)}
+                    className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                    placeholder="ex: electrician, logistică, design, traduceri"
                   />
                 </div>
-              </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Nume</label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="Numele tău"
+                  <label className="text-sm font-medium">Ce oferi</label>
+                  <textarea
+                    value={offersSummary}
+                    onChange={(e) => setOffersSummary(e.target.value)}
+                    className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                    placeholder="Servicii, bunuri, timp, ajutor pe care îl poți oferi"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Alias</label>
-                  <Input
-                    value={alias}
-                    onChange={(e) => setAlias(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="Alias comunitar"
+                  <label className="text-sm font-medium">Ce cauți</label>
+                  <textarea
+                    value={needsSummary}
+                    onChange={(e) => setNeedsSummary(e.target.value)}
+                    className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                    placeholder="Sprijin, colaborări, resurse, nevoi curente"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Competențe</label>
-                <textarea
-                  value={skills}
-                  onChange={(e) => setSkills(e.target.value)}
-                  className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                  placeholder="ex: electrician, logistică, design, traduceri"
-                />
-              </div>
+                {message && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+                    {message}
+                  </div>
+                )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Ce oferi</label>
-                <textarea
-                  value={offersSummary}
-                  onChange={(e) => setOffersSummary(e.target.value)}
-                  className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                  placeholder="Servicii, bunuri, timp, ajutor pe care îl poți oferi"
-                />
-              </div>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button type="submit" className="rounded-2xl" disabled={saving}>
+                    {saving ? "Se salvează..." : "Salvează profilul"}
+                  </Button>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Ce cauți</label>
-                <textarea
-                  value={needsSummary}
-                  onChange={(e) => setNeedsSummary(e.target.value)}
-                  className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                  placeholder="Sprijin, colaborări, resurse, nevoi curente"
-                />
-              </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-2xl"
+                    onClick={() => router.push("/")}
+                  >
+                    Anulează
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
 
-              {message && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-                  {message}
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl">Schimbă parola</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Parolă nouă</label>
+                    <Input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="rounded-2xl"
+                      placeholder="Introdu parola nouă"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Confirmă parola</label>
+                    <Input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="rounded-2xl"
+                      placeholder="Reintrodu parola"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {passwordMessage && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+                    {passwordMessage}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button type="submit" className="rounded-2xl" disabled={passwordSaving}>
+                    {passwordSaving ? "Se actualizează..." : "Actualizează parola"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-3xl border border-red-200 bg-red-50 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl text-red-700">Ștergere cont</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-red-700">
+                Această acțiune este permanentă. Contul tău, profilul și datele asociate vor fi
+                șterse definitiv din platformă.
+              </p>
+
+              {deleteMessage && (
+                <div className="rounded-2xl border border-red-200 bg-white p-3 text-sm text-red-700">
+                  {deleteMessage}
                 </div>
               )}
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button type="submit" className="rounded-2xl" disabled={saving}>
-                  {saving ? "Se salvează..." : "Salvează profilul"}
-                </Button>
-
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-2xl"
-                  onClick={() => router.push("/")}
+                  className="rounded-2xl border-red-300 text-red-700 hover:bg-red-100"
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount}
                 >
-                  Anulează
+                  {deletingAccount ? "Se șterge contul..." : "Șterge contul meu"}
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl">Schimbă parola</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleChangePassword} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Parolă nouă</label>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="Introdu parola nouă"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Confirmă parola</label>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="Reintrodu parola"
-                    required
-                  />
-                </div>
-              </div>
-
-              {passwordMessage && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-                  {passwordMessage}
-                </div>
-              )}
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button type="submit" className="rounded-2xl" disabled={passwordSaving}>
-                  {passwordSaving ? "Se actualizează..." : "Actualizează parola"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-3xl border border-red-200 bg-red-50 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl text-red-700">Ștergere cont</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-red-700">
-              Această acțiune este permanentă. Contul tău, profilul și datele asociate vor fi
-              șterse definitiv din platformă.
-            </p>
-
-            {deleteMessage && (
-              <div className="rounded-2xl border border-red-200 bg-white p-3 text-sm text-red-700">
-                {deleteMessage}
-              </div>
-            )}
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-2xl border-red-300 text-red-700 hover:bg-red-100"
-                onClick={handleDeleteAccount}
-                disabled={deletingAccount}
-              >
-                {deletingAccount ? "Se șterge contul..." : "Șterge contul meu"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </main>
   )

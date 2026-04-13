@@ -1050,8 +1050,8 @@ export default function ConversationPage() {
       <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
       <audio ref={ringtoneRef} src="/sounds/incoming-call.mp3" preload="auto" />
 
-      <div className="mx-auto flex min-h-screen max-w-4xl flex-col p-4 sm:p-6">
-        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex min-h-screen max-w-4xl flex-col">
+        <div className="sticky top-0 z-10 mb-4 flex flex-col gap-3 bg-slate-50 px-4 pb-3 pt-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pt-6">
           <div className="min-w-0">
             <p className="text-sm text-slate-500">Conversație</p>
             <h1 className="truncate text-2xl font-semibold sm:text-3xl">{otherName}</h1>
@@ -1100,7 +1100,7 @@ export default function ConversationPage() {
           </div>
         </div>
 
-        <div className="grid flex-1 gap-4">
+        <div className="grid flex-1 gap-4 px-4 pb-24 sm:px-6">
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg sm:text-xl">Mesaje</CardTitle>

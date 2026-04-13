@@ -226,7 +226,7 @@ function Shell({
           </div>
         </aside>
 
-        <main className="flex min-h-screen flex-col pb-24 lg:pb-0">
+        <main className="flex min-h-screen flex-col pb-20 lg:pb-0">
           <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
             <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
               <div className="min-w-0">

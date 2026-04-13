@@ -514,34 +514,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
         </CardContent>
       </Card>
 
-      <Card className="vivos-card border-0">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg sm:text-xl">Piața comunitară</CardTitle>
-
-          <Button
-            variant="outline"
-            onClick={() => {
-              window.location.href = "/market"
-            }}
-          >
-            Toată piața
-          </Button>
-        </CardHeader>
-
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm vivos-muted">Oferte active</p>
-              <p className="mt-2 text-2xl font-semibold text-[#173F74]">{offersCount}</p>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm vivos-muted">Cereri active</p>
-              <p className="mt-2 text-2xl font-semibold text-[#173F74]">{requestsCount}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    
     </div>
   )
 }

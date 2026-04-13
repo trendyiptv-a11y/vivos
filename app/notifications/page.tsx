@@ -30,19 +30,15 @@ function getNotificationHref(item: NotificationRow) {
   if (item.event_type === "new_message" && item.ref_id) {
     return `/messages/${item.ref_id}`
   }
-
   if (item.event_type === "market_post_created") {
     return "/market"
   }
-
   if (item.event_type === "user_registered" && item.ref_id) {
     return `/member/${item.ref_id}`
   }
-
   if (item.event_type === "fund_request_created") {
     return "/fund"
   }
-
   return null
 }
 
@@ -100,16 +96,12 @@ export default function NotificationsPage() {
         },
         async (payload) => {
           const row = payload.new as NotificationRow
-
           const {
             data: { session },
           } = await supabase.auth.getSession()
-
           const currentUserId = session?.user?.id
-
           if (!currentUserId) return
           if (row.user_id !== null && row.user_id !== currentUserId) return
-
           setItems((prev) => [row, ...prev].slice(0, 50))
         }
       )
@@ -123,20 +115,22 @@ export default function NotificationsPage() {
   async function markAllRead() {
     if (!userId) return
 
-    const unreadIds = items
-      .filter((x) => !x.is_read && x.user_id === userId)
+    const allUnreadIds = items
+      .filter((x) => !x.is_read && (x.user_id === userId || x.user_id === null))
       .map((x) => x.id)
 
-    if (!unreadIds.length) return
+    if (!allUnreadIds.length) return
 
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
-      .in("id", unreadIds)
+      .in("id", allUnreadIds)
 
     if (!error) {
       setItems((prev) =>
-        prev.map((x) => (x.user_id === userId ? { ...x, is_read: true } : x))
+        prev.map((x) =>
+          allUnreadIds.includes(x.id) ? { ...x, is_read: true } : x
+        )
       )
     }
   }
@@ -145,7 +139,7 @@ export default function NotificationsPage() {
     const href = getNotificationHref(item)
     if (!href) return
 
-    if (userId && item.user_id === userId && !item.is_read) {
+    if (!item.is_read && (item.user_id === userId || item.user_id === null)) {
       const { error } = await supabase
         .from("notifications")
         .update({ is_read: true })
@@ -162,9 +156,9 @@ export default function NotificationsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
+    <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky top-0 z-10 mb-6 flex flex-col gap-3 bg-slate-50 px-6 pb-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-slate-500">Monitorizare</p>
             <h1 className="text-3xl font-semibold">Notificări</h1>
@@ -180,7 +174,7 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        <Card className="rounded-3xl border-0 shadow-sm">
+        <Card className="mx-6 mb-24 rounded-3xl border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-2xl">Ultimele evenimente</CardTitle>
             <div className="text-sm text-slate-500">{items.length} notificări</div>
@@ -213,7 +207,7 @@ export default function NotificationsPage() {
                         </Badge>
                       )}
 
-                      {!item.is_read && item.user_id === userId && (
+                      {!item.is_read && (item.user_id === userId || item.user_id === null) && (
                         <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
                           nou
                         </Badge>

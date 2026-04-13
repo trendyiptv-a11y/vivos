@@ -40,13 +40,6 @@ const navItems = [
   { id: "settings", label: "Setări", icon: Settings },
 ] as const
 
-const mobileNavItems = [
-  { id: "dashboard", label: "Acasă", icon: LayoutDashboard },
-  { id: "members", label: "Membri", icon: Users },
-  { id: "messages", label: "Mesaje", icon: MessageSquare },
-  { id: "market", label: "Piață", icon: ShoppingBag },
-  { id: "fund", label: "Fond", icon: HeartHandshake },
-] as const
 
 const walletEntries = [
   { label: "Schimb confirmat", amount: "+120", meta: "Reparații electrice" },
@@ -362,36 +355,7 @@ function Shell({
             </motion.div>
           </ScrollArea>
 
-          <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden">
-            <div className="grid grid-cols-5 gap-1 px-2 py-2">
-              {mobileNavItems.map((item) => {
-                const Icon = item.icon
-                const isActive = active === item.id
-                const showItemBadge = item.id === "messages" && showUnreadBadge
-
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActive(item.id)}
-                    className={`relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] transition ${
-                      isActive
-                        ? "bg-[#173F74] text-white shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="leading-none">{item.label}</span>
-
-                    {showItemBadge && (
-                      <div className="absolute right-3 top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#9A6FC0] px-1.5 text-[10px] font-semibold text-white shadow-sm">
-                        {unreadCount > 99 ? "99+" : unreadCount}
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          </nav>
+        
         </main>
       </div>
     </div>

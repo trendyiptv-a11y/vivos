@@ -13,7 +13,6 @@ import {
   BookOpen,
   FileText,
   HeartHandshake,
-  LayoutDashboard,
   MessageSquare,
   Search,
   Settings,
@@ -369,9 +368,9 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
     <div className="space-y-4 sm:space-y-6">
       <div className="vivos-hero p-5 sm:p-6">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
-            <LayoutDashboard className="h-6 w-6" />
-          </div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl overflow-hidden">
+  <img src="/icons/icon-192.png" alt="VIVOS" className="h-12 w-12 object-cover" />
+</div>
 
           <div className="min-w-0">
             <h3 className="text-2xl font-semibold sm:text-3xl">Bine ai venit în VIVOS</h3>

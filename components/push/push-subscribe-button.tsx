@@ -58,8 +58,21 @@ export default function PushSubscribeButton() {
       )
       await navigator.serviceWorker.ready
 
-      const fcmToken = await getFCMToken(swRegistration)
+    let fcmToken: string | null = null
 
+try {
+  fcmToken = await getFCMToken(swRegistration)
+  console.log("FCM token raw:", fcmToken)
+  alert(`FCM token: ${fcmToken ? "OK" : "NULL"}`)
+} catch (err: any) {
+  console.error("getFCMToken failed:", err)
+  alert(
+    `getFCMToken failed:\n` +
+    `message=${err?.message || "n/a"}\n` +
+    `code=${err?.code || "n/a"}`
+  )
+  throw err
+}
 console.log("FCM token:", fcmToken)
 alert(`FCM token: ${fcmToken ? "OK" : "NULL"}`)
 

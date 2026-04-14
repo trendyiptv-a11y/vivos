@@ -2,26 +2,15 @@ import { initializeApp, getApps } from "firebase/app"
 import { getMessaging, isSupported } from "firebase/messaging"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBSzmSeANo-20hyoYdKjDqNcMiCY6NHK7o",
-  authDomain: "vivos-3bfba.firebaseapp.com",
-  projectId: "vivos-3bfba",
-  storageBucket: "vivos-3bfba.firebasestorage.app",
-  messagingSenderId: "631514497195",
-  appId: "1:631514497195:web:6c0c9b17e24379a75a77ee"
-}
-
-function assertFirebaseConfig() {
-  const missing = Object.entries(firebaseConfig)
-    .filter(([, value]) => !value)
-    .map(([key]) => key)
-
-  if (missing.length > 0) {
-    throw new Error(`Firebase config incomplet. Lipsesc: ${missing.join(", ")}`)
-  }
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 }
 
 export function getFirebaseApp() {
-  assertFirebaseConfig()
   if (getApps().length > 0) return getApps()[0]
   return initializeApp(firebaseConfig)
 }

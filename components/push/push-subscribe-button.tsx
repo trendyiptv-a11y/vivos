@@ -60,10 +60,12 @@ export default function PushSubscribeButton() {
 
       const fcmToken = await getFCMToken(swRegistration)
 
-      if (!fcmToken) {
-        throw new Error("Nu s-a putut obține tokenul FCM.")
-      }
+console.log("FCM token:", fcmToken)
+alert(`FCM token: ${fcmToken ? "OK" : "NULL"}`)
 
+if (!fcmToken) {
+  throw new Error("Nu s-a putut obține tokenul FCM.")
+}
       const response = await fetch("/api/notifications/subscribe", {
         method: "POST",
         headers: {

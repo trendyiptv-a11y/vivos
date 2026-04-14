@@ -56,29 +56,32 @@ export default function PushSubscribeButton() {
       const swRegistration = await navigator.serviceWorker.register(
         "/firebase-messaging-sw.js"
       )
+      alert("SW registered")
+
       await navigator.serviceWorker.ready
+      alert("SW ready")
 
-    let fcmToken: string | null = null
+      let fcmToken: string | null = null
 
-try {
-  fcmToken = await getFCMToken(swRegistration)
-  console.log("FCM token raw:", fcmToken)
-  alert(`FCM token: ${fcmToken ? "OK" : "NULL"}`)
-} catch (err: any) {
-  console.error("getFCMToken failed:", err)
-  alert(
-    `getFCMToken failed:\n` +
-    `message=${err?.message || "n/a"}\n` +
-    `code=${err?.code || "n/a"}`
-  )
-  throw err
-}
-console.log("FCM token:", fcmToken)
-alert(`FCM token: ${fcmToken ? "OK" : "NULL"}`)
+      try {
+        alert("Calling getFCMToken...")
+        fcmToken = await getFCMToken(swRegistration)
+        console.log("FCM token raw:", fcmToken)
+        alert(`FCM token: ${fcmToken ? "OK" : "NULL"}`)
+      } catch (err: any) {
+        console.error("getFCMToken failed:", err)
+        alert(
+          `getFCMToken failed:\n` +
+            `message=${err?.message || "n/a"}\n` +
+            `code=${err?.code || "n/a"}`
+        )
+        throw err
+      }
 
-if (!fcmToken) {
-  throw new Error("Nu s-a putut obține tokenul FCM.")
-}
+      if (!fcmToken) {
+        throw new Error("Nu s-a putut obține tokenul FCM.")
+      }
+
       const response = await fetch("/api/notifications/subscribe", {
         method: "POST",
         headers: {
@@ -102,6 +105,7 @@ if (!fcmToken) {
 
       setReady(true)
       setStatusText("Notificări activate cu succes.")
+      alert("FCM salvat cu succes.")
     } catch (error: any) {
       console.error(error)
       alert(error?.message || "A apărut o eroare la activarea notificărilor.")
@@ -121,7 +125,8 @@ if (!fcmToken) {
   return (
     <div className="space-y-3">
       <div className="rounded-2xl border p-4 text-sm text-slate-600">
-        Status notificări: <span className="font-medium text-slate-900">{permission}</span>
+        Status notificări:{" "}
+        <span className="font-medium text-slate-900">{permission}</span>
       </div>
 
       {statusText ? (

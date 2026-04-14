@@ -388,7 +388,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
               window.location.href = "/market/new"
             }}
           >
-            Publică ofertă
+            Publică anunț
           </Button>
 
           <Button

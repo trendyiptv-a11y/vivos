@@ -1,5 +1,5 @@
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js')
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js')
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js')
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js')
 
 firebase.initializeApp({
   apiKey: "AIzaSyBSzmSeANo-20hyoYdKjDqNcMiCY6NHK7o",
@@ -23,7 +23,7 @@ messaging.onBackgroundMessage((payload) => {
   })
 })
 
-const SW_VERSION = "vivos-sw-v5-answer-only"
+const SW_VERSION = "vivos-sw-v6-fcm"
 
 self.addEventListener("install", () => {
   self.skipWaiting()

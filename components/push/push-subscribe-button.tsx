@@ -89,7 +89,7 @@ export default function PushSubscribeButton() {
 
       // Obține FCM token ca fallback
       const fcmToken = await getFCMToken()
-
+      alert(`FCM token: ${fcmToken || "NULL - eșec"}`)
       if (!subscription && !fcmToken) {
         alert("Nu s-a putut activa push pe acest dispozitiv.")
         return

@@ -1,33 +1,32 @@
-import { getToken } from "firebase/messaging"
-import { getFirebaseMessaging } from "./client"
+import { getApp, getApps, initializeApp } from "firebase/app"
+import { getMessaging, getToken, isSupported } from "firebase/messaging"
 
-export async function getFCMToken(): Promise<string | null> {
-  try {
-    const messaging = await getFirebaseMessaging()
-    if (!messaging) {
-      alert("FCM Debug: messaging null - browser nu suportă")
-      return null
-    }
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
+}
 
-    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
-    if (!vapidKey) {
-      alert("FCM Debug: lipsește VAPID key")
-      return null
-    }
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 
-    // Înregistrează explicit firebase-messaging-sw.js
-    const swRegistration = await navigator.serviceWorker.register("/firebase-messaging-sw.js")
-    await navigator.serviceWorker.ready
+export async function getFCMToken(
+  serviceWorkerRegistration?: ServiceWorkerRegistration
+) {
+  const supported = await isSupported()
+  if (!supported) return null
 
-    const token = await getToken(messaging, {
-      vapidKey,
-      serviceWorkerRegistration: swRegistration,
-    })
-
-    alert(`FCM Debug: token=${token || "gol"}`)
-    return token || null
-  } catch (error: any) {
-    alert(`FCM Debug eroare: ${error?.message || JSON.stringify(error)}`)
-    return null
+  const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
+  if (!vapidKey) {
+    throw new Error("Lipsește NEXT_PUBLIC_FIREBASE_VAPID_KEY.")
   }
+
+  const messaging = getMessaging(app)
+
+  return getToken(messaging, {
+    vapidKey,
+    serviceWorkerRegistration,
+  })
 }

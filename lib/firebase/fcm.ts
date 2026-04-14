@@ -15,8 +15,13 @@ export async function getFCMToken(): Promise<string | null> {
       return null
     }
 
+    // Înregistrează explicit firebase-messaging-sw.js
+    const swRegistration = await navigator.serviceWorker.register("/firebase-messaging-sw.js")
+    await navigator.serviceWorker.ready
+
     const token = await getToken(messaging, {
       vapidKey,
+      serviceWorkerRegistration: swRegistration,
     })
 
     alert(`FCM Debug: token=${token || "gol"}`)

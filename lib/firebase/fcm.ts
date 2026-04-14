@@ -4,10 +4,16 @@ import { getFirebaseMessaging } from "./client"
 export async function getFCMToken(): Promise<string | null> {
   try {
     const messaging = await getFirebaseMessaging()
-    if (!messaging) return null
+    if (!messaging) {
+      alert("FCM Debug: messaging null - browser nu suportă")
+      return null
+    }
 
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
-    if (!vapidKey) return null
+    if (!vapidKey) {
+      alert("FCM Debug: lipsește VAPID key")
+      return null
+    }
 
     const swRegistration = await navigator.serviceWorker.register("/sw.js")
     await navigator.serviceWorker.ready
@@ -17,9 +23,10 @@ export async function getFCMToken(): Promise<string | null> {
       serviceWorkerRegistration: swRegistration,
     })
 
+    alert(`FCM Debug: token=${token || "gol"}`)
     return token || null
-  } catch (error) {
-    console.error("FCM token error:", error)
+  } catch (error: any) {
+    alert(`FCM Debug eroare: ${error?.message || JSON.stringify(error)}`)
     return null
   }
 }

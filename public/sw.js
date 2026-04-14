@@ -3,7 +3,9 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-com
 
 firebase.initializeApp({
   apiKey: "AIzaSyBSzmSeANo-20hyoYdKjDqNcMiCY6NHK7o",
+  authDomain: "vivos-3bfba.firebaseapp.com",
   projectId: "vivos-3bfba",
+  storageBucket: "vivos-3bfba.firebasestorage.app",
   messagingSenderId: "631514497195",
   appId: "1:631514497195:web:6c0c9b17e24379a75a77ee"
 })

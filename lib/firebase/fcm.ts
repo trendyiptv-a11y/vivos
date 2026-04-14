@@ -9,7 +9,7 @@ export async function getFCMToken(): Promise<string | null> {
       return null
     }
 
-    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     if (!vapidKey) {
       alert("FCM Debug: lipsește VAPID key")
       return null

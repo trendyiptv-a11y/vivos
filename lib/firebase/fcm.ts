@@ -9,18 +9,14 @@ export async function getFCMToken(): Promise<string | null> {
       return null
     }
 
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
     if (!vapidKey) {
       alert("FCM Debug: lipsește VAPID key")
       return null
     }
 
-    const swRegistration = await navigator.serviceWorker.register("/sw.js")
-    await navigator.serviceWorker.ready
-
     const token = await getToken(messaging, {
       vapidKey,
-      serviceWorkerRegistration: swRegistration,
     })
 
     alert(`FCM Debug: token=${token || "gol"}`)

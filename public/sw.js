@@ -1,3 +1,26 @@
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js')
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js')
+
+firebase.initializeApp({
+  apiKey: "AIzaSyBSzmSeANo-20hyoYdKjDqNcMiCY6NHK7o",
+  projectId: "vivos-3bfba",
+  messagingSenderId: "631514497195",
+  appId: "1:631514497195:web:6c0c9b17e24379a75a77ee"
+})
+
+const messaging = firebase.messaging()
+
+messaging.onBackgroundMessage((payload) => {
+  const title = payload.notification?.title || "VIVOS"
+  const body = payload.notification?.body || "Ai o notificare nouă."
+  self.registration.showNotification(title, {
+    body,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: payload.data || {},
+  })
+})
+
 const SW_VERSION = "vivos-sw-v5-answer-only"
 
 self.addEventListener("install", () => {

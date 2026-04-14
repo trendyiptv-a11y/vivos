@@ -23,6 +23,14 @@ export async function getFCMToken(
     throw new Error("Lipsește NEXT_PUBLIC_FIREBASE_VAPID_KEY.")
   }
 
+  console.log("FCM config", {
+    projectId: firebaseConfig.projectId,
+    messagingSenderId: firebaseConfig.messagingSenderId,
+    appId: firebaseConfig.appId,
+    hasSW: !!serviceWorkerRegistration,
+    vapidPrefix: vapidKey.slice(0, 12),
+  })
+
   const messaging = getMessaging(app)
 
   return getToken(messaging, {

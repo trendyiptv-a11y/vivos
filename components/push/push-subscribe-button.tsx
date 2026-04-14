@@ -3,7 +3,19 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase/client"
-import { getFCMToken } from "@/lib/firebase/fcm"
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
+  const rawData = atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i)
+  }
+
+  return outputArray
+}
 
 export default function PushSubscribeButton() {
   const [supported, setSupported] = useState(false)
@@ -17,6 +29,7 @@ export default function PushSubscribeButton() {
       typeof window !== "undefined" &&
       window.isSecureContext &&
       "serviceWorker" in navigator &&
+      "PushManager" in window &&
       "Notification" in window
 
     setSupported(ok)
@@ -41,9 +54,18 @@ export default function PushSubscribeButton() {
       }
 
       if (!supported) {
-        alert("Acest browser sau dispozitiv nu suportă notificări web.")
+        alert("Acest browser sau dispozitiv nu suportă Web Push.")
         return
       }
+
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      if (!vapidPublicKey) {
+        alert("Lipsește NEXT_PUBLIC_VAPID_PUBLIC_KEY.")
+        return
+      }
+
+      const swRegistration = await navigator.serviceWorker.register("/sw.js")
+      await navigator.serviceWorker.ready
 
       const nextPermission = await Notification.requestPermission()
       setPermission(nextPermission)
@@ -53,33 +75,35 @@ export default function PushSubscribeButton() {
         return
       }
 
-      const swRegistration = await navigator.serviceWorker.register(
-        "/firebase-messaging-sw.js"
-      )
-      alert("SW registered")
+      let subscription = await swRegistration.pushManager.getSubscription()
 
-      await navigator.serviceWorker.ready
-      alert("SW ready")
-
-      let fcmToken: string | null = null
-
-      try {
-        alert("Calling getFCMToken...")
-        fcmToken = await getFCMToken(swRegistration)
-        console.log("FCM token raw:", fcmToken)
-        alert(`FCM token: ${fcmToken ? "OK" : "NULL"}`)
-      } catch (err: any) {
-        console.error("getFCMToken failed:", err)
-        alert(
-          `getFCMToken failed:\n` +
-            `message=${err?.message || "n/a"}\n` +
-            `code=${err?.code || "n/a"}`
-        )
-        throw err
+      if (!subscription) {
+        try {
+          subscription = await swRegistration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          })
+        } catch (subscribeError: any) {
+          console.error("Push subscribe error:", subscribeError)
+          alert(
+            "Browserul a permis notificările, dar nu a putut crea push subscription. Pe acest dispozitiv sau browser, Web Push poate fi limitat."
+          )
+          return
+        }
       }
 
-      if (!fcmToken) {
-        throw new Error("Nu s-a putut obține tokenul FCM.")
+      if (!subscription) {
+        alert(
+          "Nu s-a putut crea push subscription. Browserul sau dispozitivul nu oferă suport complet pentru Web Push."
+        )
+        return
+      }
+
+      const subscriptionJson = subscription.toJSON()
+
+      if (!subscriptionJson?.keys?.p256dh || !subscriptionJson?.keys?.auth) {
+        alert("Push subscription este incomplet.")
+        return
       }
 
       const response = await fetch("/api/notifications/subscribe", {
@@ -89,23 +113,22 @@ export default function PushSubscribeButton() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          endpoint: `fcm:${fcmToken}`,
-          keys: {},
+          endpoint: subscription.endpoint,
+          keys: subscriptionJson.keys,
           userAgent: navigator.userAgent,
-          deviceLabel: "fcm-web",
-          fcmToken,
+          deviceLabel: "browser",
         }),
       })
 
       const result = await response.json().catch(() => null)
 
       if (!response.ok) {
-        throw new Error(result?.error || "Nu am putut salva tokenul FCM.")
+        throw new Error(result?.error || "Nu am putut salva push subscription.")
       }
 
       setReady(true)
-      setStatusText("Notificări activate cu succes.")
-      alert("FCM salvat cu succes.")
+      setStatusText("Push activat cu succes.")
+      alert("Notificările push au fost activate.")
     } catch (error: any) {
       console.error(error)
       alert(error?.message || "A apărut o eroare la activarea notificărilor.")
@@ -117,7 +140,7 @@ export default function PushSubscribeButton() {
   if (!supported) {
     return (
       <div className="rounded-2xl border p-4 text-sm text-slate-600">
-        Browserul sau dispozitivul nu suportă notificări web.
+        Browserul sau dispozitivul nu suportă Web Push.
       </div>
     )
   }
@@ -125,8 +148,7 @@ export default function PushSubscribeButton() {
   return (
     <div className="space-y-3">
       <div className="rounded-2xl border p-4 text-sm text-slate-600">
-        Status notificări:{" "}
-        <span className="font-medium text-slate-900">{permission}</span>
+        Status notificări: <span className="font-medium text-slate-900">{permission}</span>
       </div>
 
       {statusText ? (

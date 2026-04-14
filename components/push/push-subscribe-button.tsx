@@ -53,8 +53,6 @@ export default function PushSubscribeButton() {
         return
       }
 
-      // IMPORTANT: pentru FCM folosește SW-ul Firebase,
-      // nu sw.js generic pentru push manual.
       const swRegistration = await navigator.serviceWorker.register(
         "/firebase-messaging-sw.js"
       )
@@ -88,7 +86,7 @@ export default function PushSubscribeButton() {
       }
 
       setReady(true)
-      setStatusText("Notificări FCM activate cu succes.")
+      setStatusText("Notificări activate cu succes.")
     } catch (error: any) {
       console.error(error)
       alert(error?.message || "A apărut o eroare la activarea notificărilor.")
@@ -117,11 +115,11 @@ export default function PushSubscribeButton() {
         </div>
       ) : null}
 
-      <Button onClick={handleEnablePush} disabled={busy}>
+      <Button className="rounded-2xl" onClick={handleEnablePush} disabled={busy}>
         {busy
           ? "Se activează..."
           : ready || permission === "granted"
-          ? "Reactivează FCM"
+          ? "Reactivează push"
           : "Activează notificări push"}
       </Button>
     </div>

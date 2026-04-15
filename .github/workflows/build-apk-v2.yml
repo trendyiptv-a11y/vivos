@@ -12,6 +12,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      BUBBLEWRAP_KEYSTORE_PASSWORD: vivos123
+      BUBBLEWRAP_KEY_PASSWORD: vivos123
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,10 +37,12 @@ jobs:
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Check Java
+      - name: Check tools
         run: |
           echo "JAVA_HOME=$JAVA_HOME"
           java -version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
 
       - name: Create twa-manifest.json
         run: |
@@ -85,19 +91,26 @@ jobs:
             -validity 10000 \
             -dname "CN=VIVOS, OU=App, O=VIVOS, L=Bucuresti, S=Romania, C=RO"
 
-      - name: Build APK
-        env:
-          CI: true
+      - name: Configure Bubblewrap paths
         run: |
-          npx @bubblewrap/cli build \
-            --manifest twa-manifest.json \
-            --skipPwaValidation \
-            --jdkPath="$JAVA_HOME"
+          mkdir -p ~/.bubblewrap
+          npx @bubblewrap/cli updateConfig \
+            --jdkPath="$JAVA_HOME" \
+            --androidSdkPath="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
 
-      - name: Find APKs
+      - name: Regenerate Android project
+        run: |
+          npx @bubblewrap/cli update --manifest twa-manifest.json
+
+      - name: Build with Gradle
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease bundleRelease
+
+      - name: Find artifacts
         run: find . -type f \( -name "*.apk" -o -name "*.aab" \)
 
-      - name: Upload APK
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: vivos-app

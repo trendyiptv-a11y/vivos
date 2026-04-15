@@ -77,10 +77,16 @@ jobs:
             -dname "CN=VIVOS, OU=App, O=VIVOS, L=Bucuresti, S=Romania, C=RO"
 
       - name: Build APK
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
-          bubblewrap build \
+          echo "n" | bubblewrap build \
             --skipPwaValidation \
-            --manifest twa-manifest.json
+            --manifest twa-manifest.json \
+            --signingKeyPath ./android.keystore \
+            --signingKeyAlias vivos \
+            --signingKeyPassword vivos123 \
+            --signingKeyStorePassword vivos123
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

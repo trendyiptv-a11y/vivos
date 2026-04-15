@@ -12,21 +12,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          
+          node-version: '20'
+
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
-        
+
       - name: Init PWA
-        run: bubblewrap init --manifest=${{ inputs.pwa_url }}/manifest.json
-        
+        run: bubblewrap init --manifest=${{ github.event.inputs.pwa_url }}/manifest.json
+
       - name: Build APK
         run: bubblewrap build
-        
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

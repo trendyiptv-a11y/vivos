@@ -26,10 +26,7 @@ function eventBadge(eventType: string) {
   return "Eveniment"
 }
 
-function getNotificationHref(item: NotificationRow) {
-  if (item.event_type === "new_message" && item.ref_id) {
-    return `/messages/${item.ref_id}`
-  }
+function getStaticNotificationHref(item: NotificationRow) {
   if (item.event_type === "market_post_created") {
     return "/market"
   }
@@ -135,9 +132,38 @@ export default function NotificationsPage() {
     }
   }
 
+  async function resolveNotificationHref(item: NotificationRow) {
+    if (item.event_type === "new_message" && item.ref_id) {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("conversation_id")
+        .eq("id", item.ref_id)
+        .maybeSingle()
+
+      console.log("resolve new_message href", {
+        notificationId: item.id,
+        ref_id: item.ref_id,
+        data,
+        error,
+      })
+
+      if (!error && data?.conversation_id) {
+        return `/messages/${data.conversation_id}`
+      }
+
+      return null
+    }
+
+    return getStaticNotificationHref(item)
+  }
+
   async function handleOpen(item: NotificationRow) {
-    const href = getNotificationHref(item)
-    if (!href) return
+    const href = await resolveNotificationHref(item)
+
+    if (!href) {
+      alert("Nu am putut determina destinația notificării.")
+      return
+    }
 
     if (!item.is_read && (item.user_id === userId || item.user_id === null)) {
       const { error } = await supabase
@@ -192,7 +218,9 @@ export default function NotificationsPage() {
               </div>
             ) : (
               items.map((item) => {
-                const href = getNotificationHref(item)
+                const hasAction =
+                  (item.event_type === "new_message" && !!item.ref_id) ||
+                  !!getStaticNotificationHref(item)
 
                 return (
                   <div key={item.id} className="rounded-2xl border p-4">
@@ -220,7 +248,7 @@ export default function NotificationsPage() {
                       {new Date(item.created_at).toLocaleString("ro-RO")}
                     </p>
 
-                    {href ? (
+                    {hasAction ? (
                       <div className="mt-4">
                         <Button
                           variant="outline"

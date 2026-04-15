@@ -86,7 +86,7 @@ jobs:
             "orientation": "default",
             "fingerprints": [],
             "additionalTrustedOrigins": [],
-            "webManifestUrl": "https://vivos-land.vercel.app/manifest.json"
+            "webManifestUrl": "https://vivos-land.vercel.app/manifest.webmanifest"
           }
           EOF
 

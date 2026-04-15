@@ -78,15 +78,11 @@ jobs:
 
       - name: Build APK
         env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          CI: true
         run: |
-          echo "n" | bubblewrap build \
+          printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap build \
             --skipPwaValidation \
-            --manifest twa-manifest.json \
-            --signingKeyPath ./android.keystore \
-            --signingKeyAlias vivos \
-            --signingKeyPassword vivos123 \
-            --signingKeyStorePassword vivos123
+            --manifest twa-manifest.json
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

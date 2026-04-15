@@ -27,9 +27,8 @@ jobs:
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Init PWA
-        run: echo "n" | bubblewrap init --manifest=${{ github.event.inputs.pwa_url }}/manifest.json
-
+     - name: Init PWA
+        run: printf "n\n$JAVA_HOME\n" | bubblewrap init --manifest=${{ github.event.inputs.pwa_url }}/manifest.json
       - name: Build APK
         run: bubblewrap build --skipPwaValidation
 

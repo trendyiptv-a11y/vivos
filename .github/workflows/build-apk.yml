@@ -8,6 +8,7 @@ on:
         required: true
         default: 'https://vivos-land.vercel.app'
 
+
 jobs:
   build:
     runs-on: ubuntu-latest

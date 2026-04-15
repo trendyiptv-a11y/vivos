@@ -1,0 +1,34 @@
+name: Build PWA APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      pwa_url:
+        description: 'URL-ul PWA'
+        required: true
+        default: 'https://vivos-land.vercel.app'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+        
+      - name: Init PWA
+        run: bubblewrap init --manifest=${{ inputs.pwa_url }}/manifest.json
+        
+      - name: Build APK
+        run: bubblewrap build
+        
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: vivos-app
+          path: '*.apk'

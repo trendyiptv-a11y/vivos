@@ -108,10 +108,47 @@ jobs:
             --manifest twa-manifest.json \
             --skipVersionUpgrade
 
-      - name: Build with Gradle
+      - name: Build release artifacts
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease bundleRelease
+
+      - name: Sign release APK
+        shell: bash
+        run: |
+          set -e
+
+          SDK_PATH="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          BUILD_TOOLS_DIR=$(find "$SDK_PATH/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
+
+          ZIPALIGN="$BUILD_TOOLS_DIR/zipalign"
+          APKSIGNER="$BUILD_TOOLS_DIR/apksigner"
+
+          UNSIGNED_APK=$(find . -type f -name "*release-unsigned.apk" | head -n 1)
+
+          if [ -z "$UNSIGNED_APK" ]; then
+            echo "Unsigned release APK not found"
+            exit 1
+          fi
+
+          mkdir -p signed-output
+
+          ALIGNED_APK="signed-output/app-release-aligned.apk"
+          SIGNED_APK="signed-output/app-release-signed.apk"
+
+          "$ZIPALIGN" -v -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+
+          "$APKSIGNER" sign \
+            --ks android.keystore \
+            --ks-key-alias vivos \
+            --ks-pass pass:vivos123 \
+            --key-pass pass:vivos123 \
+            --out "$SIGNED_APK" \
+            "$ALIGNED_APK"
+
+          "$APKSIGNER" verify "$SIGNED_APK"
+
+          echo "SIGNED_APK=$SIGNED_APK" >> $GITHUB_ENV
 
       - name: Find artifacts
         run: find . -type f \( -name "*.apk" -o -name "*.aab" \)
@@ -121,5 +158,5 @@ jobs:
         with:
           name: vivos-app
           path: |
-            **/*.apk
+            signed-output/app-release-signed.apk
             **/*.aab

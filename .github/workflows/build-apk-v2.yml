@@ -104,7 +104,9 @@ jobs:
 
       - name: Regenerate Android project
         run: |
-          npx @bubblewrap/cli update --manifest twa-manifest.json
+          npx @bubblewrap/cli update \
+            --manifest twa-manifest.json \
+            --skipVersionUpgrade
 
       - name: Build with Gradle
         run: |

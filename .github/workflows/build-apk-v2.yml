@@ -11,10 +11,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -24,15 +27,20 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Check Java
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME"
+          java -version
+
       - name: Create twa-manifest.json
         run: |
-          cat > twa-manifest.json << 'EOF'
+          cat > twa-manifest.json <<EOF
           {
             "packageId": "com.vivos.app",
             "host": "vivos-land.vercel.app",
@@ -47,6 +55,7 @@ jobs:
             "iconUrl": "https://vivos-land.vercel.app/icons/icon-512.png",
             "maskableIconUrl": "https://vivos-land.vercel.app/icons/icon-512-maskable.png",
             "appVersion": "1.0.0",
+            "appVersionCode": 1,
             "signingKey": {
               "path": "./android.keystore",
               "alias": "vivos"
@@ -66,29 +75,32 @@ jobs:
 
       - name: Generate Keystore
         run: |
-          keytool -genkey -v \
+          keytool -genkeypair \
             -keystore android.keystore \
             -alias vivos \
+            -storepass vivos123 \
+            -keypass vivos123 \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass vivos123 \
-            -keypass vivos123 \
             -dname "CN=VIVOS, OU=App, O=VIVOS, L=Bucuresti, S=Romania, C=RO"
 
       - name: Build APK
         env:
           CI: true
         run: |
-          printf 'n\n%s\n' "$JAVA_HOME" | bubblewrap build \
+          npx @bubblewrap/cli build \
+            --manifest twa-manifest.json \
             --skipPwaValidation \
-            --manifest twa-manifest.json
+            --jdkPath="$JAVA_HOME"
+
+      - name: Find APKs
+        run: find . -type f \( -name "*.apk" -o -name "*.aab" \)
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: vivos-app
           path: |
-            app-release-signed.apk
-            app-release-unsigned.apk
-            *.apk
+            **/*.apk
+            **/*.aab

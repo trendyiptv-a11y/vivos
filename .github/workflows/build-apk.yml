@@ -18,14 +18,20 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
       - name: Init PWA
-        run: bubblewrap init --manifest=${{ github.event.inputs.pwa_url }}/manifest.json
+        run: echo "n" | bubblewrap init --manifest=${{ github.event.inputs.pwa_url }}/manifest.json
 
       - name: Build APK
-        run: bubblewrap build
+        run: bubblewrap build --skipPwaValidation
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manifestul VIVOS — Comunitate autonomă online</title>
+  <meta name="description" content="Manifestul VIVOS: o comunitate autonomă online, cu identitate internă, guvernanță, economie mutuală și memorie verificabilă." />
+  <style>
+    :root{
+      --navy:#173F74; --navy2:#204E8C; --cyan:#56B6DE; --purple:#9A6FC0;
+      --bg:#F4F7FB; --surface:#FFFFFF; --text:#18324B; --muted:#5C708A;
+      --border:#D9E3F0; --shadow:0 14px 40px rgba(23,63,116,.12); --radius:24px; --max:1120px;
+    }
+    *{box-sizing:border-box} html{scroll-behavior:smooth}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);
+      background:radial-gradient(circle at top right, rgba(86,182,222,.14), transparent 30%), linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      line-height:1.6}
+    .wrap{width:min(var(--max),calc(100% - 32px));margin:0 auto}
+    .hero{padding:72px 0 48px}
+    .hero-box{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 58%,var(--cyan) 100%);color:#fff;border-radius:32px;padding:56px 32px;box-shadow:var(--shadow)}
+    .eyebrow{display:inline-flex;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px}
+    h1{margin:0;font-size:clamp(34px,7vw,64px);line-height:1.05;letter-spacing:-.03em;max-width:900px}
+    .lead{margin:18px 0 0;max-width:820px;font-size:clamp(18px,2.5vw,22px);color:rgba(255,255,255,.92)}
+    .hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:28px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;border-radius:16px;text-decoration:none;font-weight:600;border:1px solid transparent}
+    .btn-primary{background:#fff;color:var(--navy)} .btn-secondary{background:rgba(255,255,255,.10);color:#fff;border-color:rgba(255,255,255,.22)}
+    .grid{display:grid;gap:18px} .grid-3{grid-template-columns:repeat(3,1fr)}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .stats{margin-top:20px}.stat{padding:22px}.stat .k{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.stat .v{margin-top:8px;font-size:24px;line-height:1.2;font-weight:700;color:var(--navy)}
+    main{padding:18px 0 80px} section{margin-top:22px} .section-card{padding:28px}
+    .section-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px}
+    .badge{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:14px;background:rgba(86,182,222,.12);color:var(--navy);font-weight:800;flex:0 0 auto}
+    h2{margin:0;font-size:clamp(24px,4vw,34px);line-height:1.15;letter-spacing:-.02em}.sub{margin:6px 0 0;color:var(--muted);font-size:16px}
+    .pill-list{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.pill{padding:10px 14px;border-radius:999px;background:#f8fbff;border:1px solid var(--border);color:var(--navy);font-size:14px;font-weight:600}
+    .article{display:grid;gap:14px;margin-top:18px}.article p{margin:0;font-size:17px}
+    .quote{margin-top:18px;padding:20px 22px;border-radius:20px;background:linear-gradient(135deg, rgba(86,182,222,.10), rgba(154,111,192,.08));border:1px solid var(--border);font-size:18px;font-weight:600;color:var(--navy)}
+    .principles{margin-top:18px;display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
+    .principle,.article-item,.step,.manifest-end{background:#fff}
+    .principle,.article-item{padding:20px;border-radius:22px;border:1px solid var(--border)}
+    .principle h3,.article-item h3{margin:0 0 8px;color:var(--navy)}
+    .principle p,.article-item p{margin:0;color:var(--muted)}
+    .articles,.steps{display:grid;gap:14px;margin-top:18px}
+    .step{display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:flex-start;padding:18px;border:1px solid var(--border);border-radius:22px}
+    .step-num{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy),var(--cyan));color:#fff;font-weight:800;font-size:20px}
+    .step h3{margin:2px 0 6px;font-size:18px;color:var(--navy)} .step p{margin:0;color:var(--muted)}
+    .manifest-end{margin-top:22px;padding:32px;border-radius:32px;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .signature{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);font-size:15px}
+    footer{padding:0 0 48px;color:var(--muted);font-size:14px}
+    @media (max-width: 900px){.grid-3,.principles{grid-template-columns:1fr}.hero-box{padding:38px 22px;border-radius:28px}.section-card{padding:22px}.step{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-box">
+      <div class="eyebrow">Manifest fondator · VIVOS</div>
+      <h1>VIVOS este o comunitate autonomă online, construită pentru oameni reali, vii, care aleg să se recunoască direct unii pe alții.</h1>
+      <p class="lead">VIVOS nu se definește prin ficțiuni administrative, ci prin participare reală, memorie verificabilă, reguli asumate, economie mutuală și o ordine comunitară construită conștient.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#manifest">Citește manifestul</a>
+        <a class="btn btn-secondary" href="#structura">Vezi structura VIVOS</a>
+      </div>
+    </div>
+    <div class="grid grid-3 stats">
+      <div class="card stat"><div class="k">Nucleu</div><div class="v">Identitate vie</div></div>
+      <div class="card stat"><div class="k">Ordine</div><div class="v">Guvernanță și arbitraj</div></div>
+      <div class="card stat"><div class="k">Memorie</div><div class="v">Blockchain și dovadă</div></div>
+    </div>
+  </div>
+</header>
+
+<main id="manifest">
+  <div class="wrap">
+    <section class="card section-card">
+      <div class="section-head"><div class="badge">I</div><div><h2>Declarația de principiu</h2><p class="sub">VIVOS afirmă prioritatea realității umane directe asupra reprezentării impersonale și administrative.</p></div></div>
+      <div class="article">
+        <p>Fiecare membru al VIVOS este un om real, viu, conștient și responsabil. În lumea exterioară, el interacționează prin forme juridice și administrative recunoscute de state. În interiorul VIVOS, el este recunoscut ca participant direct la o ordine comunitară vie.</p>
+        <p>VIVOS nu neagă existența sistemelor juridice ale statelor și nici nu pretinde, prin simplă declarație, statut de stat recunoscut în sensul dreptului internațional. VIVOS propune însă un nivel superior de organizare comunitară: o ordine civică digitală autonomă, capabilă să funcționeze cu propriile sale reguli, instituții, mecanisme de încredere și memorie verificabilă.</p>
+      </div>
+      <div class="quote">VIVOS nu începe prin cucerirea unui teritoriu. VIVOS începe prin recunoașterea reciprocă a oamenilor vii, prin asumarea unei ordini comune și prin construirea unei infrastructuri de încredere care poate rezista în timp.</div>
+    </section>
+
+    <section id="structura" class="card section-card">
+      <div class="section-head"><div class="badge">II</div><div><h2>Ce este VIVOS</h2><p class="sub">Nu un simplu site. Nu doar o aplicație. Ci o formă emergentă de comunitate autonomă online.</p></div></div>
+      <div class="pill-list">
+        <div class="pill">comunitate civică digitală</div>
+        <div class="pill">ordine internă autonomă</div>
+        <div class="pill">identitate comunitară</div>
+        <div class="pill">economie mutuală</div>
+        <div class="pill">arbitraj intern</div>
+        <div class="pill">memorie ancorată blockchain</div>
+      </div>
+      <div class="article">
+        <p>VIVOS este o rețea de membri reali care aleg să participe la o ordine internă bazată pe reguli clare, responsabilitate reciprocă și dovezi verificabile. Ea funcționează online, dar este ancorată în viața reală a membrilor săi.</p>
+        <p>VIVOS nu este un „stat recunoscut” în sens formal. Dar poate funcționa, în interiorul propriei sale ordini, ca o structură cvasi-statală: cu identitate, reguli, economie, justiție internă, registre și procese de guvernanță.</p>
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <div class="section-head"><div class="badge">III</div><div><h2>Statutul membrului viu</h2><p class="sub">În VIVOS, persoana nu este redusă la un dosar administrativ, ci este recunoscută ca participant viu la ordinea comunitară.</p></div></div>
+      <div class="articles">
+        <div class="article-item"><h3>Articolul 1 — Membrul viu</h3><p>Membrul VIVOS este o persoană reală, vie, prezentă și responsabilă, care aderă conștient la principiile, regulile și mecanismele comunității.</p></div>
+        <div class="article-item"><h3>Articolul 2 — Dubla identitate</h3><p>În raport cu statele, membrul utilizează identitatea juridică recunoscută de lege. În raport cu VIVOS, el dobândește un statut comunitar propriu, cu drepturi și obligații interne distincte.</p></div>
+        <div class="article-item"><h3>Articolul 3 — Apartenența</h3><p>Apartenența la VIVOS nu este doar tehnică. Ea presupune asumare, transparență în limitele stabilite de comunitate și participare la o ordine bazată pe încredere și reputație.</p></div>
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <div class="section-head"><div class="badge">IV</div><div><h2>Cele 5 instituții fundamentale ale VIVOS</h2><p class="sub">Orice comunitate durabilă are nevoie de instituții, nu doar de bune intenții.</p></div></div>
+      <div class="principles">
+        <div class="principle"><h3>1. Registrul identității comunitare</h3><p>Un sistem intern de apartenență, reputație și statut, diferit de registrele civile ale statelor, dar suficient de robust pentru viața comunitară.</p></div>
+        <div class="principle"><h3>2. Constituția internă</h3><p>Setul de principii, drepturi, obligații și proceduri prin care comunitatea se guvernează și se apără de arbitrar.</p></div>
+        <div class="principle"><h3>3. Economia mutuală</h3><p>Un sistem de recunoaștere a contribuției, schimbului și sprijinului, bazat pe talant, registru intern și echilibru comunitar.</p></div>
+        <div class="principle"><h3>4. Arbitrajul intern</h3><p>Mecanismul prin care conflictele se soluționează prin procedură, ascultare, decizie și memorie instituțională.</p></div>
+        <div class="principle"><h3>5. Memoria verificabilă</h3><p>O arhivă de decizii, acte, statuturi și snapshot-uri, ancorată prin blockchain, astfel încât comunitatea să nu depindă de amintirea sau bunăvoința unui centru unic.</p></div>
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <div class="section-head"><div class="badge">V</div><div><h2>Blockchain-ul ca memorie constituțională</h2><p class="sub">Blockchain-ul nu este magie juridică. Este infrastructură de dovadă, continuitate și verificabilitate.</p></div></div>
+      <div class="article"><p>VIVOS nu are nevoie să pună toată viața comunității pe chain. Are nevoie să ancoreze pe chain exact ceea ce nu trebuie falsificat, pierdut sau modificat pe ascuns.</p></div>
+      <div class="articles">
+        <div class="article-item"><h3>Ce se ancorează</h3><p>Constituția VIVOS, hotărârile majore, registrele de apartenență în formă de snapshot, istoricul fondului mutual, versiuni ale documentelor fondatoare și precedentele instituționale.</p></div>
+        <div class="article-item"><h3>Ce rămâne off-chain</h3><p>Conținutul curent al aplicației, conversațiile private, detaliile operaționale sensibile, datele personale neesențiale și fluxurile care cer viteză, flexibilitate sau protecția intimității.</p></div>
+        <div class="article-item"><h3>De ce contează</h3><p>Fără memorie verificabilă, orice ordine online riscă să devină dependentă de administratori, servere sau versiuni rescrise ale trecutului. Cu blockchain, VIVOS capătă continuitate procedurală.</p></div>
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <div class="section-head"><div class="badge">VI</div><div><h2>Teritoriu, ancorare și rețea distribuită</h2><p class="sub">VIVOS nu posedă un teritoriu suveran în sens clasic. Dar poate avea ancore reale în viața membrilor săi.</p></div></div>
+      <div class="article">
+        <p>Fiecare membru locuiește undeva, lucrează undeva, contribuie undeva și se întâlnește cu alții într-un spațiu concret. Aceste ancore reale nu transformă VIVOS într-un stat formal, dar construiesc o geografie comunitară distribuită.</p>
+        <p>VIVOS nu trebuie să pretindă teritoriu statal pentru a deveni relevant. Este suficient să construiască o rețea de noduri umane reale, legate prin reguli, economie, memorie și loialitate comunitară.</p>
+      </div>
+      <div class="quote">VIVOS nu este un teritoriu cucerit. VIVOS este un teritoriu de încredere distribuit între oameni care aleg să trăiască și să coopereze într-o ordine nouă.</div>
+    </section>
+
+    <section class="card section-card">
+      <div class="section-head"><div class="badge">VII</div><div><h2>Economie mutuală și talant</h2><p class="sub">Comunitatea nu devine liberă doar prin idei. Devine liberă când poate recunoaște, măsura și redistribui valoarea fără a se destrăma.</p></div></div>
+      <div class="articles">
+        <div class="article-item"><h3>Talantul</h3><p>Talantul este unitatea internă de recunoaștere a contribuției și a schimbului. El nu trebuie tratat, la început, ca instrument speculativ, ci ca mecanism comunitar de echilibru și memorie economică.</p></div>
+        <div class="article-item"><h3>Fondul mutual</h3><p>Fondul mutual există pentru situații reale de nevoie, pentru continuitatea membrilor și pentru protecția reciprocă în interiorul comunității.</p></div>
+        <div class="article-item"><h3>Registrul economic</h3><p>Orice schimb important, contribuție majoră sau sprijin relevant trebuie să lase urmă verificabilă, astfel încât economia internă să nu depindă de opacitate.</p></div>
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <div class="section-head"><div class="badge">VIII</div><div><h2>Guvernanță și justiție internă</h2><p class="sub">O comunitate autonomă fără procedură devine repede arbitrară. O comunitate autonomă cu instituții poate dura.</p></div></div>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div><h3>Sesizare</h3><p>Orice conflict, abuz, încălcare sau neclaritate trebuie să poată fi sesizată printr-un canal intern legitim.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div><h3>Mediere</h3><p>Prima orientare trebuie să fie restaurativă, nu punitivă. Comunitatea câștigă când repară, nu doar când exclude.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div><h3>Arbitraj</h3><p>Când medierea eșuează, o structură legitimă decide, argumentat și procedural, pe baza regulilor VIVOS.</p></div></div>
+        <div class="step"><div class="step-num">4</div><div><h3>Memorie și precedent</h3><p>Deciziile importante trebuie păstrate, clasificate și ancorate, pentru ca ordinea internă să învețe și să nu repete aceleași derapaje.</p></div></div>
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <div class="section-head"><div class="badge">IX</div><div><h2>Raportul cu lumea legală existentă</h2><p class="sub">VIVOS nu se izolează de realitate. O depășește prin construcție, nu prin negare oarbă.</p></div></div>
+      <div class="article">
+        <p>În exterior, membrii VIVOS rămân supuși legislațiilor statelor în care trăiesc. În interior, ei aleg să construiască o ordine complementară, superioară prin conștiință, asumare și infrastructură de încredere.</p>
+        <p>Pentru a acționa în lumea juridică externă, VIVOS are nevoie de o punte: o entitate legală recunoscută, minimă și funcțională, capabilă să reprezinte comunitatea în raport cu contracte, hosting, plăți, infrastructură și terți.</p>
+        <p>Astfel, VIVOS poate fi independent în esență și autonom în funcționare, fără să pretindă prematur o recunoaștere formală pe care ordinea juridică actuală nu o acordă unui stat doar online.</p>
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <div class="section-head"><div class="badge">X</div><div><h2>Scopul final</h2><p class="sub">Nu o utopie fără structură. Nu un protest fără continuitate. Ci o ordine nouă care poate funcționa.</p></div></div>
+      <div class="article">
+        <p>Scopul VIVOS este să demonstreze că oamenii reali se pot organiza din nou în jurul unei ordini bazate pe încredere, responsabilitate, memorie și mutualitate. Nu împotriva vieții, ci pentru refacerea ei.</p>
+        <p>Dacă suficienți membri aderă, contribuie, își transferă loialitatea practică și își asumă instituțiile VIVOS, comunitatea poate deveni o putere socială reală, capabilă să influențeze, să transforme și, în timp, să reconfigureze ordinea politică existentă.</p>
+        <p>VIVOS nu începe prin cererea de recunoaștere. VIVOS începe prin a deveni real.</p>
+      </div>
+    </section>
+
+    <section class="manifest-end">
+      <h2>Formula de încheiere</h2>
+      <p>Noi, membrii VIVOS, afirmăm că omul viu nu trebuie redus la identitatea administrativă prin care sistemele îl gestionează. Afirmăm că o comunitate autentică poate crea statut intern, memorie, economie, justiție și guvernanță fără a-și pierde caracterul uman. Afirmăm că blockchain-ul, registrul, reputația și contribuția reală pot susține o ordine nouă, online, distribuită și persistentă.</p>
+      <p>VIVOS este începutul unei civilizații comunitare digitale: nu prin declarație goală, ci prin construcție, continuitate și adevăr verificabil.</p>
+      <div class="signature"><strong>Manifestul VIVOS</strong><br />versiune pentru publicare online · document de poziționare fondatoare</div>
+    </section>
+  </div>
+</main>
+
+<footer><div class="wrap">Document HTML pregătit pentru publicare online · VIVOS</div></footer>
+</body>
+</html>

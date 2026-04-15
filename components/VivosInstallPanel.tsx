@@ -55,9 +55,30 @@ export default function VivosInstallPanel() {
     window.location.href = "/downloads/app-release-signed.apk"
   }
 
+  const androidAction = async () => {
+    if (!isAndroid) return
+
+    if (deferredPrompt) {
+      await handleInstall()
+      return
+    }
+
+    handleDownloadApk()
+  }
+
+  const iosAction = () => {
+    if (!isIOS) return
+    alert('Pe iPhone: deschide în Safari → Share → Add to Home Screen')
+  }
+
+  const desktopAction = async () => {
+    if (!isDesktop || !deferredPrompt) return
+    await handleInstall()
+  }
+
   return (
     <section className="relative overflow-hidden rounded-[28px] border border-slate-200/70 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(23,63,116,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.10),transparent_30%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(23,63,116,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.10),transparent_30%)]" />
 
       <div className="relative grid gap-6 p-6 md:grid-cols-[1.2fr_0.8fr] md:p-8">
         <div className="space-y-5">
@@ -100,13 +121,14 @@ export default function VivosInstallPanel() {
                     </button>
                   )}
 
-                  <button
-                    onClick={handleDownloadApk}
+                  <a
+                    href="/downloads/app-release-signed.apk"
+                    download
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
                   >
                     <Download className="h-4 w-4" />
                     Descarcă APK
-                  </button>
+                  </a>
                 </div>
               )}
 
@@ -166,15 +188,35 @@ export default function VivosInstallPanel() {
             </div>
 
             <div className="mt-6 space-y-3 text-sm text-white/80">
-              <div className="rounded-2xl bg-white/5 px-4 py-3">
+              <button
+                type="button"
+                onClick={androidAction}
+                className={`block w-full rounded-2xl px-4 py-3 text-left transition ${
+                  isAndroid ? "bg-white/5 hover:bg-white/10" : "cursor-not-allowed bg-white/5 opacity-50"
+                }`}
+              >
                 Android: PWA sau APK semnat
-              </div>
-              <div className="rounded-2xl bg-white/5 px-4 py-3">
+              </button>
+
+              <button
+                type="button"
+                onClick={iosAction}
+                className={`block w-full rounded-2xl px-4 py-3 text-left transition ${
+                  isIOS ? "bg-white/5 hover:bg-white/10" : "cursor-not-allowed bg-white/5 opacity-50"
+                }`}
+              >
                 iPhone: Add to Home Screen
-              </div>
-              <div className="rounded-2xl bg-white/5 px-4 py-3">
+              </button>
+
+              <button
+                type="button"
+                onClick={desktopAction}
+                className={`block w-full rounded-2xl px-4 py-3 text-left transition ${
+                  isDesktop ? "bg-white/5 hover:bg-white/10" : "cursor-not-allowed bg-white/5 opacity-50"
+                }`}
+              >
                 Desktop: instalare direct din browser
-              </div>
+              </button>
             </div>
           </div>
         </div>

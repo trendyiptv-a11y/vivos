@@ -286,6 +286,8 @@ export default function ConversationPage() {
       p_conversation_id: conversationId,
     })
 
+    console.log("members rpc", { conversationId, data, error })
+
     if (error) {
       console.error("Load members error:", error)
       setMembers([])
@@ -336,6 +338,7 @@ export default function ConversationPage() {
       if (document.visibilityState === "visible") {
         await markActiveConversation(userId)
         await loadMessagesOnly()
+        await loadMembersOnly()
       } else {
         await clearActiveConversation(userId)
       }
@@ -344,11 +347,13 @@ export default function ConversationPage() {
     const handleFocus = async () => {
       await markActiveConversation(userId)
       await loadMessagesOnly()
+      await loadMembersOnly()
     }
 
     const handleOnline = async () => {
       await markActiveConversation(userId)
       await loadMessagesOnly()
+      await loadMembersOnly()
     }
 
     const heartbeat = window.setInterval(() => {
@@ -368,7 +373,13 @@ export default function ConversationPage() {
       window.removeEventListener("online", handleOnline)
       clearActiveConversation(userId)
     }
-  }, [userId, markActiveConversation, clearActiveConversation, loadMessagesOnly])
+  }, [
+    userId,
+    markActiveConversation,
+    clearActiveConversation,
+    loadMessagesOnly,
+    loadMembersOnly,
+  ])
 
   useEffect(() => {
     const channel = supabase
@@ -1054,15 +1065,23 @@ export default function ConversationPage() {
         <div className="sticky top-0 z-10 mb-4 flex flex-col gap-3 bg-slate-50 px-4 pb-3 pt-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pt-6">
           <div className="min-w-0">
             <p className="text-sm text-slate-500">Conversație</p>
-            <h1 className="truncate text-2xl font-semibold sm:text-3xl">{otherName}</h1>
+            <h1 className="truncate text-2xl font-semibold sm:text-3xl">
+              {loading ? "Se încarcă..." : otherName}
+            </h1>
+            {!loading && !otherMember ? (
+              <p className="mt-1 text-sm text-red-500">
+                Conversația nu are încă datele membrului încărcate.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {callUiState === "idle" ? (
               <Button
-                className="rounded-2xl px-5"
+                className="rounded-2xl px-5 disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={handleStartCall}
                 disabled={callBusy || !otherMember}
+                title={!otherMember ? "Conversația nu are încă membrul încărcat" : ""}
               >
                 {callBusy ? "Se inițiază..." : "Apelează"}
               </Button>

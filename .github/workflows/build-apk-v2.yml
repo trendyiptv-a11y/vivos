@@ -12,10 +12,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      BUBBLEWRAP_KEYSTORE_PASSWORD: vivos123
-      BUBBLEWRAP_KEY_PASSWORD: vivos123
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,9 +36,9 @@ jobs:
       - name: Check tools
         run: |
           echo "JAVA_HOME=$JAVA_HOME"
-          java -version
           echo "ANDROID_HOME=$ANDROID_HOME"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          java -version
 
       - name: Create twa-manifest.json
         run: |
@@ -93,10 +89,8 @@ jobs:
 
       - name: Configure Bubblewrap paths
         run: |
-          mkdir -p ~/.bubblewrap
-          npx @bubblewrap/cli updateConfig \
-            --jdkPath="$JAVA_HOME" \
-            --androidSdkPath="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          SDK_PATH="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          printf 'n\n%s\n%s\n' "$JAVA_HOME" "$SDK_PATH" | npx @bubblewrap/cli updateConfig
 
       - name: Regenerate Android project
         run: |

@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      BUBBLEWRAP_KEYSTORE_PASSWORD: vivos123
-      BUBBLEWRAP_KEY_PASSWORD: vivos123
+      BUBBLEWRAP_KEYSTORE_PASSWORD: Lotto1971Lotto1971
+      BUBBLEWRAP_KEY_PASSWORD: Lotto1971Lotto1971
 
     steps:
       - name: Checkout
@@ -95,8 +95,8 @@ jobs:
           keytool -genkeypair \
             -keystore android.keystore \
             -alias vivos \
-            -storepass vivos123 \
-            -keypass vivos123 \
+            -storepass Lotto1971Lotto1971 \
+            -keypass Lotto1971Lotto1971 \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
@@ -141,8 +141,8 @@ jobs:
           "$APKSIGNER" sign \
             --ks android.keystore \
             --ks-key-alias vivos \
-            --ks-pass pass:vivos123 \
-            --key-pass pass:vivos123 \
+            --ks-pass pass:Lotto1971Lotto1971 \
+            --key-pass pass:Lotto1971Lotto1971 \
             --out "$SIGNED_APK" \
             "$ALIGNED_APK"
 

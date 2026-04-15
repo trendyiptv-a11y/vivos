@@ -1,5 +1,6 @@
 "use client"
 
+import VivosInstallPanel from "@/components/VivosInstallPanel"
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -1208,6 +1209,8 @@ function SettingsScreen() {
           <PushSubscribeButton />
         </CardContent>
       </Card>
+
+      <VivosInstallPanel />
     </div>
   )
 }

@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      BUBBLEWRAP_KEYSTORE_PASSWORD: Lotto1971Lotto1971
-      BUBBLEWRAP_KEY_PASSWORD: Lotto1971Lotto1971
+      BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -75,7 +75,7 @@ jobs:
             "appVersionCode": 1,
             "signingKey": {
               "path": "./android.keystore",
-              "alias": "vivos"
+              "alias": "${{ secrets.KEY_ALIAS }}"
             },
             "splashScreenFadeOutDuration": 300,
             "enableSiteSettingsShortcut": true,
@@ -94,9 +94,9 @@ jobs:
         run: |
           keytool -genkeypair \
             -keystore android.keystore \
-            -alias vivos \
-            -storepass Lotto1971Lotto1971 \
-            -keypass Lotto1971Lotto1971 \
+            -alias "${{ secrets.KEY_ALIAS }}" \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
@@ -140,9 +140,9 @@ jobs:
 
           "$APKSIGNER" sign \
             --ks android.keystore \
-            --ks-key-alias vivos \
-            --ks-pass pass:Lotto1971Lotto1971 \
-            --key-pass pass:Lotto1971Lotto1971 \
+            --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
+            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
             --out "$SIGNED_APK" \
             "$ALIGNED_APK"
 

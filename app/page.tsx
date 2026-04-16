@@ -457,7 +457,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
           </Button>
 
           <Button
-            variant="fund"
+            variant="outline"
             className="h-12 justify-start"
             onClick={() => {
               window.location.href = "/fund/new"

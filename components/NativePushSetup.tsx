@@ -1,5 +1,6 @@
 "use client"
 
+import { supabase } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 import { PushNotifications } from "@capacitor/push-notifications"
 
@@ -28,11 +29,47 @@ export default function NativePushSetup() {
           }
         }
 
-        registrationListener = await PushNotifications.addListener("registration", (token) => {
-          setToken(token.value)
-          setStatus("Token FCM primit.")
-          console.log("FCM token:", token.value)
-        })
+       registrationListener = await PushNotifications.addListener("registration", async (token) => {
+  setToken(token.value)
+  setStatus("Token FCM primit.")
+
+  try {
+    const { data } = await supabase.auth.getSession()
+    const accessToken = data.session?.access_token
+
+    if (!accessToken) {
+      setStatus("Token FCM primit, dar userul nu este logat.")
+      return
+    }
+
+    const response = await fetch(
+      "https://vivos-api.vercel.app/api/notifications/register-native-token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          token: token.value,
+          platform: "android",
+        }),
+      }
+    )
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      setStatus(`Token primit, dar salvarea a eșuat: ${result?.error || "necunoscut"}`)
+      return
+    }
+
+    setStatus("Token FCM salvat în backend.")
+    console.log("FCM token salvat:", token.value)
+  } catch (error: any) {
+    setStatus(`Token primit, dar backend error: ${error?.message || String(error)}`)
+  }
+})
 
         registrationErrorListener = await PushNotifications.addListener(
           "registrationError",

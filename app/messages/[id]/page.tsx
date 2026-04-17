@@ -85,6 +85,13 @@ function describeMicrophoneError(error: any) {
   return "Microfonul nu poate fi folosit acum în aplicație."
 }
 
+function isNearBottom(threshold = 160) {
+  const scrollTop = window.scrollY || document.documentElement.scrollTop || 0
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0
+  const totalHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 0
+  return totalHeight - (scrollTop + viewportHeight) <= threshold
+}
+
 export default function ConversationPage() {
   const router = useRouter()
   const params = useParams()
@@ -116,6 +123,8 @@ export default function ConversationPage() {
   const autoActionHandledRef = useRef<string | null>(null)
   const acceptedCallSessionRef = useRef<string | null>(null)
   const initialScrollDoneRef = useRef(false)
+  const shouldStickToBottomRef = useRef(true)
+  const previousMessageCountRef = useRef(0)
 
   useEffect(() => {
     currentCallSessionIdRef.current = currentCallSessionId
@@ -126,10 +135,27 @@ export default function ConversationPage() {
   }, [])
 
   useEffect(() => {
+    const handleScroll = () => {
+      shouldStickToBottomRef.current = isNearBottom()
+    }
+
+    handleScroll()
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [])
+
+  useEffect(() => {
     if (!messages.length) return
+
+    const previousCount = previousMessageCountRef.current
+    const hasNewMessages = messages.length > previousCount
+    previousMessageCountRef.current = messages.length
 
     if (!initialScrollDoneRef.current) {
       initialScrollDoneRef.current = true
+      shouldStickToBottomRef.current = true
       scrollToBottom("auto")
 
       const rafId = window.requestAnimationFrame(() => {
@@ -146,11 +172,15 @@ export default function ConversationPage() {
       }
     }
 
-    scrollToBottom("smooth")
+    if (hasNewMessages && shouldStickToBottomRef.current) {
+      scrollToBottom("smooth")
+    }
   }, [messages, scrollToBottom])
 
   useEffect(() => {
     initialScrollDoneRef.current = false
+    shouldStickToBottomRef.current = true
+    previousMessageCountRef.current = 0
   }, [conversationId])
 
   const stopRingtone = useCallback(() => {
@@ -352,7 +382,7 @@ export default function ConversationPage() {
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true })
 
-    if (error) {
+      if (error) {
       console.error("Load messages error:", error)
       return
     }
@@ -1232,6 +1262,7 @@ export default function ConversationPage() {
         console.error("Push request failed:", pushError)
       }
 
+      shouldStickToBottomRef.current = true
       setMessages((prev) =>
         upsertMessage(prev, {
           id: data.id,

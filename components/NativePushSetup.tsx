@@ -1,14 +1,21 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Capacitor } from "@capacitor/core"
 import { PushNotifications } from "@capacitor/push-notifications"
 import { supabase } from "@/lib/supabase/client"
 
 export default function NativePushSetup() {
   const [token, setToken] = useState("")
   const [status, setStatus] = useState("Inițializare push...")
+  const isNativePlatform = Capacitor.isNativePlatform()
 
   useEffect(() => {
+    if (!isNativePlatform) {
+      setStatus("Push nativ disponibil doar în APK.")
+      return
+    }
+
     let registrationListener: any
     let registrationErrorListener: any
     let receivedListener: any
@@ -110,7 +117,11 @@ export default function NativePushSetup() {
       receivedListener?.remove?.()
       actionListener?.remove?.()
     }
-  }, [])
+  }, [isNativePlatform])
+
+  if (!isNativePlatform) {
+    return null
+  }
 
   return (
     <div className="fixed bottom-24 left-2 right-2 z-[9999] rounded-2xl border bg-white p-3 text-xs shadow-lg">

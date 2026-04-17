@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { PushNotifications } from "@capacitor/push-notifications"
+import { supabase } from "@/lib/supabase/client"
 
 export default function NativePushSetup() {
   const [token, setToken] = useState("")
@@ -12,6 +13,42 @@ export default function NativePushSetup() {
     let registrationErrorListener: any
     let receivedListener: any
     let actionListener: any
+
+    const saveDeviceToken = async (fcmToken: string) => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (!session?.access_token) {
+          setStatus("FCM primit, dar sesiunea nu este validă.")
+          return
+        }
+
+        const response = await fetch("/api/notifications/register-device-token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            token: fcmToken,
+            platform: "android",
+            deviceLabel: "capacitor-android",
+          }),
+        })
+
+        if (!response.ok) {
+          const result = await response.json().catch(() => null)
+          setStatus(`FCM primit, dar salvarea a eșuat: ${result?.error || response.status}`)
+          return
+        }
+
+        setStatus("Token FCM salvat în backend.")
+      } catch (error: any) {
+        setStatus(`FCM primit, dar salvarea a eșuat: ${error?.message || String(error)}`)
+      }
+    }
 
     const initPush = async () => {
       try {
@@ -28,10 +65,11 @@ export default function NativePushSetup() {
           }
         }
 
-        registrationListener = await PushNotifications.addListener("registration", (token) => {
+        registrationListener = await PushNotifications.addListener("registration", async (token) => {
           setToken(token.value)
           setStatus("Token FCM primit.")
           console.log("FCM token:", token.value)
+          await saveDeviceToken(token.value)
         })
 
         registrationErrorListener = await PushNotifications.addListener(

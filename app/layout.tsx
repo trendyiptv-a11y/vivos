@@ -6,6 +6,7 @@ import MobileBottomNav from "@/components/mobile-bottom-nav"
 import NativePushSetup from "@/components/NativePushSetup"
 import InAppPushBanner from "@/components/InAppPushBanner"
 import NativeRuntimeBridge from "@/components/NativeRuntimeBridge"
+import NativeHapticsBridge from "@/components/NativeHapticsBridge"
 
 export const metadata: Metadata = {
   title: "VIVOS",
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ServiceWorkerRegister />
         <NativeRuntimeBridge />
         <NativePushSetup />
+        <NativeHapticsBridge />
         <InAppPushBanner />
         <div className="pb-24 md:pb-0">{children}</div>
         <MobileBottomNav />

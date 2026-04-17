@@ -33,6 +33,14 @@ type RuntimeNetworkDetail = {
   source?: string
 }
 
+function emitWindowEvent(name: string, detail: Record<string, unknown> = {}) {
+  try {
+    window.dispatchEvent(new CustomEvent(name, { detail }))
+  } catch (error) {
+    console.error(`Window event emit error for ${name}:`, error)
+  }
+}
+
 function sortMessages(list: Message[]) {
   return [...list].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -550,6 +558,7 @@ export default function ConversationPage() {
           },
         })
 
+        emitWindowEvent("vivos:call-accepted", { callSessionId, conversationId })
         setIncomingCall(null)
         setCurrentCallSessionId(callSessionId)
         setCallUiState("connected")
@@ -610,6 +619,7 @@ export default function ConversationPage() {
           },
         })
 
+        emitWindowEvent("vivos:call-rejected", { callSessionId, conversationId })
         cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
@@ -677,6 +687,11 @@ export default function ConversationPage() {
             },
           })
 
+          emitWindowEvent("vivos:call-accepted", {
+            callSessionId: payload.callSessionId,
+            conversationId,
+            source: "broadcast",
+          })
           setCallUiState("connected")
         } catch (error) {
           console.error("Offer create error:", error)
@@ -706,6 +721,11 @@ export default function ConversationPage() {
         setIncomingCall(null)
         setCurrentCallSessionId(null)
         setCallUiState("idle")
+        emitWindowEvent("vivos:call-rejected", {
+          callSessionId: payload.callSessionId,
+          conversationId,
+          source: "broadcast",
+        })
         alert("Apel respins.")
       })
       .on("broadcast", { event: "call_end" }, ({ payload }) => {
@@ -722,6 +742,11 @@ export default function ConversationPage() {
         setIncomingCall(null)
         setCurrentCallSessionId(null)
         setCallUiState("idle")
+        emitWindowEvent("vivos:call-ended", {
+          callSessionId: payload.callSessionId,
+          conversationId,
+          source: "broadcast",
+        })
       })
       .on("broadcast", { event: "webrtc_offer" }, async ({ payload }) => {
         if (!payload) return
@@ -1034,6 +1059,11 @@ export default function ConversationPage() {
     } catch (error) {
       console.error("End call error:", error)
     } finally {
+      emitWindowEvent("vivos:call-ended", {
+        callSessionId: currentCallSessionId,
+        conversationId,
+        source: "local",
+      })
       cleanupAudioCall()
       setIncomingCall(null)
       setCurrentCallSessionId(null)
@@ -1262,8 +1292,8 @@ export default function ConversationPage() {
                           {msg.body}
                         </p>
                       </div>
-                    )
-                  })}
+                    )}
+                  )}
                   <div ref={bottomRef} />
                 </>
               )}

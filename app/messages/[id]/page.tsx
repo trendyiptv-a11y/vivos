@@ -151,7 +151,7 @@ export default function ConversationPage() {
     async (currentUserId: string) => {
       if (peerConnectionRef.current) return peerConnectionRef.current
 
-      const res = await fetch("/api/turn-credentials")
+      const res = await fetch("https://vivos-api.vercel.app/api/turn-credentials")
       const { iceServers } = await res.json()
 
       const pc = new RTCPeerConnection({ iceServers })
@@ -882,7 +882,7 @@ export default function ConversationPage() {
         } = await supabase.auth.getSession()
 
         if (session?.access_token) {
-          const pushResponse = await fetch("/api/notifications/send-call-push", {
+          const pushResponse = await fetch("https://vivos-api.vercel.app/api/notifications/send-call-push", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

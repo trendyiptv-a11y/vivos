@@ -55,8 +55,13 @@ function MobileBottomNavInner() {
 
   useEffect(() => {
     async function loadCounts() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) { setBadges({}); return }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session?.user) {
+        setBadges({})
+        return
+      }
 
       const userId = session.user.id
 
@@ -66,12 +71,21 @@ function MobileBottomNavInner() {
         .or(`user_id.eq.${userId},user_id.is.null`)
         .eq("is_read", false)
 
-      if (error) { setBadges({}); return }
+      if (error) {
+        setBadges({})
+        return
+      }
 
       const rows = (data ?? []) as NotificationCountRow[]
       const counts: Record<string, number> = {}
-      rows.forEach((row) => { counts[row.event_type] = (counts[row.event_type] ?? 0) + 1 })
+      rows.forEach((row) => {
+        counts[row.event_type] = (counts[row.event_type] ?? 0) + 1
+      })
       setBadges(counts)
+    }
+
+    const handleLocalNotificationChange = () => {
+      loadCounts()
     }
 
     loadCounts()
@@ -81,7 +95,12 @@ function MobileBottomNavInner() {
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, loadCounts)
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    window.addEventListener("vivos:notifications-updated", handleLocalNotificationChange)
+
+    return () => {
+      window.removeEventListener("vivos:notifications-updated", handleLocalNotificationChange)
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const itemsWithBadges = useMemo(() => {
@@ -99,8 +118,8 @@ function MobileBottomNavInner() {
           const active = item.tab
             ? pathname === "/" && currentTab === item.tab
             : item.href === "/"
-            ? pathname === "/" && !currentTab
-            : pathname === item.href || pathname.startsWith(item.href + "/")
+              ? pathname === "/" && !currentTab
+              : pathname === item.href || pathname.startsWith(item.href + "/")
 
           return (
             <button

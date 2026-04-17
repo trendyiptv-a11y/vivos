@@ -33,6 +33,11 @@ type RuntimeNetworkDetail = {
   source?: string
 }
 
+type NotificationRefRow = {
+  id: string
+  ref_id: string | null
+}
+
 function emitWindowEvent(name: string, detail: Record<string, unknown> = {}) {
   try {
     window.dispatchEvent(new CustomEvent(name, { detail }))
@@ -365,6 +370,59 @@ export default function ConversationPage() {
     setMembers(normalizedMembers)
   }, [conversationId])
 
+  const markConversationNotificationsRead = useCallback(async (currentUserId: string) => {
+    try {
+      const { data: unreadNotifications, error: unreadNotificationsError } = await supabase
+        .from("notifications")
+        .select("id, ref_id")
+        .eq("event_type", "new_message")
+        .eq("is_read", false)
+        .eq("user_id", currentUserId)
+
+      if (unreadNotificationsError) {
+        console.error("Load unread conversation notifications error:", unreadNotificationsError)
+        return
+      }
+
+      const messageIds = ((unreadNotifications ?? []) as NotificationRefRow[])
+        .map((item) => item.ref_id)
+        .filter((value): value is string => !!value)
+
+      if (!messageIds.length) return
+
+      const { data: messageRows, error: messageRowsError } = await supabase
+        .from("messages")
+        .select("id, conversation_id")
+        .in("id", messageIds)
+        .eq("conversation_id", conversationId)
+
+      if (messageRowsError) {
+        console.error("Resolve message notifications for conversation error:", messageRowsError)
+        return
+      }
+
+      const targetMessageIds = new Set(((messageRows ?? []) as any[]).map((row) => row.id))
+      if (!targetMessageIds.size) return
+
+      const notificationIdsToMark = ((unreadNotifications ?? []) as NotificationRefRow[])
+        .filter((item) => item.ref_id && targetMessageIds.has(item.ref_id))
+        .map((item) => item.id)
+
+      if (!notificationIdsToMark.length) return
+
+      const { error: markError } = await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .in("id", notificationIdsToMark)
+
+      if (markError) {
+        console.error("Mark conversation notifications read error:", markError)
+      }
+    } catch (error) {
+      console.error("Conversation notification cleanup error:", error)
+    }
+  }, [conversationId])
+
   const refreshConversationState = useCallback(async () => {
     if (!userId) return
 
@@ -372,8 +430,9 @@ export default function ConversationPage() {
       markActiveConversation(userId),
       loadMessagesOnly(),
       loadMembersOnly(),
+      markConversationNotificationsRead(userId),
     ])
-  }, [userId, markActiveConversation, loadMessagesOnly, loadMembersOnly])
+  }, [userId, markActiveConversation, loadMessagesOnly, loadMembersOnly, markConversationNotificationsRead])
 
   useEffect(() => {
     async function loadInitial() {
@@ -394,13 +453,14 @@ export default function ConversationPage() {
         loadMessagesOnly(),
         loadMembersOnly(),
         markActiveConversation(session.user.id),
+        markConversationNotificationsRead(session.user.id),
       ])
 
       setLoading(false)
     }
 
     loadInitial()
-  }, [conversationId, router, loadMessagesOnly, loadMembersOnly, markActiveConversation])
+  }, [conversationId, router, loadMessagesOnly, loadMembersOnly, markActiveConversation, markConversationNotificationsRead])
 
   useEffect(() => {
     if (!userId) return

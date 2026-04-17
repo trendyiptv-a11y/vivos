@@ -115,18 +115,43 @@ export default function ConversationPage() {
   const currentCallSessionIdRef = useRef<string | null>(null)
   const autoActionHandledRef = useRef<string | null>(null)
   const acceptedCallSessionRef = useRef<string | null>(null)
+  const initialScrollDoneRef = useRef(false)
 
   useEffect(() => {
     currentCallSessionIdRef.current = currentCallSessionId
   }, [currentCallSessionId])
 
-  const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    bottomRef.current?.scrollIntoView({ behavior, block: "end" })
   }, [])
 
   useEffect(() => {
-    scrollToBottom()
+    if (!messages.length) return
+
+    if (!initialScrollDoneRef.current) {
+      initialScrollDoneRef.current = true
+      scrollToBottom("auto")
+
+      const rafId = window.requestAnimationFrame(() => {
+        scrollToBottom("auto")
+      })
+
+      const timerId = window.setTimeout(() => {
+        scrollToBottom("auto")
+      }, 120)
+
+      return () => {
+        window.cancelAnimationFrame(rafId)
+        window.clearTimeout(timerId)
+      }
+    }
+
+    scrollToBottom("smooth")
   }, [messages, scrollToBottom])
+
+  useEffect(() => {
+    initialScrollDoneRef.current = false
+  }, [conversationId])
 
   const stopRingtone = useCallback(() => {
     const el = ringtoneRef.current
@@ -1219,7 +1244,7 @@ export default function ConversationPage() {
 
     setBody("")
     setSending(false)
-    scrollToBottom()
+    scrollToBottom("smooth")
   }
 
   const callDisplayName = otherName || "Membru"

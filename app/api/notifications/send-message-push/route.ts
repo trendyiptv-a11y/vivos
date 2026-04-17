@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import webpush from "web-push"
+import { App, cert, getApps, initializeApp } from "firebase-admin/app"
+import { getMessaging } from "firebase-admin/messaging"
 
 type SendPushBody = {
   conversationId?: string
@@ -30,16 +32,41 @@ function getBearerToken(request: Request) {
   return authHeader.slice("Bearer ".length)
 }
 
-function setupWebPush() {
+function trySetupWebPush() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const privateKey = process.env.VAPID_PRIVATE_KEY
   const subject = process.env.VAPID_SUBJECT
 
   if (!publicKey || !privateKey || !subject) {
-    throw new Error("Lipsesc cheile VAPID sau VAPID_SUBJECT.")
+    return false
   }
 
   webpush.setVapidDetails(subject, publicKey, privateKey)
+  return true
+}
+
+function getFirebaseAdminApp(): App {
+  if (getApps().length > 0) {
+    return getApps()[0]
+  }
+
+  const projectId = process.env.FIREBASE_PROJECT_ID
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n")
+
+  if (!projectId || !clientEmail || !privateKey) {
+    throw new Error(
+      "Lipsesc FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL sau FIREBASE_PRIVATE_KEY."
+    )
+  }
+
+  return initializeApp({
+    credential: cert({
+      projectId,
+      clientEmail,
+      privateKey,
+    }),
+  })
 }
 
 export async function POST(request: Request) {
@@ -90,7 +117,7 @@ export async function POST(request: Request) {
     const recipient = membersData.find((m: any) => m.member_id !== senderId)
 
     if (!recipient?.member_id) {
-      return NextResponse.json({ ok: true, delivered: 0, reason: "Nu există receptor." })
+      return NextResponse.json({ ok: true, webDelivered: 0, fcmDelivered: 0, reason: "Nu există receptor." })
     }
 
     const recipientId = recipient.member_id
@@ -122,7 +149,8 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         ok: true,
-        delivered: 0,
+        webDelivered: 0,
+        fcmDelivered: 0,
         suppressed: true,
         reason: "Receptorul este deja activ în conversație.",
       })
@@ -153,21 +181,20 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!subscriptions || subscriptions.length === 0) {
-      await supabase.from("notification_delivery_log").insert({
-        user_id: recipientId,
-        notification_type: "new_message",
-        channel: "push",
-        status: "failed",
-        conversation_id: conversationId,
-        message_id: messageId,
-        error_message: "Nu există push subscription activ.",
-      })
+    const { data: deviceTokens, error: deviceTokensError } = await supabase
+      .from("device_push_tokens")
+      .select("id, token, platform")
+      .eq("user_id", recipientId)
+      .eq("is_active", true)
 
-      return NextResponse.json({ ok: true, delivered: 0, reason: "Nu există subscription activ." })
+    if (deviceTokensError) {
+      return NextResponse.json(
+        { error: `Nu am putut citi device push tokens: ${deviceTokensError.message}` },
+        { status: 500 }
+      )
     }
 
-    setupWebPush()
+    const webPushConfigured = trySetupWebPush()
 
     const preview = messageBody.slice(0, 140)
 
@@ -180,58 +207,138 @@ export async function POST(request: Request) {
       notificationType: "new_message",
     })
 
-    let delivered = 0
+    let webDelivered = 0
 
-    for (const sub of subscriptions) {
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth,
+    if ((subscriptions || []).length > 0 && webPushConfigured) {
+      for (const sub of subscriptions) {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth,
+              },
             },
-          },
-          payload
-        )
+            payload
+          )
 
-        delivered += 1
+          webDelivered += 1
 
-        await supabase.from("notification_delivery_log").insert({
-          user_id: recipientId,
-          notification_type: "new_message",
-          channel: "push",
-          status: "sent",
-          conversation_id: conversationId,
-          message_id: messageId,
-        })
-      } catch (pushError: any) {
-        const statusCode = pushError?.statusCode || null
-        const errorMessage = pushError?.body || pushError?.message || "Push send failed"
+          await supabase.from("notification_delivery_log").insert({
+            user_id: recipientId,
+            notification_type: "new_message",
+            channel: "push",
+            status: "sent",
+            conversation_id: conversationId,
+            message_id: messageId,
+          })
+        } catch (pushError: any) {
+          const statusCode = pushError?.statusCode || null
+          const errorMessage = pushError?.body || pushError?.message || "Push send failed"
 
-        await supabase.from("notification_delivery_log").insert({
-          user_id: recipientId,
-          notification_type: "new_message",
-          channel: "push",
-          status: "failed",
-          conversation_id: conversationId,
-          message_id: messageId,
-          error_message: String(errorMessage),
-        })
+          await supabase.from("notification_delivery_log").insert({
+            user_id: recipientId,
+            notification_type: "new_message",
+            channel: "push",
+            status: "failed",
+            conversation_id: conversationId,
+            message_id: messageId,
+            error_message: String(errorMessage),
+          })
 
-        if (statusCode === 404 || statusCode === 410) {
-          await supabase
-            .from("push_subscriptions")
-            .update({ is_active: false, last_seen_at: new Date().toISOString() })
-            .eq("id", sub.id)
+          if (statusCode === 404 || statusCode === 410) {
+            await supabase
+              .from("push_subscriptions")
+              .update({ is_active: false, last_seen_at: new Date().toISOString() })
+              .eq("id", sub.id)
+          }
         }
       }
     }
 
-    return NextResponse.json({ ok: true, delivered })
+    let fcmDelivered = 0
+    let fcmFailed = 0
+
+    if ((deviceTokens || []).length > 0) {
+      try {
+        const firebaseApp = getFirebaseAdminApp()
+        const messaging = getMessaging(firebaseApp)
+
+        const fcmResults = await Promise.allSettled(
+          deviceTokens.map(async (row) => {
+            try {
+              await messaging.send({
+                token: row.token,
+                notification: {
+                  title: "Ai primit un mesaj nou",
+                  body: `${senderName}: ${preview}`,
+                },
+                data: {
+                  url: `/messages/${conversationId}`,
+                  conversationId,
+                  messageId,
+                  notificationType: "new_message",
+                  tag: `conversation-${conversationId}`,
+                },
+                android: {
+                  priority: "high",
+                  notification: {
+                    channelId: "default",
+                    clickAction: "OPEN_CONVERSATION",
+                    sound: "default",
+                    tag: `conversation-${conversationId}`,
+                  },
+                },
+              })
+
+              fcmDelivered += 1
+              return { ok: true, id: row.id }
+            } catch (error: any) {
+              const code = String(error?.code || "")
+              if (
+                code.includes("registration-token-not-registered") ||
+                code.includes("invalid-argument")
+              ) {
+                await supabase
+                  .from("device_push_tokens")
+                  .update({ is_active: false, last_seen_at: new Date().toISOString() })
+                  .eq("id", row.id)
+              }
+              throw error
+            }
+          })
+        )
+
+        fcmFailed = fcmResults.filter((r) => r.status === "rejected").length
+      } catch (fcmBootstrapError: any) {
+        console.error("FCM message bootstrap/send error:", fcmBootstrapError)
+        fcmFailed = deviceTokens.length
+      }
+    }
+
+    if (webDelivered === 0 && fcmDelivered === 0 && (subscriptions || []).length === 0 && (deviceTokens || []).length === 0) {
+      await supabase.from("notification_delivery_log").insert({
+        user_id: recipientId,
+        notification_type: "new_message",
+        channel: "push",
+        status: "failed",
+        conversation_id: conversationId,
+        message_id: messageId,
+        error_message: "Nu există niciun target activ pentru push.",
+      })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      webPushConfigured,
+      webDelivered,
+      fcmDelivered,
+      fcmFailed,
+    })
   } catch (error: any) {
     return NextResponse.json(
-      { error: error?.message || "Eroare internă la trimiterea Web Push." },
+      { error: error?.message || "Eroare internă la trimiterea push." },
       { status: 500 }
     )
   }

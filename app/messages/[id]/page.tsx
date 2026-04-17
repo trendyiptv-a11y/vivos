@@ -899,16 +899,11 @@ export default function ConversationPage() {
           console.log("Call push delivery result:", pushResult)
 
           if (!pushResponse.ok) {
-            alert(`Eroare call push: ${pushResult?.error || pushResponse.status}`)
-          } else if (pushResult?.skipped) {
-            alert(`Call push skipped: ${pushResult.skipped}`)
-          } else {
-            alert(`Call push ok: web=${pushResult?.webPushSent || 0}/${pushResult?.webPushFailed || 0}, fcm=${pushResult?.fcmSent || 0}/${pushResult?.fcmFailed || 0}`)
+            console.error("Call push error:", pushResult)
           }
         }
       } catch (pushError: any) {
         console.error("Call push request failed:", pushError)
-        alert(`Call push request failed: ${pushError?.message || String(pushError)}`)
       }
 
       setCurrentCallSessionId(callSessionId)

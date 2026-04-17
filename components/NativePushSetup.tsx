@@ -5,8 +5,12 @@ import { Capacitor } from "@capacitor/core"
 import { PushNotifications } from "@capacitor/push-notifications"
 import { supabase } from "@/lib/supabase/client"
 
+function getNotificationData(source: any) {
+  return source?.notification?.data || source?.notification || source?.data || {}
+}
+
 function getNotificationNavigationUrl(action: any): string | null {
-  const data = action?.notification?.data || action?.notification || {}
+  const data = getNotificationData(action)
   const actionId = String(action?.actionId || "").toLowerCase()
 
   if (actionId === "answer" && typeof data.answerUrl === "string" && data.answerUrl) {
@@ -26,6 +30,30 @@ function getNotificationNavigationUrl(action: any): string | null {
   }
 
   return null
+}
+
+function emitForegroundPushEvent(notification: any) {
+  try {
+    const data = getNotificationData(notification)
+    window.dispatchEvent(
+      new CustomEvent("vivos:push-received", {
+        detail: {
+          notificationType: data.notificationType || null,
+          conversationId: data.conversationId || null,
+          callSessionId: data.callSessionId || null,
+          callerName: data.callerName || null,
+          title: notification?.title || data.title || null,
+          body: notification?.body || data.body || null,
+          url: data.url || null,
+          answerUrl: data.answerUrl || null,
+          declineUrl: data.declineUrl || null,
+          raw: notification,
+        },
+      })
+    )
+  } catch (error) {
+    console.error("Foreground push bridge error:", error)
+  }
 }
 
 export default function NativePushSetup() {
@@ -127,6 +155,7 @@ export default function NativePushSetup() {
           "pushNotificationReceived",
           (notification) => {
             console.log("Push received:", notification)
+            emitForegroundPushEvent(notification)
           }
         )
 

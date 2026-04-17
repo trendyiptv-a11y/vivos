@@ -69,15 +69,29 @@ export default function NativePushSetup() {
     let receivedListener: any
     let actionListener: any
 
-    const navigateFromPushAction = (action: any) => {
+    const navigateToUrl = (targetUrl: string | null) => {
       try {
-        const targetUrl = getNotificationNavigationUrl(action)
         if (!targetUrl) return
-
         const normalizedUrl = targetUrl.startsWith("/") ? targetUrl : `/${targetUrl}`
+        if (window.location.pathname + window.location.search === normalizedUrl) return
         window.location.assign(normalizedUrl)
       } catch (error) {
-        console.error("Push action navigation error:", error)
+        console.error("Push navigation error:", error)
+      }
+    }
+
+    const navigateFromPushAction = (action: any) => {
+      navigateToUrl(getNotificationNavigationUrl(action))
+    }
+
+    const handleForegroundNotification = (notification: any) => {
+      emitForegroundPushEvent(notification)
+
+      const data = getNotificationData(notification)
+      const notificationType = String(data.notificationType || "")
+
+      if (notificationType === "incoming_call") {
+        navigateToUrl(getNotificationNavigationUrl(notification))
       }
     }
 
@@ -155,7 +169,7 @@ export default function NativePushSetup() {
           "pushNotificationReceived",
           (notification) => {
             console.log("Push received:", notification)
-            emitForegroundPushEvent(notification)
+            handleForegroundNotification(notification)
           }
         )
 

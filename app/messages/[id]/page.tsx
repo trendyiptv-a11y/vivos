@@ -39,6 +39,33 @@ function upsertMessage(list: Message[], incoming: Message) {
   return sortMessages([...list, incoming])
 }
 
+function describeMicrophoneError(error: any) {
+  const name = String(error?.name || "")
+  const message = String(error?.message || "")
+
+  if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+    return "Accesul la microfon este blocat. Permite microfonul pentru VIVOS și încearcă din nou."
+  }
+
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+    return "Nu a fost găsit niciun microfon disponibil pe device."
+  }
+
+  if (name === "NotReadableError" || name === "TrackStartError") {
+    return "Microfonul nu poate fi pornit acum. Închide alte aplicații care folosesc audio și încearcă din nou."
+  }
+
+  if (name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
+    return "Configurația audio a device-ului nu este compatibilă momentan."
+  }
+
+  if (message) {
+    return `Microfon indisponibil: ${message}`
+  }
+
+  return "Microfonul nu poate fi folosit acum în aplicație."
+}
+
 export default function ConversationPage() {
   const router = useRouter()
   const params = useParams()
@@ -51,6 +78,7 @@ export default function ConversationPage() {
   const [body, setBody] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [members, setMembers] = useState<Member[]>([])
+  const [audioPermissionMessage, setAudioPermissionMessage] = useState<string | null>(null)
 
   const [callUiState, setCallUiState] = useState<CallUiState>("idle")
   const [callBusy, setCallBusy] = useState(false)
@@ -135,17 +163,34 @@ export default function ConversationPage() {
       !navigator.mediaDevices ||
       !navigator.mediaDevices.getUserMedia
     ) {
-      throw new Error("Browserul nu suportă accesul la microfon.")
+      const err = new Error("Browserul nu suportă accesul la microfon.")
+      setAudioPermissionMessage(describeMicrophoneError(err))
+      throw err
     }
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: false,
-    })
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false,
+      })
 
-    localStreamRef.current = stream
-    return stream
+      localStreamRef.current = stream
+      setAudioPermissionMessage(null)
+      return stream
+    } catch (error: any) {
+      const friendly = describeMicrophoneError(error)
+      setAudioPermissionMessage(friendly)
+      throw error
+    }
   }, [])
+
+  const retryMicrophoneAccess = useCallback(async () => {
+    try {
+      await ensureLocalStream()
+    } catch (error) {
+      console.error("Retry microphone access error:", error)
+    }
+  }, [ensureLocalStream])
 
   const ensurePeerConnection = useCallback(
     async (currentUserId: string) => {
@@ -1122,6 +1167,25 @@ export default function ConversationPage() {
         </div>
 
         <div className="grid flex-1 gap-4 px-4 pb-24 sm:px-6">
+          {audioPermissionMessage ? (
+            <Card className="rounded-3xl border border-amber-200 bg-amber-50 shadow-sm">
+              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">Microfon necesar pentru apel</p>
+                  <p className="mt-1 text-sm text-amber-800">{audioPermissionMessage}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="rounded-2xl" onClick={retryMicrophoneAccess}>
+                    Reîncearcă
+                  </Button>
+                  <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setAudioPermissionMessage(null)}>
+                    Închide
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg sm:text-xl">Mesaje</CardTitle>

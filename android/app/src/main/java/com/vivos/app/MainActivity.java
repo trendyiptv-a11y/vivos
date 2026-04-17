@@ -13,6 +13,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.BridgeActivity;
+import com.vivos.app.nativecall.NativeCallPlugin;
 
 import java.util.Arrays;
 
@@ -22,6 +23,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(NativeCallPlugin.class);
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
         ensureAudioPermission();
@@ -29,14 +31,14 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onStart() {
+    public void onStart() {
         super.onStart();
         Log.d(TAG, "onStart");
         configureWebChromeClient();
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         Log.d(TAG, "onResume");
         ensureAudioPermission();

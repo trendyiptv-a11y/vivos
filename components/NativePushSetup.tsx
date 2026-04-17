@@ -1,18 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { Capacitor } from "@capacitor/core"
 import { PushNotifications } from "@capacitor/push-notifications"
 import { supabase } from "@/lib/supabase/client"
 
 export default function NativePushSetup() {
-  const [token, setToken] = useState("")
-  const [status, setStatus] = useState("Inițializare push...")
   const isNativePlatform = Capacitor.isNativePlatform()
 
   useEffect(() => {
     if (!isNativePlatform) {
-      setStatus("Push nativ disponibil doar în APK.")
       return
     }
 
@@ -28,7 +25,7 @@ export default function NativePushSetup() {
         } = await supabase.auth.getSession()
 
         if (!session?.access_token) {
-          setStatus("FCM primit, dar sesiunea nu este validă.")
+          console.warn("FCM token received, but session is not valid.")
           return
         }
 
@@ -47,13 +44,10 @@ export default function NativePushSetup() {
 
         if (!response.ok) {
           const result = await response.json().catch(() => null)
-          setStatus(`FCM primit, dar salvarea a eșuat: ${result?.error || response.status}`)
-          return
+          console.error("FCM token save failed:", result || response.status)
         }
-
-        setStatus("Token FCM salvat în backend.")
-      } catch (error: any) {
-        setStatus(`FCM primit, dar salvarea a eșuat: ${error?.message || String(error)}`)
+      } catch (error) {
+        console.error("FCM token save error:", error)
       }
     }
 
@@ -72,29 +66,24 @@ export default function NativePushSetup() {
         }
 
         const permStatus = await PushNotifications.checkPermissions()
-        setStatus(`Permisiune curentă: ${permStatus.receive}`)
 
         if (permStatus.receive !== "granted") {
           const requested = await PushNotifications.requestPermissions()
-          setStatus(`Permisiune după cerere: ${requested.receive}`)
 
           if (requested.receive !== "granted") {
-            setStatus("Permisiunea de notificări nu a fost acordată.")
+            console.warn("Notification permission was not granted.")
             return
           }
         }
 
         registrationListener = await PushNotifications.addListener("registration", async (token) => {
-          setToken(token.value)
-          setStatus("Token FCM primit.")
-          console.log("FCM token:", token.value)
+          console.log("FCM token registered")
           await saveDeviceToken(token.value)
         })
 
         registrationErrorListener = await PushNotifications.addListener(
           "registrationError",
           (error) => {
-            setStatus(`Eroare la înregistrare: ${JSON.stringify(error)}`)
             console.error("Push registration error:", error)
           }
         )
@@ -114,9 +103,7 @@ export default function NativePushSetup() {
         )
 
         await PushNotifications.register()
-        setStatus("Se încearcă înregistrarea la FCM...")
-      } catch (error: any) {
-        setStatus(`Eroare init push: ${error?.message || String(error)}`)
+      } catch (error) {
         console.error("Native push init error:", error)
       }
     }
@@ -131,16 +118,5 @@ export default function NativePushSetup() {
     }
   }, [isNativePlatform])
 
-  if (!isNativePlatform) {
-    return null
-  }
-
-  return (
-    <div className="fixed bottom-24 left-2 right-2 z-[9999] rounded-2xl border bg-white p-3 text-xs shadow-lg">
-      <div><strong>Push status:</strong> {status}</div>
-      <div className="mt-2 break-all">
-        <strong>FCM token:</strong> {token || "încă nu există"}
-      </div>
-    </div>
-  )
+  return null
 }

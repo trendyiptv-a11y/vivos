@@ -59,6 +59,18 @@ export default function NativePushSetup() {
 
     const initPush = async () => {
       try {
+        try {
+          await PushNotifications.createChannel({
+            id: "default",
+            name: "General",
+            description: "Notificări generale VIVOS",
+            importance: 5,
+            visibility: 1,
+          })
+        } catch (channelError) {
+          console.warn("Create notification channel warning:", channelError)
+        }
+
         const permStatus = await PushNotifications.checkPermissions()
         setStatus(`Permisiune curentă: ${permStatus.receive}`)
 

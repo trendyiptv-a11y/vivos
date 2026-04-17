@@ -417,7 +417,14 @@ export default function ConversationPage() {
 
       if (markError) {
         console.error("Mark conversation notifications read error:", markError)
+        return
       }
+
+      emitWindowEvent("vivos:notifications-updated", {
+        source: "conversation-opened",
+        conversationId,
+        count: notificationIdsToMark.length,
+      })
     } catch (error) {
       console.error("Conversation notification cleanup error:", error)
     }

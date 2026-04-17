@@ -5,6 +5,29 @@ import { Capacitor } from "@capacitor/core"
 import { PushNotifications } from "@capacitor/push-notifications"
 import { supabase } from "@/lib/supabase/client"
 
+function getNotificationNavigationUrl(action: any): string | null {
+  const data = action?.notification?.data || action?.notification || {}
+  const actionId = String(action?.actionId || "").toLowerCase()
+
+  if (actionId === "answer" && typeof data.answerUrl === "string" && data.answerUrl) {
+    return data.answerUrl
+  }
+
+  if (actionId === "decline" && typeof data.declineUrl === "string" && data.declineUrl) {
+    return data.declineUrl
+  }
+
+  if (typeof data.url === "string" && data.url) {
+    return data.url
+  }
+
+  if (typeof data.conversationId === "string" && data.conversationId) {
+    return `/messages/${data.conversationId}`
+  }
+
+  return null
+}
+
 export default function NativePushSetup() {
   const isNativePlatform = Capacitor.isNativePlatform()
 
@@ -17,6 +40,18 @@ export default function NativePushSetup() {
     let registrationErrorListener: any
     let receivedListener: any
     let actionListener: any
+
+    const navigateFromPushAction = (action: any) => {
+      try {
+        const targetUrl = getNotificationNavigationUrl(action)
+        if (!targetUrl) return
+
+        const normalizedUrl = targetUrl.startsWith("/") ? targetUrl : `/${targetUrl}`
+        window.location.assign(normalizedUrl)
+      } catch (error) {
+        console.error("Push action navigation error:", error)
+      }
+    }
 
     const saveDeviceToken = async (fcmToken: string) => {
       try {
@@ -99,6 +134,7 @@ export default function NativePushSetup() {
           "pushNotificationActionPerformed",
           (action) => {
             console.log("Push action performed:", action)
+            navigateFromPushAction(action)
           }
         )
 

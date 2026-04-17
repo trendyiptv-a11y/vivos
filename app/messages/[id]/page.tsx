@@ -27,6 +27,12 @@ type IncomingCall = {
   fromUserId: string
 }
 
+type RuntimeNetworkDetail = {
+  connected?: boolean
+  connectionType?: string
+  source?: string
+}
+
 function sortMessages(list: Message[]) {
   return [...list].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -79,6 +85,8 @@ export default function ConversationPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [audioPermissionMessage, setAudioPermissionMessage] = useState<string | null>(null)
+  const [isOffline, setIsOffline] = useState(false)
+  const [connectionLabel, setConnectionLabel] = useState<string | null>(null)
 
   const [callUiState, setCallUiState] = useState<CallUiState>("idle")
   const [callBusy, setCallBusy] = useState(false)
@@ -349,6 +357,16 @@ export default function ConversationPage() {
     setMembers(normalizedMembers)
   }, [conversationId])
 
+  const refreshConversationState = useCallback(async () => {
+    if (!userId) return
+
+    await Promise.all([
+      markActiveConversation(userId),
+      loadMessagesOnly(),
+      loadMembersOnly(),
+    ])
+  }, [userId, markActiveConversation, loadMessagesOnly, loadMembersOnly])
+
   useEffect(() => {
     async function loadInitial() {
       setLoading(true)
@@ -381,24 +399,37 @@ export default function ConversationPage() {
 
     const handleVisibility = async () => {
       if (document.visibilityState === "visible") {
-        await markActiveConversation(userId)
-        await loadMessagesOnly()
-        await loadMembersOnly()
+        await refreshConversationState()
       } else {
         await clearActiveConversation(userId)
       }
     }
 
     const handleFocus = async () => {
-      await markActiveConversation(userId)
-      await loadMessagesOnly()
-      await loadMembersOnly()
+      await refreshConversationState()
     }
 
     const handleOnline = async () => {
-      await markActiveConversation(userId)
-      await loadMessagesOnly()
-      await loadMembersOnly()
+      setIsOffline(false)
+      setConnectionLabel("browser-online")
+      await refreshConversationState()
+    }
+
+    const handleNativeAppActive = async () => {
+      await refreshConversationState()
+    }
+
+    const handleNativeNetworkChange = async (event: Event) => {
+      const detail = (event as CustomEvent<RuntimeNetworkDetail>).detail || {}
+      const connected = Boolean(detail.connected)
+      const connectionType = typeof detail.connectionType === "string" ? detail.connectionType : null
+
+      setIsOffline(!connected)
+      setConnectionLabel(connectionType)
+
+      if (connected) {
+        await refreshConversationState()
+      }
     }
 
     const heartbeat = window.setInterval(() => {
@@ -410,21 +441,19 @@ export default function ConversationPage() {
     document.addEventListener("visibilitychange", handleVisibility)
     window.addEventListener("focus", handleFocus)
     window.addEventListener("online", handleOnline)
+    window.addEventListener("vivos:app-active", handleNativeAppActive as EventListener)
+    window.addEventListener("vivos:network-change", handleNativeNetworkChange as EventListener)
 
     return () => {
       window.clearInterval(heartbeat)
       document.removeEventListener("visibilitychange", handleVisibility)
       window.removeEventListener("focus", handleFocus)
       window.removeEventListener("online", handleOnline)
+      window.removeEventListener("vivos:app-active", handleNativeAppActive as EventListener)
+      window.removeEventListener("vivos:network-change", handleNativeNetworkChange as EventListener)
       clearActiveConversation(userId)
     }
-  }, [
-    userId,
-    markActiveConversation,
-    clearActiveConversation,
-    loadMessagesOnly,
-    loadMembersOnly,
-  ])
+  }, [userId, refreshConversationState, clearActiveConversation, markActiveConversation])
 
   useEffect(() => {
     const channel = supabase
@@ -1127,8 +1156,8 @@ export default function ConversationPage() {
               <Button
                 className="rounded-2xl px-5 disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={handleStartCall}
-                disabled={callBusy || !otherMember}
-                title={!otherMember ? "Conversația nu are încă membrul încărcat" : ""}
+                disabled={callBusy || !otherMember || isOffline}
+                title={!otherMember ? "Conversația nu are încă membrul încărcat" : isOffline ? "Conexiune indisponibilă" : ""}
               >
                 {callBusy ? "Se inițiază..." : "Apelează"}
               </Button>
@@ -1167,6 +1196,18 @@ export default function ConversationPage() {
         </div>
 
         <div className="grid flex-1 gap-4 px-4 pb-24 sm:px-6">
+          {isOffline ? (
+            <Card className="rounded-3xl border border-rose-200 bg-rose-50 shadow-sm">
+              <CardContent className="p-4">
+                <p className="text-sm font-semibold text-rose-900">Fără conexiune</p>
+                <p className="mt-1 text-sm text-rose-800">
+                  VIVOS nu poate sincroniza conversația acum. Revino online pentru mesaje și apeluri.
+                  {connectionLabel ? ` Rețea curentă: ${connectionLabel}.` : ""}
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
+
           {audioPermissionMessage ? (
             <Card className="rounded-3xl border border-amber-200 bg-amber-50 shadow-sm">
               <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1240,9 +1281,10 @@ export default function ConversationPage() {
                   onChange={(e) => setBody(e.target.value)}
                   className="min-h-[120px] w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                   placeholder="Scrie mesajul tău..."
+                  disabled={isOffline}
                 />
 
-                <Button type="submit" className="rounded-2xl px-6" disabled={sending}>
+                <Button type="submit" className="rounded-2xl px-6" disabled={sending || isOffline}>
                   {sending ? "Se trimite..." : "Trimite"}
                 </Button>
               </form>
@@ -1272,7 +1314,7 @@ export default function ConversationPage() {
                     <button
                       type="button"
                       onClick={handleAcceptCall}
-                      disabled={callBusy}
+                      disabled={callBusy || isOffline}
                       className="rounded-2xl bg-emerald-600 px-4 py-4 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
                     >
                       {callBusy ? "Se acceptă..." : "Răspunde"}

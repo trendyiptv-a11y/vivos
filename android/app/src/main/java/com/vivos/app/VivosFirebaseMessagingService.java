@@ -6,6 +6,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
@@ -174,7 +175,8 @@ public class VivosFirebaseMessagingService extends FirebaseMessagingService {
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build();
-        callChannel.setSound(Uri.parse("android.resource://" + getPackageName() + "/raw/incoming_call"), audioAttributes);
+        Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+        callChannel.setSound(ringtoneUri, audioAttributes);
 
         manager.createNotificationChannel(callChannel);
     }

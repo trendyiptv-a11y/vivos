@@ -2,8 +2,11 @@
 
 import { useEffect } from "react"
 import { Capacitor } from "@capacitor/core"
+import { App } from "@capacitor/app"
 import { PushNotifications } from "@capacitor/push-notifications"
 import { supabase } from "@/lib/supabase/client"
+
+const PENDING_PUSH_URL_KEY = "vivos:pending-push-url"
 
 function getNotificationData(source: any) {
   return source?.notification?.data || source?.notification || source?.data || {}
@@ -56,6 +59,37 @@ function emitForegroundPushEvent(notification: any) {
   }
 }
 
+function normalizeUrl(targetUrl: string | null) {
+  if (!targetUrl) return null
+  return targetUrl.startsWith("/") ? targetUrl : `/${targetUrl}`
+}
+
+function savePendingPushUrl(targetUrl: string | null) {
+  try {
+    const normalizedUrl = normalizeUrl(targetUrl)
+    if (!normalizedUrl) return
+    window.localStorage.setItem(PENDING_PUSH_URL_KEY, normalizedUrl)
+  } catch (error) {
+    console.error("Save pending push URL error:", error)
+  }
+}
+
+function readPendingPushUrl() {
+  try {
+    return window.localStorage.getItem(PENDING_PUSH_URL_KEY)
+  } catch {
+    return null
+  }
+}
+
+function clearPendingPushUrl() {
+  try {
+    window.localStorage.removeItem(PENDING_PUSH_URL_KEY)
+  } catch (error) {
+    console.error("Clear pending push URL error:", error)
+  }
+}
+
 export default function NativePushSetup() {
   const isNativePlatform = Capacitor.isNativePlatform()
 
@@ -68,20 +102,53 @@ export default function NativePushSetup() {
     let registrationErrorListener: any
     let receivedListener: any
     let actionListener: any
+    let appStateListener: any
 
-    const navigateToUrl = (targetUrl: string | null) => {
+    const navigateToUrl = (targetUrl: string | null, options?: { force?: boolean }) => {
       try {
-        if (!targetUrl) return
-        const normalizedUrl = targetUrl.startsWith("/") ? targetUrl : `/${targetUrl}`
-        if (window.location.pathname + window.location.search === normalizedUrl) return
+        const normalizedUrl = normalizeUrl(targetUrl)
+        if (!normalizedUrl) return false
+
+        if (!options?.force && window.location.pathname + window.location.search === normalizedUrl) {
+          clearPendingPushUrl()
+          return true
+        }
+
+        savePendingPushUrl(normalizedUrl)
         window.location.assign(normalizedUrl)
+        return true
       } catch (error) {
         console.error("Push navigation error:", error)
+        return false
+      }
+    }
+
+    const flushPendingPushUrl = (options?: { force?: boolean }) => {
+      const pendingUrl = readPendingPushUrl()
+      if (!pendingUrl) return false
+
+      const currentUrl = window.location.pathname + window.location.search
+      if (!options?.force && currentUrl === pendingUrl) {
+        clearPendingPushUrl()
+        return true
+      }
+
+      try {
+        window.location.assign(pendingUrl)
+        return true
+      } catch (error) {
+        console.error("Flush pending push URL error:", error)
+        return false
       }
     }
 
     const navigateFromPushAction = (action: any) => {
-      navigateToUrl(getNotificationNavigationUrl(action))
+      const targetUrl = getNotificationNavigationUrl(action)
+      if (!targetUrl) return
+      savePendingPushUrl(targetUrl)
+      window.setTimeout(() => {
+        navigateToUrl(targetUrl, { force: true })
+      }, 150)
     }
 
     const handleForegroundNotification = (notification: any) => {
@@ -91,7 +158,12 @@ export default function NativePushSetup() {
       const notificationType = String(data.notificationType || "")
 
       if (notificationType === "incoming_call") {
-        navigateToUrl(getNotificationNavigationUrl(notification))
+        const targetUrl = getNotificationNavigationUrl(notification)
+        if (!targetUrl) return
+        savePendingPushUrl(targetUrl)
+        window.setTimeout(() => {
+          navigateToUrl(targetUrl)
+        }, 150)
       }
     }
 
@@ -128,8 +200,36 @@ export default function NativePushSetup() {
       }
     }
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        window.setTimeout(() => {
+          flushPendingPushUrl()
+        }, 100)
+      }
+    }
+
+    const handleFocus = () => {
+      window.setTimeout(() => {
+        flushPendingPushUrl()
+      }, 100)
+    }
+
     const initPush = async () => {
       try {
+        try {
+          await PushNotifications.createChannel({
+            id: "incoming_calls",
+            name: "Apeluri",
+            description: "Notificări pentru apeluri incoming",
+            importance: 5,
+            visibility: 1,
+            sound: "default",
+            vibration: true,
+          })
+        } catch (channelError) {
+          console.warn("Create incoming_calls channel warning:", channelError)
+        }
+
         try {
           await PushNotifications.createChannel({
             id: "default",
@@ -139,7 +239,7 @@ export default function NativePushSetup() {
             visibility: 1,
           })
         } catch (channelError) {
-          console.warn("Create notification channel warning:", channelError)
+          console.warn("Create default channel warning:", channelError)
         }
 
         const permStatus = await PushNotifications.checkPermissions()
@@ -181,6 +281,21 @@ export default function NativePushSetup() {
           }
         )
 
+        appStateListener = await App.addListener("appStateChange", ({ isActive }) => {
+          if (isActive) {
+            window.setTimeout(() => {
+              flushPendingPushUrl()
+            }, 150)
+          }
+        })
+
+        document.addEventListener("visibilitychange", handleVisibilityChange)
+        window.addEventListener("focus", handleFocus)
+
+        window.setTimeout(() => {
+          flushPendingPushUrl()
+        }, 250)
+
         await PushNotifications.register()
       } catch (error) {
         console.error("Native push init error:", error)
@@ -194,6 +309,9 @@ export default function NativePushSetup() {
       registrationErrorListener?.remove?.()
       receivedListener?.remove?.()
       actionListener?.remove?.()
+      appStateListener?.remove?.()
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("focus", handleFocus)
     }
   }, [isNativePlatform])
 

@@ -23,7 +23,7 @@ const items = [
   { label: "Membri", href: "/", tab: "members", icon: Users, eventTypes: [] },
   { label: "Mesaje", href: "/messages", tab: null, icon: MessageCircle, eventTypes: ["new_message"] },
   { label: "Piață", href: "/market", tab: null, icon: ShoppingBag, eventTypes: ["market_post_created"] },
-  { label: "Fond", href: "/fund/new", tab: null, icon: HeartHandshake, eventTypes: ["fund_request_created"] },
+  { label: "Fond", href: "/", tab: "fund", icon: HeartHandshake, eventTypes: ["fund_request_created"] },
 ]
 
 function BadgeBubble({ count }: { count: number }) {
@@ -157,8 +157,7 @@ function MobileBottomNavInner() {
                 {item.label}
               </span>
             </button>
-          )
-        })}
+          )}
       </div>
     </nav>
   )

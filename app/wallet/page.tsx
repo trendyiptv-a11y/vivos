@@ -28,6 +28,13 @@ type WalletTransaction = {
   created_at: string
 }
 
+function formatTalents(value: number | string | null | undefined) {
+  return Number(value || 0).toLocaleString("ro-RO", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 export default function WalletPage() {
   const router = useRouter()
 
@@ -240,7 +247,7 @@ export default function WalletPage() {
               <CardTitle className="text-base">Sold curent</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-semibold">{Number(account?.balance || 0).toFixed(2)}</p>
+              <p className="text-3xl font-semibold">{formatTalents(account?.balance)}</p>
               <p className="mt-2 text-sm text-slate-500">talanți</p>
             </CardContent>
           </Card>
@@ -250,7 +257,7 @@ export default function WalletPage() {
               <CardTitle className="text-base">Total primit</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-semibold">{totalReceived.toFixed(2)}</p>
+              <p className="text-3xl font-semibold">{formatTalents(totalReceived)}</p>
               <p className="mt-2 text-sm text-slate-500">talanți</p>
             </CardContent>
           </Card>
@@ -260,7 +267,7 @@ export default function WalletPage() {
               <CardTitle className="text-base">Total trimis</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-semibold">{totalSent.toFixed(2)}</p>
+              <p className="text-3xl font-semibold">{formatTalents(totalSent)}</p>
               <p className="mt-2 text-sm text-slate-500">talanți</p>
             </CardContent>
           </Card>
@@ -361,7 +368,7 @@ export default function WalletPage() {
                         </div>
                         <p className="text-lg font-semibold">
                           {incoming ? "+" : "-"}
-                          {Number(tx.amount).toFixed(2)}
+                          {formatTalents(tx.amount)}
                         </p>
                       </div>
                       <p className="mt-2 text-xs text-slate-500">

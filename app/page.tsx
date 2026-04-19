@@ -299,6 +299,16 @@ function Shell({
                             className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
                             onClick={() => {
                               setProfileMenuOpen(false)
+                              window.location.href = "/downloads/manifest.html"
+                            }}
+                          >
+                            Manifest VIVOS
+                          </button>
+
+                          <button
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                            onClick={() => {
+                              setProfileMenuOpen(false)
                               setActive("settings")
                             }}
                           >

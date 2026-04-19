@@ -3,11 +3,11 @@
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
-  HeartHandshake,
   Home,
   MessageCircle,
   ShoppingBag,
   Users,
+  Wallet,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { motion, AnimatePresence } from "framer-motion"
@@ -23,7 +23,7 @@ const items = [
   { label: "Membri", href: "/", tab: "members", icon: Users, eventTypes: [] },
   { label: "Mesaje", href: "/messages", tab: null, icon: MessageCircle, eventTypes: ["new_message"] },
   { label: "Piață", href: "/market", tab: null, icon: ShoppingBag, eventTypes: ["market_post_created"] },
-  { label: "Fond", href: "/", tab: "fund", icon: HeartHandshake, eventTypes: ["fund_request_created"] },
+  { label: "Portofel", href: "/wallet", tab: null, icon: Wallet, eventTypes: [] },
 ]
 
 function BadgeBubble({ count }: { count: number }) {

@@ -467,24 +467,14 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
           </Button>
 
           <Button
-            variant="outline"
-            className="h-12 justify-start"
-            onClick={() => {
-              window.location.href = "/fund/new"
-            }}
-          >
-            Cere sprijin
-          </Button>
-
-          <Button
-            variant="outline"
-            className="h-12 justify-start"
-            onClick={() => {
-              window.location.href = "/wallet"
-            }}
-          >
-            Portofel
-          </Button>
+  variant="outline"
+  className="h-12 justify-start"
+  onClick={() => {
+    window.location.href = "/?tab=fund"
+  }}
+>
+  Fond
+</Button>
         </CardContent>
       </Card>
 

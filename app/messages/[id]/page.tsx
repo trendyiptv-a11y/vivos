@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Bell } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 
 type Message = {
@@ -99,6 +101,7 @@ export default function ConversationPage() {
   const conversationId = String(params.id)
 
   const [userId, setUserId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [body, setBody] = useState("")
@@ -107,6 +110,9 @@ export default function ConversationPage() {
   const [audioPermissionMessage, setAudioPermissionMessage] = useState<string | null>(null)
   const [isOffline, setIsOffline] = useState(false)
   const [connectionLabel, setConnectionLabel] = useState<string | null>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [publicPulseCount, setPublicPulseCount] = useState(0)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
 
   const [callUiState, setCallUiState] = useState<CallUiState>("idle")
   const [callBusy, setCallBusy] = useState(false)
@@ -125,6 +131,90 @@ export default function ConversationPage() {
   const initialScrollDoneRef = useRef(false)
   const shouldStickToBottomRef = useRef(true)
   const previousMessageCountRef = useRef(0)
+  const profileMenuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!profileMenuRef.current) return
+      if (!profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+
+  useEffect(() => {
+    async function loadTopBarState() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      setUserEmail(session?.user?.email ?? null)
+
+      if (!session?.user) {
+        setUnreadCount(0)
+        setPublicPulseCount(0)
+        return
+      }
+
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+      const [{ count: unread, error: unreadError }, { count: pulse, error: pulseError }] = await Promise.all([
+        supabase
+          .from("notifications")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", session.user.id)
+          .eq("is_read", false),
+        supabase
+          .from("public_activity_feed")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", since),
+      ])
+
+      if (!unreadError) setUnreadCount(unread || 0)
+      if (!pulseError) setPublicPulseCount(pulse || 0)
+    }
+
+    loadTopBarState()
+
+    const notificationsChannel = supabase
+      .channel("conversation-topbar-notifications")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications" },
+        () => {
+          loadTopBarState()
+        }
+      )
+      .subscribe()
+
+    const pulseChannel = supabase
+      .channel("conversation-topbar-pulse")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "public_activity_feed" },
+        () => {
+          loadTopBarState()
+        }
+      )
+      .subscribe()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadTopBarState()
+    })
+
+    return () => {
+      supabase.removeChannel(notificationsChannel)
+      supabase.removeChannel(pulseChannel)
+      subscription.unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     currentCallSessionIdRef.current = currentCallSessionId
@@ -382,7 +472,7 @@ export default function ConversationPage() {
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true })
 
-      if (error) {
+    if (error) {
       console.error("Load messages error:", error)
       return
     }
@@ -510,6 +600,7 @@ export default function ConversationPage() {
       }
 
       setUserId(session.user.id)
+      setUserEmail(session.user.email ?? null)
 
       await Promise.all([
         loadMessagesOnly(),
@@ -1284,19 +1375,142 @@ export default function ConversationPage() {
     callUiState === "incoming" ||
     callUiState === "outgoing" ||
     callUiState === "connected"
+  const showUnreadBadge = !!userEmail && unreadCount > 0
+  const showPublicBadge = !userEmail && publicPulseCount > 0
 
   return (
     <main className="min-h-screen bg-slate-50">
       <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
       <audio ref={ringtoneRef} src="/sounds/incoming-call.mp3" preload="auto" />
 
-      <div className="mx-auto flex min-h-screen max-w-4xl flex-col">
-        <div className="sticky top-0 z-10 mb-4 flex flex-col gap-3 bg-slate-50 px-4 pb-3 pt-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pt-6">
+      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Platforma comunitară</p>
+            <h1 className="truncate text-lg font-semibold sm:text-2xl text-slate-900">
+              {loading ? "Mesaje" : otherName}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="relative">
+              <Button
+                variant="outline"
+                className="rounded-2xl px-3 sm:px-4"
+                onClick={() => {
+                  window.location.href = "/notifications"
+                }}
+              >
+                <Bell className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Notificări</span>
+              </Button>
+
+              {showUnreadBadge && (
+                <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#9A6FC0] px-2 text-xs font-semibold text-white shadow-sm">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </div>
+              )}
+
+              {showPublicBadge && (
+                <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#46C2D8] px-2 text-xs font-semibold text-white shadow-sm">
+                  {publicPulseCount > 99 ? "99+" : publicPulseCount}
+                </div>
+              )}
+            </div>
+
+            {userEmail ? (
+              <>
+                <div className="hidden max-w-[180px] truncate rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 sm:block">
+                  {userEmail}
+                </div>
+
+                <div className="relative" ref={profileMenuRef}>
+                  <button
+                    className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#56B6DE]"
+                    onClick={() => setProfileMenuOpen((prev) => !prev)}
+                  >
+                    <Avatar className="h-10 w-10 rounded-2xl border border-slate-200">
+                      <AvatarFallback className="rounded-2xl bg-[#173F74] text-white">
+                        {userEmail.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+
+                  {profileMenuOpen && (
+                    <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+                      <button
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                        onClick={() => {
+                          setProfileMenuOpen(false)
+                          window.location.href = "/profile"
+                        }}
+                      >
+                        Profil
+                      </button>
+
+                      <button
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                        onClick={() => {
+                          setProfileMenuOpen(false)
+                          window.location.href = "/downloads/manifest.html"
+                        }}
+                      >
+                        Manifest VIVOS
+                      </button>
+
+                      <button
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                        onClick={() => {
+                          setProfileMenuOpen(false)
+                          window.location.href = "/?tab=settings"
+                        }}
+                      >
+                        Setări
+                      </button>
+
+                      <button
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                        onClick={() => {
+                          setProfileMenuOpen(false)
+                          window.location.href = "/?tab=about"
+                        }}
+                      >
+                        Despre
+                      </button>
+
+                      <button
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                        onClick={async () => {
+                          setProfileMenuOpen(false)
+                          await supabase.auth.signOut()
+                          window.location.href = "/"
+                        }}
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <Button
+                className="rounded-2xl"
+                onClick={() => {
+                  window.location.href = "/login"
+                }}
+              >
+                Login
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-4 py-4 sm:px-6 sm:py-6">
+        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-sm text-slate-500">Conversație</p>
-            <h1 className="truncate text-2xl font-semibold sm:text-3xl">
-              {loading ? "Se încarcă..." : otherName}
-            </h1>
+            <h2 className="truncate text-2xl font-semibold sm:text-3xl">{loading ? "Se încarcă..." : otherName}</h2>
             {!loading && !otherMember ? (
               <p className="mt-1 text-sm text-red-500">
                 Conversația nu are încă datele membrului încărcate.
@@ -1348,7 +1562,7 @@ export default function ConversationPage() {
           </div>
         </div>
 
-        <div className="grid flex-1 gap-4 px-4 pb-24 sm:px-6">
+        <div className="grid flex-1 gap-4 pb-24">
           {isOffline ? (
             <Card className="rounded-3xl border border-rose-200 bg-rose-50 shadow-sm">
               <CardContent className="p-4">
@@ -1386,9 +1600,7 @@ export default function ConversationPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {loading ? (
-                <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                  Se încarcă conversația...
-                </div>
+                <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă conversația...</div>
               ) : messages.length === 0 ? (
                 <div className="rounded-2xl border p-4 text-sm text-slate-600">
                   Nu există încă mesaje în această conversație.
@@ -1401,22 +1613,16 @@ export default function ConversationPage() {
                     return (
                       <div
                         key={msg.id}
-                        className={`rounded-2xl border p-4 ${
-                          mine ? "bg-slate-50" : "bg-white"
-                        }`}
+                        className={`rounded-2xl border p-4 ${mine ? "bg-slate-50" : "bg-white"}`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <p className="font-medium">{mine ? "Tu" : otherName}</p>
-                          <p className="text-xs text-slate-500">
-                            {new Date(msg.created_at).toLocaleString("ro-RO")}
-                          </p>
+                          <p className="text-xs text-slate-500">{new Date(msg.created_at).toLocaleString("ro-RO")}</p>
                         </div>
-                        <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
-                          {msg.body}
-                        </p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{msg.body}</p>
                       </div>
-                    )}
-                  )}
+                    )
+                  })}
                   <div ref={bottomRef} />
                 </>
               )}
@@ -1454,9 +1660,7 @@ export default function ConversationPage() {
                 {callInitial}
               </div>
 
-              <h2 className="max-w-full truncate text-2xl font-semibold text-slate-900">
-                {callDisplayName}
-              </h2>
+              <h2 className="max-w-full truncate text-2xl font-semibold text-slate-900">{callDisplayName}</h2>
 
               {callUiState === "incoming" ? (
                 <>
@@ -1506,9 +1710,7 @@ export default function ConversationPage() {
                   <p className="mt-2 text-sm text-emerald-600">Conectat</p>
                   <p className="mt-1 text-xs text-slate-400">Apel audio activ</p>
 
-                  <div className="mt-6 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    Microfon activ
-                  </div>
+                  <div className="mt-6 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Microfon activ</div>
 
                   <button
                     type="button"

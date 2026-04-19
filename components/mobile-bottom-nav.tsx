@@ -157,7 +157,8 @@ function MobileBottomNavInner() {
                 {item.label}
               </span>
             </button>
-          )}
+          )
+        })}
       </div>
     </nav>
   )

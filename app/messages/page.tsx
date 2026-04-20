@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Bell } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
+import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
 
 type ConversationRow = {
   id: string
@@ -99,17 +100,18 @@ export default function MessagesPage() {
 
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-      const [{ count: unread, error: unreadError }, { count: pulse, error: pulseError }] = await Promise.all([
-        supabase
-          .from("notifications")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", session.user.id)
-          .eq("is_read", false),
-        supabase
-          .from("public_activity_feed")
-          .select("*", { count: "exact", head: true })
-          .gte("created_at", since),
-      ])
+      const [{ count: unread, error: unreadError }, { count: pulse, error: pulseError }] =
+        await Promise.all([
+          supabase
+            .from("notifications")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", session.user.id)
+            .eq("is_read", false),
+          supabase
+            .from("public_activity_feed")
+            .select("*", { count: "exact", head: true })
+            .gte("created_at", since),
+        ])
 
       if (!unreadError) setUnreadCount(unread || 0)
       if (!pulseError) setPublicPulseCount(pulse || 0)
@@ -119,24 +121,16 @@ export default function MessagesPage() {
 
     const notificationsChannel = supabase
       .channel("messages-topbar-notifications")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications" },
-        () => {
-          loadTopBarState()
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
+        loadTopBarState()
+      })
       .subscribe()
 
     const pulseChannel = supabase
       .channel("messages-topbar-pulse")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "public_activity_feed" },
-        () => {
-          loadTopBarState()
-        }
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "public_activity_feed" }, () => {
+        loadTopBarState()
+      })
       .subscribe()
 
     const {
@@ -170,10 +164,7 @@ export default function MessagesPage() {
 
       const [{ data: convData, error: convError }, { data: hiddenData, error: hiddenError }] =
         await Promise.all([
-          supabase
-            .from("conversations")
-            .select("id, created_at")
-            .order("created_at", { ascending: false }),
+          supabase.from("conversations").select("id, created_at").order("created_at", { ascending: false }),
           supabase
             .from("conversation_hidden_for_users")
             .select("conversation_id")
@@ -303,20 +294,12 @@ export default function MessagesPage() {
 
     const channel = supabase
       .channel("messages-list-refresh")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages" },
-        () => {
-          load()
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications" },
-        () => {
-          load()
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
+        load()
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
+        load()
+      })
       .subscribe()
 
     return () => {
@@ -330,7 +313,7 @@ export default function MessagesPage() {
         const memberGroup = conversationMembers.find((group) => group.conversation_id === conv.id)
         const other = memberGroup?.members.find((m) => m.member_id !== userId) ?? null
         const latest = latestMessages.find((m) => m.conversation_id === conv.id)
-        const unreadCount = unreadConversationCounts[conv.id] ?? 0
+        const unreadCountForConversation = unreadConversationCounts[conv.id] ?? 0
 
         const displayName =
           other?.name?.trim() ||
@@ -344,8 +327,8 @@ export default function MessagesPage() {
           email: other?.email?.trim() || null,
           preview: latest?.body || "Fără mesaje încă",
           date: latest?.created_at || conv.created_at,
-          hasUnread: unreadCount > 0,
-          unreadCount,
+          hasUnread: unreadCountForConversation > 0,
+          unreadCount: unreadCountForConversation,
         }
       })
       .sort((a, b) => {
@@ -360,35 +343,71 @@ export default function MessagesPage() {
   const showPublicBadge = !userEmail && publicPulseCount > 0
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+    <main
+      className="min-h-screen"
+      style={{ background: vivosTheme.gradients.appBackground }}
+    >
+      <header
+        className="sticky top-0 z-10 border-b backdrop-blur-xl"
+        style={{
+          background: vivosTheme.styles.bottomNav.background,
+          borderColor: vivosTheme.styles.bottomNav.borderColor,
+          boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
+        }}
+      >
+        <div className="flex min-h-[84px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Platforma comunitară</p>
-            <h1 className="truncate text-lg font-semibold sm:text-2xl text-slate-900">Mesaje</h1>
+            <p
+              className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
+              style={{ color: "rgba(255,255,255,0.68)" }}
+            >
+              Platforma comunitară
+            </p>
+            <h1
+              className="truncate text-lg font-semibold sm:text-2xl"
+              style={{ color: vivosTheme.colors.white }}
+            >
+              Mesaje
+            </h1>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative">
-              <Button
-                variant="outline"
-                className="rounded-2xl px-3 sm:px-4"
+              <button
+                type="button"
+                className="flex h-12 w-12 items-center justify-center rounded-2xl border transition"
+                style={{
+                  borderColor: "rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.10)",
+                  color: vivosTheme.colors.white,
+                }}
                 onClick={() => {
                   window.location.href = "/notifications"
                 }}
               >
-                <Bell className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Notificări</span>
-              </Button>
+                <Bell className="h-5 w-5" />
+              </button>
 
               {showUnreadBadge && (
-                <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#9A6FC0] px-2 text-xs font-semibold text-white shadow-sm">
+                <div
+                  className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white"
+                  style={{
+                    background: vivosTheme.colors.purple,
+                    boxShadow: vivosTheme.shadows.soft,
+                  }}
+                >
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </div>
               )}
 
               {showPublicBadge && (
-                <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#46C2D8] px-2 text-xs font-semibold text-white shadow-sm">
+                <div
+                  className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white"
+                  style={{
+                    background: vivosTheme.colors.teal,
+                    boxShadow: vivosTheme.shadows.soft,
+                  }}
+                >
                   {publicPulseCount > 99 ? "99+" : publicPulseCount}
                 </div>
               )}
@@ -396,26 +415,45 @@ export default function MessagesPage() {
 
             {userEmail ? (
               <>
-                <div className="hidden max-w-[180px] truncate rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 sm:block">
+                <div
+                  className="hidden max-w-[180px] truncate rounded-2xl border px-3 py-2 text-sm sm:block"
+                  style={{
+                    borderColor: "rgba(255,255,255,0.10)",
+                    background: "rgba(255,255,255,0.08)",
+                    color: "rgba(255,255,255,0.78)",
+                  }}
+                >
                   {userEmail}
                 </div>
 
                 <div className="relative" ref={profileMenuRef}>
                   <button
-                    className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#56B6DE]"
+                    className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                     onClick={() => setProfileMenuOpen((prev) => !prev)}
                   >
-                    <Avatar className="h-10 w-10 rounded-2xl border border-slate-200">
-                      <AvatarFallback className="rounded-2xl bg-[#173F74] text-white">
+                    <Avatar className="h-10 w-10 rounded-2xl border border-white/15 shadow-sm">
+                      <AvatarFallback
+                        className="rounded-2xl text-white"
+                        style={{
+                          background: getVivosAvatarGradient(userEmail),
+                        }}
+                      >
                         {userEmail.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </button>
 
                   {profileMenuOpen && (
-                    <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+                    <div
+                      className="absolute right-0 top-12 z-50 w-48 rounded-2xl border p-2 shadow-lg"
+                      style={{
+                        background: "rgba(18,46,84,0.98)",
+                        borderColor: "rgba(255,255,255,0.10)",
+                        boxShadow: vivosTheme.shadows.modal,
+                      }}
+                    >
                       <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
                         onClick={() => {
                           setProfileMenuOpen(false)
                           window.location.href = "/profile"
@@ -425,7 +463,7 @@ export default function MessagesPage() {
                       </button>
 
                       <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
                         onClick={() => {
                           setProfileMenuOpen(false)
                           window.location.href = "/downloads/manifest.html"
@@ -435,7 +473,7 @@ export default function MessagesPage() {
                       </button>
 
                       <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
                         onClick={() => {
                           setProfileMenuOpen(false)
                           window.location.href = "/?tab=settings"
@@ -445,7 +483,7 @@ export default function MessagesPage() {
                       </button>
 
                       <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
                         onClick={() => {
                           setProfileMenuOpen(false)
                           window.location.href = "/?tab=about"
@@ -455,7 +493,7 @@ export default function MessagesPage() {
                       </button>
 
                       <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 transition hover:bg-white/10"
                         onClick={async () => {
                           setProfileMenuOpen(false)
                           await supabase.auth.signOut()
@@ -470,7 +508,12 @@ export default function MessagesPage() {
               </>
             ) : (
               <Button
-                className="rounded-2xl"
+                className="rounded-2xl border-0"
+                style={{
+                  background: vivosTheme.gradients.activeIcon,
+                  color: vivosTheme.colors.white,
+                  boxShadow: vivosTheme.shadows.bubble,
+                }}
                 onClick={() => {
                   window.location.href = "/login"
                 }}

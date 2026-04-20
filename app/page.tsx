@@ -16,7 +16,7 @@ import {
   HeartHandshake,
   MessageSquare,
   Search,
-  LayoutDashboard, 
+  LayoutDashboard,
   Settings,
   Shield,
   ShoppingBag,
@@ -26,6 +26,7 @@ import {
 import { motion } from "framer-motion"
 import { supabase } from "@/lib/supabase/client"
 import PushSubscribeButton from "@/components/push/push-subscribe-button"
+import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
 
 const navItems = [
   { id: "dashboard", label: "Acasă", icon: LayoutDashboard },
@@ -39,7 +40,6 @@ const navItems = [
   { id: "governance", label: "Guvernanță", icon: Shield },
   { id: "settings", label: "Setări", icon: Settings },
 ] as const
-
 
 const walletEntries = [
   { label: "Schimb confirmat", amount: "+120", meta: "Reparații electrice" },
@@ -67,6 +67,7 @@ type ProfileMember = {
   created_at?: string | null
 }
 type MemberFilter = "all" | "offers" | "needs" | "skills"
+
 type MarketPost = {
   id: string
   author_id: string
@@ -106,8 +107,6 @@ type ShellProps = {
   unreadCount: number
   publicPulseCount: number
 }
-
-
 
 function TabSync({ setActive }: { setActive: (value: string) => void }) {
   const searchParams = useSearchParams()
@@ -175,22 +174,43 @@ function Shell({
   return (
     <div className="vivos-shell">
       <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
-        <aside className="hidden border-r border-slate-200 bg-white/95 backdrop-blur lg:block">
-          <div className="flex h-20 items-center gap-3 border-b border-slate-200 px-6">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl overflow-hidden shadow-sm">
-  <img src="/icons/icon-192.png" alt="VIVOS" className="h-11 w-11 object-cover" />
-</div>
+        <aside
+          className="hidden border-r backdrop-blur lg:block"
+          style={{
+            background: "rgba(255,255,255,0.88)",
+            borderColor: vivosTheme.colors.borderSoft,
+          }}
+        >
+          <div
+            className="flex h-20 items-center gap-3 border-b px-6"
+            style={{ borderColor: vivosTheme.colors.borderSoft }}
+          >
+            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl shadow-sm">
+              <img src="/icons/icon-192.png" alt="VIVOS" className="h-11 w-11 object-cover" />
+            </div>
 
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] vivos-muted">Rețea vie</p>
-              <h1 className="text-xl font-semibold vivos-title">VIVOS</h1>
+              <p className="text-xs uppercase tracking-[0.24em]" style={{ color: "#7A8598" }}>
+                Rețea vie
+              </p>
+              <h1 className="text-xl font-semibold" style={{ color: "#173F72" }}>
+                VIVOS
+              </h1>
             </div>
           </div>
 
           <div className="p-4">
-            <div className="mb-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs vivos-muted">Spațiu comunitar</p>
-              <p className="mt-1 text-sm font-medium vivos-title">
+            <div
+              className="mb-4 rounded-3xl border p-4"
+              style={{
+                background: "linear-gradient(135deg, rgba(23,63,114,0.06), rgba(99,166,230,0.08))",
+                borderColor: vivosTheme.colors.borderSoft,
+              }}
+            >
+              <p className="text-xs uppercase tracking-[0.18em]" style={{ color: "#7A8598" }}>
+                Spațiu comunitar
+              </p>
+              <p className="mt-1 text-sm font-medium" style={{ color: "#173F72" }}>
                 Ordine vie, schimb și sprijin mutual
               </p>
             </div>
@@ -204,11 +224,18 @@ function Shell({
                   <button
                     key={item.id}
                     onClick={() => setActive(item.id)}
-                    className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
+                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition"
+                    style={
                       isActive
-                        ? "bg-[#173F74] text-white shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100"
-                    }`}
+                        ? {
+                            background: vivosTheme.gradients.activeIcon,
+                            color: vivosTheme.colors.white,
+                            boxShadow: vivosTheme.shadows.bubble,
+                          }
+                        : {
+                            color: "#556277",
+                          }
+                    }
                   >
                     <Icon className="h-4 w-4" />
                     <span>{item.label}</span>
@@ -220,20 +247,38 @@ function Shell({
         </aside>
 
         <main className="flex min-h-screen flex-col pb-12 lg:pb-0">
-          <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
+          <header
+            className="sticky top-0 z-10 border-b backdrop-blur-xl"
+            style={{
+              background: "rgba(255,255,255,0.88)",
+              borderColor: vivosTheme.colors.borderSoft,
+            }}
+          >
             <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-[0.2em] vivos-muted">
+                <p
+                  className="text-xs uppercase tracking-[0.22em]"
+                  style={{ color: "#7A8598" }}
+                >
                   Platforma comunitară
                 </p>
-                <h2 className="truncate text-lg font-semibold sm:text-2xl vivos-title">
+                <h2
+                  className="truncate text-lg font-semibold sm:text-2xl"
+                  style={{ color: "#172033" }}
+                >
                   {active === "dashboard" ? "VIVOS" : activeLabel}
                 </h2>
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 md:flex">
-                  <Search className="h-4 w-4 text-slate-500" />
+                <div
+                  className="hidden items-center gap-2 rounded-2xl border px-3 py-2 md:flex"
+                  style={{
+                    borderColor: vivosTheme.colors.borderSoft,
+                    background: "rgba(23,63,114,0.04)",
+                  }}
+                >
+                  <Search className="h-4 w-4" style={{ color: "#7A8598" }} />
                   <Input
                     className="h-auto w-48 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
                     placeholder="Caută membri, decizii, schimburi..."
@@ -241,25 +286,40 @@ function Shell({
                 </div>
 
                 <div className="relative">
-                  <Button
-                    variant="outline"
-                    className="rounded-2xl px-3 sm:px-4"
+                  <button
+                    type="button"
+                    className="flex h-12 w-12 items-center justify-center rounded-2xl border transition"
+                    style={{
+                      borderColor: vivosTheme.colors.borderSoft,
+                      background: "rgba(255,255,255,0.72)",
+                    }}
                     onClick={() => {
                       window.location.href = "/notifications"
                     }}
                   >
-                    <Bell className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Notificări</span>
-                  </Button>
+                    <Bell className="h-5 w-5" style={{ color: "#1F2A3D" }} />
+                  </button>
 
                   {showUnreadBadge && (
-                    <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#9A6FC0] px-2 text-xs font-semibold text-white shadow-sm">
+                    <div
+                      className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white"
+                      style={{
+                        background: vivosTheme.colors.purple,
+                        boxShadow: vivosTheme.shadows.soft,
+                      }}
+                    >
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </div>
                   )}
 
                   {showPublicBadge && (
-                    <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#46C2D8] px-2 text-xs font-semibold text-white shadow-sm">
+                    <div
+                      className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white"
+                      style={{
+                        background: vivosTheme.colors.teal,
+                        boxShadow: vivosTheme.shadows.soft,
+                      }}
+                    >
                       {publicPulseCount > 99 ? "99+" : publicPulseCount}
                     </div>
                   )}
@@ -267,26 +327,46 @@ function Shell({
 
                 {userEmail ? (
                   <>
-                    <div className="hidden max-w-[180px] truncate rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm vivos-muted sm:block">
+                    <div
+                      className="hidden max-w-[200px] truncate rounded-2xl border px-3 py-2 text-sm sm:block"
+                      style={{
+                        borderColor: vivosTheme.colors.borderSoft,
+                        background: "rgba(255,255,255,0.7)",
+                        color: "#6A7486",
+                      }}
+                    >
                       {userEmail}
                     </div>
 
                     <div className="relative" ref={profileMenuRef}>
                       <button
-                        className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#56B6DE]"
+                        className="rounded-2xl focus:outline-none focus-visible:ring-2"
+                        style={{ outline: "none" }}
                         onClick={() => setProfileMenuOpen((prev) => !prev)}
                       >
-                        <Avatar className="h-10 w-10 rounded-2xl border border-slate-200">
-                          <AvatarFallback className="rounded-2xl bg-[#173F74] text-white">
+                        <Avatar className="h-12 w-12 rounded-2xl border border-white/20 shadow-sm">
+                          <AvatarFallback
+                            className="rounded-2xl text-white"
+                            style={{
+                              background: getVivosAvatarGradient(userEmail),
+                            }}
+                          >
                             {userEmail.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                       </button>
 
                       {profileMenuOpen && (
-                        <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+                        <div
+                          className="absolute right-0 top-14 z-50 w-52 rounded-2xl border p-2 shadow-lg"
+                          style={{
+                            background: "rgba(255,255,255,0.96)",
+                            borderColor: vivosTheme.colors.borderSoft,
+                            boxShadow: vivosTheme.shadows.modal,
+                          }}
+                        >
                           <button
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-slate-100"
                             onClick={() => {
                               setProfileMenuOpen(false)
                               window.location.href = "/profile"
@@ -296,7 +376,7 @@ function Shell({
                           </button>
 
                           <button
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-slate-100"
                             onClick={() => {
                               setProfileMenuOpen(false)
                               window.location.href = "/downloads/manifest.html"
@@ -306,7 +386,7 @@ function Shell({
                           </button>
 
                           <button
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-slate-100"
                             onClick={() => {
                               setProfileMenuOpen(false)
                               setActive("settings")
@@ -316,7 +396,7 @@ function Shell({
                           </button>
 
                           <button
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-slate-100"
                             onClick={() => {
                               setProfileMenuOpen(false)
                               setActive("about")
@@ -326,7 +406,7 @@ function Shell({
                           </button>
 
                           <button
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                            className="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-slate-100"
                             onClick={async () => {
                               setProfileMenuOpen(false)
                               await supabase.auth.signOut()
@@ -342,6 +422,11 @@ function Shell({
                 ) : (
                   <Button
                     className="rounded-2xl"
+                    style={{
+                      background: vivosTheme.gradients.activeIcon,
+                      color: vivosTheme.colors.white,
+                      boxShadow: vivosTheme.shadows.bubble,
+                    }}
                     onClick={() => {
                       window.location.href = "/login"
                     }}
@@ -364,8 +449,6 @@ function Shell({
               {children}
             </motion.div>
           </ScrollArea>
-
-        
         </main>
       </div>
     </div>
@@ -381,8 +464,8 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
       <div className="vivos-hero p-5 sm:p-6">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl overflow-hidden">
-  <img src="/icons/icon-192.png" alt="VIVOS" className="h-12 w-12 object-cover" />
-</div>
+            <img src="/icons/icon-192.png" alt="VIVOS" className="h-12 w-12 object-cover" />
+          </div>
 
           <div className="min-w-0">
             <h3 className="text-2xl font-semibold sm:text-3xl">Bine ai venit în VIVOS</h3>
@@ -467,18 +550,16 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
           </Button>
 
           <Button
-  variant="outline"
-  className="h-12 justify-start"
-  onClick={() => {
-    window.location.href = "/?tab=fund"
-  }}
->
-  Fond
-</Button>
+            variant="outline"
+            className="h-12 justify-start"
+            onClick={() => {
+              window.location.href = "/?tab=fund"
+            }}
+          >
+            Fond
+          </Button>
         </CardContent>
       </Card>
-
-    
     </div>
   )
 }

@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { motion, AnimatePresence } from "framer-motion"
+import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 type NotificationCountRow = {
   event_type: string
@@ -32,11 +33,16 @@ function BadgeBubble({ count }: { count: number }) {
       {count > 0 && (
         <motion.span
           key="badge"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0, opacity: 0 }}
+          initial={{ scale: 0, opacity: 0, y: 2 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0, opacity: 0, y: 2 }}
           transition={{ type: "spring", stiffness: 500, damping: 25 }}
-          className="absolute -right-1.5 -top-1.5 min-w-[18px] rounded-full bg-rose-500 px-1 py-0.5 text-center text-[9px] font-bold leading-none text-white shadow-sm"
+          className="absolute -right-1.5 -top-1.5 min-w-[18px] rounded-full px-1 py-0.5 text-center text-[9px] font-bold leading-none"
+          style={{
+            background: vivosTheme.colors.danger,
+            color: vivosTheme.colors.white,
+            boxShadow: vivosTheme.shadows.soft,
+          }}
         >
           {count > 99 ? "99+" : count}
         </motion.span>
@@ -58,6 +64,7 @@ function MobileBottomNavInner() {
       const {
         data: { session },
       } = await supabase.auth.getSession()
+
       if (!session?.user) {
         setBadges({})
         return
@@ -78,9 +85,11 @@ function MobileBottomNavInner() {
 
       const rows = (data ?? []) as NotificationCountRow[]
       const counts: Record<string, number> = {}
+
       rows.forEach((row) => {
         counts[row.event_type] = (counts[row.event_type] ?? 0) + 1
       })
+
       setBadges(counts)
     }
 
@@ -111,7 +120,14 @@ function MobileBottomNavInner() {
   }, [badges])
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-100 bg-white/90 backdrop-blur-xl md:hidden">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 border-t backdrop-blur-xl md:hidden"
+      style={{
+        background: vivosTheme.gradients.footerBackground,
+        borderColor: vivosTheme.colors.borderSoft,
+        boxShadow: vivosTheme.shadows.medium,
+      }}
+    >
       <div className="mx-auto grid max-w-lg grid-cols-5 pb-safe">
         {itemsWithBadges.map((item) => {
           const Icon = item.icon
@@ -130,30 +146,49 @@ function MobileBottomNavInner() {
               <AnimatePresence>
                 {active && (
                   <motion.span
-                    className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-slate-900"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+                    className="absolute inset-x-3 top-1.5 h-1 rounded-full"
+                    style={{
+                      background: vivosTheme.gradients.sendButton,
+                      boxShadow: vivosTheme.shadows.buttonWarm,
+                    }}
+                    initial={{ opacity: 0, scaleX: 0.6 }}
+                    animate={{ opacity: 1, scaleX: 1 }}
+                    exit={{ opacity: 0, scaleX: 0.6 }}
+                    transition={{ duration: 0.18 }}
                   />
                 )}
               </AnimatePresence>
 
               <motion.span
-                className="relative"
-                animate={{ scale: active ? 1.1 : 1 }}
+                className="relative flex items-center justify-center rounded-2xl"
+                animate={{
+                  scale: active ? 1.08 : 1,
+                  y: active ? -1 : 0,
+                }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                style={{
+                  width: 38,
+                  height: 38,
+                  background: active ? vivosTheme.gradients.avatarPrimary : "transparent",
+                  boxShadow: active ? vivosTheme.shadows.bubble : "none",
+                }}
               >
                 <Icon
-                  className={`h-5 w-5 transition-colors duration-200 ${
-                    active ? "text-slate-900" : "text-slate-400"
-                  }`}
-                  strokeWidth={active ? 2.4 : 1.8}
+                  className="h-5 w-5 transition-colors duration-200"
+                  style={{
+                    color: active ? vivosTheme.colors.white : vivosTheme.colors.textMuted,
+                  }}
+                  strokeWidth={active ? 2.4 : 1.9}
                 />
                 <BadgeBubble count={item.badge} />
               </motion.span>
 
-              <span className={`transition-colors duration-200 ${active ? "text-slate-900" : "text-slate-400"}`}>
+              <span
+                className="transition-colors duration-200"
+                style={{
+                  color: active ? vivosTheme.colors.white : vivosTheme.colors.textMuted,
+                }}
+              >
                 {item.label}
               </span>
             </button>

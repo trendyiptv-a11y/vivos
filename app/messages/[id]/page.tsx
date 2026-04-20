@@ -37,6 +37,31 @@ type NotificationRefRow = {
   ref_id: string | null
 }
 
+const vivosColors = {
+  bgPrimary: "#173F72",
+  bgSecondary: "#214A80",
+  bgPanel: "#1B3560",
+  bgPanelSoft: "#24497D",
+  white: "#F2F2F2",
+  whiteSoft: "#E8E8E8",
+
+  yellow: "#F8C13A",
+  orange: "#F79A42",
+
+  pink: "#C96AA1",
+  purple: "#9A71C1",
+
+  blueLight: "#63A6E6",
+  teal: "#45BFD2",
+
+  arcBlueLeft: "#4C86C9",
+  arcBlueRight: "#5E95D3",
+
+  success: "#34D399",
+  danger: "#F87171",
+  warning: "#FBBF24",
+}
+
 function emitWindowEvent(name: string, detail: Record<string, unknown> = {}) {
   try {
     window.dispatchEvent(new CustomEvent(name, { detail }))
@@ -734,7 +759,6 @@ export default function ConversationPage() {
       try {
         setCallBusy(true)
         stopRingtone()
-
         await ensureLocalStream()
         await ensurePeerConnection(userId)
 
@@ -1337,33 +1361,59 @@ export default function ConversationPage() {
     await sendCurrentMessage()
   }
 
+  const otherMemberHasIdentity = Boolean(otherMember)
   const callDisplayName = otherName || "Membru"
-  const callInitial = callDisplayName.trim().charAt(0).toUpperCase() || "M"
+  const callInitial = callDisplayName.trim().charAt(0).toUpperCase() || "V"
   const showCallOverlay =
     callUiState === "incoming" || callUiState === "outgoing" || callUiState === "connected"
 
   return (
-    <main className="min-h-screen bg-[#0f1117] text-white">
+    <main
+      className="min-h-screen text-white"
+      style={{
+        background:
+          "radial-gradient(circle at top, rgba(99,166,230,0.16), transparent 28%), linear-gradient(180deg, #173F72 0%, #163865 48%, #122E54 100%)",
+      }}
+    >
       <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
       <audio ref={ringtoneRef} src="/sounds/incoming-call.mp3" preload="auto" />
 
       <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col">
-        <header className="sticky top-0 z-20 border-b border-white/[0.07] bg-[#0f1117]/90 backdrop-blur-xl">
+        <header
+          className="sticky top-0 z-20 border-b backdrop-blur-xl"
+          style={{
+            background: "rgba(23, 63, 114, 0.84)",
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
+        >
           <div className="flex items-center gap-3 px-4 py-3">
             <button
               type="button"
               onClick={() => router.push("/messages")}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition"
+              style={{ color: "rgba(255,255,255,0.72)" }}
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
 
             <div className="relative shrink-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-sm font-semibold text-white shadow-lg shadow-violet-900/40">
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold text-white shadow-lg"
+                style={{
+                  background: "linear-gradient(135deg, #C96AA1 0%, #9A71C1 55%, #63A6E6 100%)",
+                  boxShadow: "0 10px 25px rgba(8, 20, 40, 0.35)",
+                }}
+              >
                 {callInitial}
               </div>
               {!isOffline && (
-                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[#0f1117] bg-emerald-400" />
+                <span
+                  className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2"
+                  style={{
+                    background: vivosColors.success,
+                    borderColor: vivosColors.bgPrimary,
+                  }}
+                />
               )}
             </div>
 
@@ -1371,7 +1421,7 @@ export default function ConversationPage() {
               <p className="truncate text-[15px] font-semibold leading-tight text-white">
                 {loading ? "Se încarcă..." : otherName}
               </p>
-              <p className="truncate text-[11px] text-white/40">
+              <p className="truncate text-[11px]" style={{ color: "rgba(255,255,255,0.60)" }}>
                 {isOffline ? `Offline${connectionLabel ? ` · ${connectionLabel}` : ""}` : "Online acum"}
               </p>
             </div>
@@ -1380,9 +1430,16 @@ export default function ConversationPage() {
               <button
                 type="button"
                 onClick={handleStartCall}
-                disabled={callBusy || !otherMember || isOffline}
-                title={!otherMember ? "Membrul nu e încărcat" : isOffline ? "Conexiune indisponibilă" : "Apelează"}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/50 transition hover:bg-white/[0.07] hover:text-emerald-400 disabled:cursor-not-allowed disabled:opacity-30"
+                disabled={callBusy || !otherMemberHasIdentity || isOffline}
+                title={
+                  !otherMemberHasIdentity
+                    ? "Membrul nu e încărcat"
+                    : isOffline
+                    ? "Conexiune indisponibilă"
+                    : "Apelează"
+                }
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-30"
+                style={{ color: "rgba(255,255,255,0.70)" }}
               >
                 <Phone className="h-4 w-4" />
               </button>
@@ -1394,7 +1451,8 @@ export default function ConversationPage() {
                 onClick={handleEndCall}
                 disabled={callBusy}
                 title={callUiState === "connected" ? "Închide apelul" : "Anulează apelul"}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-red-400 transition hover:bg-red-500/10 disabled:opacity-40"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition disabled:opacity-40"
+                style={{ color: vivosColors.danger }}
               >
                 <PhoneOff className="h-4 w-4" />
               </button>
@@ -1404,13 +1462,21 @@ export default function ConversationPage() {
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((p) => !p)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition"
+                style={{ color: "rgba(255,255,255,0.72)" }}
               >
                 <MoreVertical className="h-4 w-4" />
               </button>
 
               {profileMenuOpen && (
-                <div className="absolute right-0 top-11 z-50 w-52 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#1a1d27] shadow-2xl shadow-black/60">
+                <div
+                  className="absolute right-0 top-11 z-50 w-52 overflow-hidden rounded-2xl border shadow-2xl"
+                  style={{
+                    background: "rgba(28, 58, 103, 0.98)",
+                    borderColor: "rgba(255,255,255,0.10)",
+                    boxShadow: "0 24px 48px rgba(0,0,0,0.42)",
+                  }}
+                >
                   {[
                     { label: "Notificări", href: "/notifications" },
                     { label: "Profil", href: "/profile" },
@@ -1420,7 +1486,8 @@ export default function ConversationPage() {
                   ].map(({ label, href, external }) => (
                     <button
                       key={label}
-                      className="block w-full px-4 py-2.5 text-left text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+                      className="block w-full px-4 py-2.5 text-left text-sm transition"
+                      style={{ color: "rgba(255,255,255,0.82)" }}
                       onClick={() => {
                         setProfileMenuOpen(false)
                         if (external) {
@@ -1434,10 +1501,11 @@ export default function ConversationPage() {
                     </button>
                   ))}
 
-                  <div className="mx-3 my-1 h-px bg-white/[0.07]" />
+                  <div className="mx-3 my-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
 
                   <button
-                    className="block w-full px-4 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10"
+                    className="block w-full px-4 py-2.5 text-left text-sm transition"
+                    style={{ color: vivosColors.danger }}
                     onClick={async () => {
                       setProfileMenuOpen(false)
                       await supabase.auth.signOut()
@@ -1453,28 +1521,51 @@ export default function ConversationPage() {
         </header>
 
         {isOffline && (
-          <div className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">
+          <div
+            className="border-b px-4 py-2 text-xs"
+            style={{
+              borderColor: "rgba(248,193,58,0.24)",
+              background: "rgba(248,193,58,0.12)",
+              color: "#FFE28A",
+            }}
+          >
             Fără conexiune. VIVOS nu poate sincroniza conversația acum.
             {connectionLabel && ` Rețea: ${connectionLabel}.`}
           </div>
         )}
 
         {audioPermissionMessage && (
-          <div className="border-b border-orange-500/20 bg-orange-500/10 px-4 py-2.5">
+          <div
+            className="border-b px-4 py-2.5"
+            style={{
+              borderColor: "rgba(247,154,66,0.25)",
+              background: "rgba(247,154,66,0.12)",
+            }}
+          >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-orange-300">{audioPermissionMessage}</p>
+              <p className="text-xs" style={{ color: "#FFD0A0" }}>
+                {audioPermissionMessage}
+              </p>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={retryMicrophoneAccess}
-                  className="rounded-lg border border-orange-500/30 px-3 py-1 text-xs text-orange-300 transition hover:bg-orange-500/10"
+                  className="rounded-lg border px-3 py-1 text-xs transition"
+                  style={{
+                    borderColor: "rgba(247,154,66,0.35)",
+                    color: "#FFD0A0",
+                  }}
                 >
                   Reîncearcă
                 </button>
                 <button
                   type="button"
                   onClick={() => setAudioPermissionMessage(null)}
-                  className="rounded-lg border border-white/10 px-3 py-1 text-xs text-white/40 transition hover:bg-white/[0.05]"
+                  className="rounded-lg border px-3 py-1 text-xs transition"
+                  style={{
+                    borderColor: "rgba(255,255,255,0.14)",
+                    color: "rgba(255,255,255,0.62)",
+                  }}
                 >
                   Închide
                 </button>
@@ -1485,12 +1576,19 @@ export default function ConversationPage() {
 
         <section className="flex-1 px-4 py-4">
           {loading ? (
-            <div className="flex h-full items-center justify-center text-sm text-white/30">
+            <div className="flex h-full items-center justify-center text-sm" style={{ color: "rgba(255,255,255,0.40)" }}>
               Se încarcă conversația...
             </div>
           ) : messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
-              <p className="rounded-2xl border border-white/[0.07] bg-white/[0.03] px-5 py-3 text-sm text-white/30">
+              <p
+                className="rounded-2xl border px-5 py-3 text-sm"
+                style={{
+                  borderColor: "rgba(255,255,255,0.08)",
+                  background: "rgba(255,255,255,0.05)",
+                  color: "rgba(255,255,255,0.45)",
+                }}
+              >
                 Nu există încă mesaje în această conversație.
               </p>
             </div>
@@ -1509,11 +1607,11 @@ export default function ConversationPage() {
                   <div key={msg.id}>
                     {showDateSeparator && (
                       <div className="my-4 flex items-center gap-3">
-                        <div className="h-px flex-1 bg-white/[0.06]" />
-                        <span className="text-[11px] font-medium text-white/25">
+                        <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.08)" }} />
+                        <span className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.35)" }}>
                           {formatMessageDate(msg.created_at)}
                         </span>
-                        <div className="h-px flex-1 bg-white/[0.06]" />
+                        <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.08)" }} />
                       </div>
                     )}
 
@@ -1521,19 +1619,36 @@ export default function ConversationPage() {
                       <div
                         className={[
                           "max-w-[78%] px-3.5 py-2.5 sm:max-w-[68%]",
-                          "shadow-sm",
                           mine
-                            ? "rounded-[18px] rounded-br-[6px] bg-violet-600 text-white"
-                            : "rounded-[18px] rounded-bl-[6px] border border-white/[0.07] bg-[#1a1d27] text-white/90",
+                            ? "rounded-[18px] rounded-br-[6px] text-white"
+                            : "rounded-[18px] rounded-bl-[6px] border text-white/90",
                           nextSame && mine ? "rounded-br-[18px]" : "",
                           nextSame && !mine ? "rounded-bl-[18px]" : "",
                         ].join(" ")}
+                        style={
+                          mine
+                            ? {
+                                background:
+                                  "linear-gradient(135deg, #C96AA1 0%, #9A71C1 52%, #63A6E6 100%)",
+                                boxShadow: "0 8px 20px rgba(20, 30, 60, 0.28)",
+                              }
+                            : {
+                                background: "rgba(255,255,255,0.07)",
+                                borderColor: "rgba(255,255,255,0.09)",
+                                boxShadow: "0 8px 20px rgba(10, 18, 36, 0.18)",
+                              }
+                        }
                       >
                         <p className="whitespace-pre-wrap break-words text-[14.5px] leading-[1.5]">
                           {msg.body}
                         </p>
                         <div className="mt-1 flex justify-end">
-                          <span className={`text-[10px] ${mine ? "text-violet-200/70" : "text-white/25"}`}>
+                          <span
+                            className="text-[10px]"
+                            style={{
+                              color: mine ? "rgba(255,255,255,0.76)" : "rgba(255,255,255,0.36)",
+                            }}
+                          >
                             {formatMessageTime(msg.created_at)}
                           </span>
                         </div>
@@ -1547,7 +1662,13 @@ export default function ConversationPage() {
           )}
         </section>
 
-        <div className="sticky bottom-0 z-10 border-t border-white/[0.06] bg-[#0f1117]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-xl">
+        <div
+          className="sticky bottom-0 z-10 border-t px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-xl"
+          style={{
+            borderColor: "rgba(255,255,255,0.08)",
+            background: "rgba(23, 63, 114, 0.90)",
+          }}
+        >
           <form onSubmit={handleSend} className="flex items-end gap-2">
             <textarea
               ref={textareaRef}
@@ -1556,7 +1677,11 @@ export default function ConversationPage() {
               disabled={isOffline}
               rows={1}
               placeholder="Scrie un mesaj..."
-              className="min-h-[42px] max-h-[120px] flex-1 resize-none rounded-2xl border border-white/[0.09] bg-white/[0.05] px-4 py-2.5 text-[14.5px] leading-5 text-white placeholder-white/25 outline-none transition focus:border-violet-500/50 focus:bg-white/[0.07]"
+              className="min-h-[42px] max-h-[120px] flex-1 resize-none rounded-2xl px-4 py-2.5 text-[14.5px] leading-5 text-white placeholder-white/25 outline-none transition"
+              style={{
+                border: "1px solid rgba(255,255,255,0.10)",
+                background: "rgba(255,255,255,0.08)",
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault()
@@ -1567,7 +1692,11 @@ export default function ConversationPage() {
             <button
               type="submit"
               disabled={sending || isOffline || !body.trim()}
-              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-900/40 transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl text-white transition disabled:cursor-not-allowed disabled:opacity-30"
+              style={{
+                background: "linear-gradient(135deg, #F8C13A 0%, #F79A42 100%)",
+                boxShadow: "0 12px 24px rgba(70, 40, 0, 0.28)",
+              }}
             >
               <Send className="h-4 w-4" />
             </button>
@@ -1576,18 +1705,26 @@ export default function ConversationPage() {
       </div>
 
       {showCallOverlay && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-md sm:items-center">
-          <div className="w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[#13151f] shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-4 backdrop-blur-md sm:items-center">
+          <div
+            className="w-full max-w-sm overflow-hidden rounded-[2rem] border shadow-2xl"
+            style={{
+              background: "linear-gradient(180deg, rgba(27,53,96,0.98) 0%, rgba(19,39,71,0.98) 100%)",
+              borderColor: "rgba(255,255,255,0.10)",
+            }}
+          >
             <div className="flex flex-col items-center px-8 pt-10 pb-6 text-center">
               <div
-                className={[
-                  "mb-5 flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold text-white",
-                  callUiState === "connected"
-                    ? "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-900/40"
-                    : callUiState === "incoming"
-                    ? "bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-900/40"
-                    : "bg-gradient-to-br from-slate-600 to-slate-700",
-                ].join(" ")}
+                className="mb-5 flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold text-white"
+                style={{
+                  background:
+                    callUiState === "connected"
+                      ? "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)"
+                      : callUiState === "incoming"
+                      ? "linear-gradient(135deg, #C96AA1 0%, #9A71C1 100%)"
+                      : "linear-gradient(135deg, #4C86C9 0%, #214A80 100%)",
+                  boxShadow: "0 16px 36px rgba(0,0,0,0.28)",
+                }}
               >
                 {callInitial}
               </div>
@@ -1596,30 +1733,47 @@ export default function ConversationPage() {
 
               {callUiState === "incoming" && (
                 <div className="mt-2 flex items-center gap-1.5">
-                  <PhoneIncoming className="h-3.5 w-3.5 text-violet-400" />
-                  <p className="text-sm text-violet-300">Apel primit</p>
+                  <PhoneIncoming className="h-3.5 w-3.5" style={{ color: vivosColors.pink }} />
+                  <p className="text-sm" style={{ color: "#E5B3D2" }}>
+                    Apel primit
+                  </p>
                 </div>
               )}
 
               {callUiState === "outgoing" && (
-                <p className="mt-2 text-sm text-white/40">Se apelează...</p>
+                <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.52)" }}>
+                  Se apelează...
+                </p>
               )}
 
               {callUiState === "connected" && (
                 <div className="mt-2 flex items-center gap-1.5">
                   <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                    <span
+                      className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+                      style={{ background: vivosColors.teal }}
+                    />
+                    <span
+                      className="relative inline-flex h-2 w-2 rounded-full"
+                      style={{ background: vivosColors.teal }}
+                    />
                   </span>
-                  <p className="text-sm font-medium text-emerald-400">Conectat</p>
+                  <p className="text-sm font-medium" style={{ color: "#93E9F2" }}>
+                    Conectat
+                  </p>
                 </div>
               )}
             </div>
 
             {callUiState === "connected" && (
-              <div className="mx-6 mb-4 flex items-center gap-2 rounded-2xl bg-white/[0.05] px-4 py-3">
-                <Mic className="h-4 w-4 text-emerald-400" />
-                <span className="text-sm text-white/60">Microfon activ</span>
+              <div
+                className="mx-6 mb-4 flex items-center gap-2 rounded-2xl px-4 py-3"
+                style={{ background: "rgba(255,255,255,0.06)" }}
+              >
+                <Mic className="h-4 w-4" style={{ color: vivosColors.teal }} />
+                <span className="text-sm" style={{ color: "rgba(255,255,255,0.68)" }}>
+                  Microfon activ
+                </span>
               </div>
             )}
 
@@ -1630,7 +1784,10 @@ export default function ConversationPage() {
                     type="button"
                     onClick={handleAcceptCall}
                     disabled={callBusy || isOffline}
-                    className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-sm font-medium text-white shadow transition hover:bg-emerald-500 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 rounded-2xl py-4 text-sm font-medium text-white shadow transition disabled:opacity-50"
+                    style={{
+                      background: "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)",
+                    }}
                   >
                     <Phone className="h-4 w-4" />
                     {callBusy ? "..." : "Răspunde"}
@@ -1640,7 +1797,12 @@ export default function ConversationPage() {
                     type="button"
                     onClick={handleRejectCall}
                     disabled={callBusy}
-                    className="flex items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-red-600/20 py-4 text-sm font-medium text-red-400 transition hover:bg-red-600/30 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 rounded-2xl border py-4 text-sm font-medium transition disabled:opacity-50"
+                    style={{
+                      borderColor: "rgba(248,113,113,0.25)",
+                      background: "rgba(248,113,113,0.12)",
+                      color: "#FCA5A5",
+                    }}
                   >
                     <PhoneOff className="h-4 w-4" />
                     {callBusy ? "..." : "Respinge"}
@@ -1653,7 +1815,10 @@ export default function ConversationPage() {
                   type="button"
                   onClick={handleEndCall}
                   disabled={callBusy}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 py-4 text-sm font-medium text-white shadow transition hover:bg-red-500 disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-medium text-white shadow transition disabled:opacity-50"
+                  style={{
+                    background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)",
+                  }}
                 >
                   <PhoneOff className="h-4 w-4" />
                   {callBusy ? "Se închide..." : callUiState === "connected" ? "Închide apelul" : "Anulează apelul"}

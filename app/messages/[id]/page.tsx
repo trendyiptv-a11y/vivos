@@ -748,19 +748,15 @@ export default function ConversationPage() {
     if (!userId || !otherMember?.member_id) return
 
     const channel = supabase
-      .channel(`presence-conv-${conversationId}`, {
-        config: { presence: { key: userId } },
+      .channel(`presence-global-${otherMember.member_id}`, {
+        config: { presence: { key: otherMember.member_id } },
       })
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState()
         const otherOnline = Object.keys(state).includes(otherMember.member_id)
         setIsOtherOnline(otherOnline)
       })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ user_id: userId, online_at: new Date().toISOString() })
-        }
-      })
+      .subscribe()
 
     return () => {
       supabase.removeChannel(channel)

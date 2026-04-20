@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Bell } from "lucide-react"
+import { ArrowLeft, MoreVertical, Phone, PhoneOff } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 
 type Message = {
@@ -94,6 +93,21 @@ function isNearBottom(threshold = 160) {
   return totalHeight - (scrollTop + viewportHeight) <= threshold
 }
 
+function formatMessageTime(dateString: string) {
+  return new Date(dateString).toLocaleTimeString("ro-RO", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function formatMessageDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("ro-RO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+}
+
 export default function ConversationPage() {
   const router = useRouter()
   const params = useParams()
@@ -132,6 +146,7 @@ export default function ConversationPage() {
   const shouldStickToBottomRef = useRef(true)
   const previousMessageCountRef = useRef(0)
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -272,6 +287,13 @@ export default function ConversationPage() {
     shouldStickToBottomRef.current = true
     previousMessageCountRef.current = 0
   }, [conversationId])
+
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = "0px"
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`
+  }, [body])
 
   const stopRingtone = useCallback(() => {
     const el = ringtoneRef.current
@@ -1375,280 +1397,228 @@ export default function ConversationPage() {
     callUiState === "incoming" ||
     callUiState === "outgoing" ||
     callUiState === "connected"
-  const showUnreadBadge = !!userEmail && unreadCount > 0
-  const showPublicBadge = !userEmail && publicPulseCount > 0
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-white text-slate-900">
       <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
       <audio ref={ringtoneRef} src="/sounds/incoming-call.mp3" preload="auto" />
 
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Platforma comunitară</p>
-            <h1 className="truncate text-lg font-semibold sm:text-2xl text-slate-900">
-              {loading ? "Mesaje" : otherName}
-            </h1>
-          </div>
+      <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col bg-white">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+          <div className="flex items-center gap-3 px-3 py-3 sm:px-4">
+            <button
+              type="button"
+              onClick={() => router.push("/messages")}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="relative">
-              <Button
-                variant="outline"
-                className="rounded-2xl px-3 sm:px-4"
-                onClick={() => {
-                  window.location.href = "/notifications"
-                }}
+            <Avatar className="h-10 w-10 rounded-full border border-slate-200">
+              <AvatarFallback className="rounded-full bg-slate-900 text-white">
+                {callInitial}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-semibold">{loading ? "Se încarcă..." : otherName}</p>
+              <p className="truncate text-xs text-slate-500">
+                {isOffline ? `Offline${connectionLabel ? ` · ${connectionLabel}` : ""}` : "Online în conversație"}
+              </p>
+            </div>
+
+            {callUiState === "idle" ? (
+              <button
+                type="button"
+                onClick={handleStartCall}
+                disabled={callBusy || !otherMember || isOffline}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                title={!otherMember ? "Conversația nu are încă membrul încărcat" : isOffline ? "Conexiune indisponibilă" : "Apelează"}
               >
-                <Bell className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Notificări</span>
-              </Button>
+                <Phone className="h-5 w-5" />
+              </button>
+            ) : null}
 
-              {showUnreadBadge && (
-                <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#9A6FC0] px-2 text-xs font-semibold text-white shadow-sm">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </div>
-              )}
+            {(callUiState === "outgoing" || callUiState === "connected") ? (
+              <button
+                type="button"
+                onClick={handleEndCall}
+                disabled={callBusy}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-red-600 transition hover:bg-red-50 disabled:opacity-40"
+                title={callUiState === "connected" ? "Închide apelul" : "Anulează apelul"}
+              >
+                <PhoneOff className="h-5 w-5" />
+              </button>
+            ) : null}
 
-              {showPublicBadge && (
-                <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-[#46C2D8] px-2 text-xs font-semibold text-white shadow-sm">
-                  {publicPulseCount > 99 ? "99+" : publicPulseCount}
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                type="button"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100"
+                onClick={() => setProfileMenuOpen((prev) => !prev)}
+              >
+                <MoreVertical className="h-5 w-5" />
+              </button>
+
+              {profileMenuOpen && (
+                <div className="absolute right-0 top-12 z-50 w-52 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+                  <button
+                    className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                    onClick={() => {
+                      setProfileMenuOpen(false)
+                      window.location.href = "/notifications"
+                    }}
+                  >
+                    Notificări
+                  </button>
+                  <button
+                    className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                    onClick={() => {
+                      setProfileMenuOpen(false)
+                      window.location.href = "/profile"
+                    }}
+                  >
+                    Profil
+                  </button>
+                  <button
+                    className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                    onClick={() => {
+                      setProfileMenuOpen(false)
+                      window.location.href = "/downloads/manifest.html"
+                    }}
+                  >
+                    Manifest VIVOS
+                  </button>
+                  <button
+                    className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                    onClick={() => {
+                      setProfileMenuOpen(false)
+                      window.location.href = "/?tab=settings"
+                    }}
+                  >
+                    Setări
+                  </button>
+                  <button
+                    className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                    onClick={() => {
+                      setProfileMenuOpen(false)
+                      window.location.href = "/?tab=about"
+                    }}
+                  >
+                    Despre
+                  </button>
+                  <button
+                    className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
+                    onClick={async () => {
+                      setProfileMenuOpen(false)
+                      await supabase.auth.signOut()
+                      window.location.href = "/"
+                    }}
+                  >
+                    Logout
+                  </button>
                 </div>
               )}
             </div>
+          </div>
+        </header>
 
-            {userEmail ? (
-              <>
-                <div className="hidden max-w-[180px] truncate rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 sm:block">
-                  {userEmail}
-                </div>
+        {isOffline ? (
+          <div className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-800">
+            Fără conexiune. VIVOS nu poate sincroniza conversația acum.
+            {connectionLabel ? ` Rețea: ${connectionLabel}.` : ""}
+          </div>
+        ) : null}
 
-                <div className="relative" ref={profileMenuRef}>
-                  <button
-                    className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#56B6DE]"
-                    onClick={() => setProfileMenuOpen((prev) => !prev)}
-                  >
-                    <Avatar className="h-10 w-10 rounded-2xl border border-slate-200">
-                      <AvatarFallback className="rounded-2xl bg-[#173F74] text-white">
-                        {userEmail.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </button>
+        {audioPermissionMessage ? (
+          <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>{audioPermissionMessage}</div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" className="rounded-2xl" onClick={retryMicrophoneAccess}>
+                  Reîncearcă
+                </Button>
+                <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setAudioPermissionMessage(null)}>
+                  Închide
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
-                  {profileMenuOpen && (
-                    <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          window.location.href = "/profile"
-                        }}
+        <section className="flex-1 bg-white px-3 py-4 sm:px-4">
+          {loading ? (
+            <div className="flex h-full items-center justify-center text-sm text-slate-500">
+              Se încarcă conversația...
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                Nu există încă mesaje în această conversație.
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {messages.map((msg, index) => {
+                const mine = msg.sender_id === userId
+                const prev = messages[index - 1]
+                const showDateSeparator = !prev || formatMessageDate(prev.created_at) !== formatMessageDate(msg.created_at)
+
+                return (
+                  <div key={msg.id}>
+                    {showDateSeparator ? (
+                      <div className="my-4 flex justify-center">
+                        <div className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
+                          {formatMessageDate(msg.created_at)}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[82%] rounded-[22px] px-4 py-2.5 shadow-sm ${
+                          mine
+                            ? "bg-[#E8F1FF] text-slate-900"
+                            : "border border-slate-200 bg-white text-slate-900"
+                        }`}
                       >
-                        Profil
-                      </button>
-
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          window.location.href = "/downloads/manifest.html"
-                        }}
-                      >
-                        Manifest VIVOS
-                      </button>
-
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          window.location.href = "/?tab=settings"
-                        }}
-                      >
-                        Setări
-                      </button>
-
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          window.location.href = "/?tab=about"
-                        }}
-                      >
-                        Despre
-                      </button>
-
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100"
-                        onClick={async () => {
-                          setProfileMenuOpen(false)
-                          await supabase.auth.signOut()
-                          window.location.href = "/"
-                        }}
-                      >
-                        Logout
-                      </button>
+                        {!mine ? (
+                          <p className="mb-1 text-xs font-medium text-slate-500">{otherName}</p>
+                        ) : null}
+                        <p className="whitespace-pre-wrap break-words text-[15px] leading-6">{msg.body}</p>
+                        <div className="mt-1 flex justify-end">
+                          <span className="text-[11px] text-slate-500">{formatMessageTime(msg.created_at)}</span>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <Button
-                className="rounded-2xl"
-                onClick={() => {
-                  window.location.href = "/login"
-                }}
-              >
-                Login
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
+                  </div>
+                )
+              })}
+              <div ref={bottomRef} />
+            </div>
+          )}
+        </section>
 
-      <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-4 py-4 sm:px-6 sm:py-6">
-        <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm text-slate-500">Conversație</p>
-            <h2 className="truncate text-2xl font-semibold sm:text-3xl">{loading ? "Se încarcă..." : otherName}</h2>
-            {!loading && !otherMember ? (
-              <p className="mt-1 text-sm text-red-500">
-                Conversația nu are încă datele membrului încărcate.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            {callUiState === "idle" ? (
-              <Button
-                className="rounded-2xl px-5 disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={handleStartCall}
-                disabled={callBusy || !otherMember || isOffline}
-                title={!otherMember ? "Conversația nu are încă membrul încărcat" : isOffline ? "Conexiune indisponibilă" : ""}
-              >
-                {callBusy ? "Se inițiază..." : "Apelează"}
-              </Button>
-            ) : null}
-
-            {callUiState === "outgoing" ? (
-              <Button
-                variant="outline"
-                className="rounded-2xl px-5"
-                onClick={handleEndCall}
-                disabled={callBusy}
-              >
-                {callBusy ? "Se închide..." : "Anulează"}
-              </Button>
-            ) : null}
-
-            {callUiState === "connected" ? (
-              <Button
-                variant="outline"
-                className="rounded-2xl px-5"
-                onClick={handleEndCall}
-                disabled={callBusy}
-              >
-                {callBusy ? "Se închide..." : "Închide"}
-              </Button>
-            ) : null}
+        <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white px-3 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:px-4">
+          <form onSubmit={handleSend} className="flex items-end gap-2">
+            <textarea
+              ref={textareaRef}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              className="max-h-[140px] min-h-[46px] flex-1 resize-none rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] outline-none transition focus:border-slate-300 focus:bg-white focus-visible:ring-2 focus-visible:ring-slate-200"
+              placeholder="Scrie mesajul tău..."
+              disabled={isOffline}
+              rows={1}
+            />
 
             <Button
-              variant="outline"
-              className="rounded-2xl px-5"
-              onClick={() => router.push("/messages")}
+              type="submit"
+              className="h-[46px] rounded-full px-5"
+              disabled={sending || isOffline || !body.trim()}
             >
-              Înapoi
+              {sending ? "..." : "Trimite"}
             </Button>
-          </div>
-        </div>
-
-        <div className="grid flex-1 gap-4 pb-24">
-          {isOffline ? (
-            <Card className="rounded-3xl border border-rose-200 bg-rose-50 shadow-sm">
-              <CardContent className="p-4">
-                <p className="text-sm font-semibold text-rose-900">Fără conexiune</p>
-                <p className="mt-1 text-sm text-rose-800">
-                  VIVOS nu poate sincroniza conversația acum. Revino online pentru mesaje și apeluri.
-                  {connectionLabel ? ` Rețea curentă: ${connectionLabel}.` : ""}
-                </p>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {audioPermissionMessage ? (
-            <Card className="rounded-3xl border border-amber-200 bg-amber-50 shadow-sm">
-              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-amber-900">Microfon necesar pentru apel</p>
-                  <p className="mt-1 text-sm text-amber-800">{audioPermissionMessage}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" className="rounded-2xl" onClick={retryMicrophoneAccess}>
-                    Reîncearcă
-                  </Button>
-                  <Button type="button" variant="outline" className="rounded-2xl" onClick={() => setAudioPermissionMessage(null)}>
-                    Închide
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg sm:text-xl">Mesaje</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {loading ? (
-                <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă conversația...</div>
-              ) : messages.length === 0 ? (
-                <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                  Nu există încă mesaje în această conversație.
-                </div>
-              ) : (
-                <>
-                  {messages.map((msg) => {
-                    const mine = msg.sender_id === userId
-
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`rounded-2xl border p-4 ${mine ? "bg-slate-50" : "bg-white"}`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="font-medium">{mine ? "Tu" : otherName}</p>
-                          <p className="text-xs text-slate-500">{new Date(msg.created_at).toLocaleString("ro-RO")}</p>
-                        </div>
-                        <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{msg.body}</p>
-                      </div>
-                    )
-                  })}
-                  <div ref={bottomRef} />
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg sm:text-xl">Trimite mesaj</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSend} className="space-y-4">
-                <textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  className="min-h-[120px] w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                  placeholder="Scrie mesajul tău..."
-                  disabled={isOffline}
-                />
-
-                <Button type="submit" className="rounded-2xl px-6" disabled={sending || isOffline}>
-                  {sending ? "Se trimite..." : "Trimite"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          </form>
         </div>
       </div>
 

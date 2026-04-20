@@ -1705,7 +1705,7 @@ export default function ConversationPage() {
       </div>
 
       {showCallOverlay && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-4 backdrop-blur-md sm:items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
           <div
             className="w-full max-w-sm overflow-hidden rounded-[2rem] border shadow-2xl"
             style={{

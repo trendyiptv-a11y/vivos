@@ -8,6 +8,7 @@ import InAppPushBanner from "@/components/InAppPushBanner"
 import NativeRuntimeBridge from "@/components/NativeRuntimeBridge"
 import NativeHapticsBridge from "@/components/NativeHapticsBridge"
 import GlobalPresence from "@/components/GlobalPresence"
+import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 export const metadata: Metadata = {
   title: "VIVOS",
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   applicationName: "VIVOS",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "VIVOS",
   },
   formatDetection: {
@@ -24,20 +25,33 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#173F72",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ro">
-      <body className="bg-slate-50">
+    <html lang="ro" style={{ background: vivosTheme.colors.bgPrimary }}>
+      <body
+        className="min-h-screen overflow-x-hidden text-white antialiased"
+        style={{
+          background: vivosTheme.gradients.appBackground,
+          color: vivosTheme.colors.textPrimary,
+        }}
+      >
         <ServiceWorkerRegister />
         <GlobalPresence />
         <NativeRuntimeBridge />
         <NativePushSetup />
         <NativeHapticsBridge />
         <InAppPushBanner />
-        <div className="pb-24 md:pb-0">{children}</div>
+
+        <div className="relative min-h-screen pb-24 md:pb-0">
+          {children}
+        </div>
+
         <MobileBottomNav />
       </body>
     </html>

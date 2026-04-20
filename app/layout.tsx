@@ -7,6 +7,7 @@ import NativePushSetup from "@/components/NativePushSetup"
 import InAppPushBanner from "@/components/InAppPushBanner"
 import NativeRuntimeBridge from "@/components/NativeRuntimeBridge"
 import NativeHapticsBridge from "@/components/NativeHapticsBridge"
+import GlobalPresence from "@/components/GlobalPresence"
 
 export const metadata: Metadata = {
   title: "VIVOS",
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ro">
       <body className="bg-slate-50">
         <ServiceWorkerRegister />
+        <GlobalPresence />
         <NativeRuntimeBridge />
         <NativePushSetup />
         <NativeHapticsBridge />

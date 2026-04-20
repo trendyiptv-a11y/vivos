@@ -341,102 +341,198 @@ function Shell({
                     <div className="relative" ref={profileMenuRef}>
                       <button
                         className="rounded-2xl focus:outline-none focus-visible:ring-2"
-                        style={{ outline: "none" }}
-                        onClick={() => setProfileMenuOpen((prev) => !prev)}
-                      >
-                        <Avatar className="h-12 w-12 rounded-2xl border border-white/20 shadow-sm">
-                          <AvatarFallback
-                            className="rounded-2xl text-white"
-                            style={{
-                              background: getVivosAvatarGradient(userEmail),
-                            }}
-                          >
-                            {userEmail.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      </button>
+<header
+  className="sticky top-0 z-10 border-b backdrop-blur-xl"
+  style={{
+    background: vivosTheme.gradients.navBackground,
+    borderColor: "rgba(255,255,255,0.08)",
+    boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
+  }}
+>
+  <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+    <div className="min-w-0">
+      <p
+        className="text-xs uppercase tracking-[0.22em]"
+        style={{ color: "rgba(255,255,255,0.68)" }}
+      >
+        Platforma comunitară
+      </p>
+      <h2
+        className="truncate text-lg font-semibold sm:text-2xl"
+        style={{ color: vivosTheme.colors.white }}
+      >
+        {active === "dashboard" ? "VIVOS" : activeLabel}
+      </h2>
+    </div>
 
-                      {profileMenuOpen && (
-                        <div
-                          className="absolute right-0 top-14 z-50 w-52 rounded-2xl border p-2 shadow-lg"
-                          style={{
-                            background: "rgba(255,255,255,0.96)",
-                            borderColor: vivosTheme.colors.borderSoft,
-                            boxShadow: vivosTheme.shadows.modal,
-                          }}
-                        >
-                          <button
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-slate-100"
-                            onClick={() => {
-                              setProfileMenuOpen(false)
-                              window.location.href = "/profile"
-                            }}
-                          >
-                            Profil
-                          </button>
+    <div className="flex items-center gap-2 sm:gap-3">
+      <div
+        className="hidden items-center gap-2 rounded-2xl border px-3 py-2 md:flex"
+        style={{
+          borderColor: "rgba(255,255,255,0.10)",
+          background: "rgba(255,255,255,0.08)",
+        }}
+      >
+        <Search className="h-4 w-4" style={{ color: "rgba(255,255,255,0.68)" }} />
+        <Input
+          className="h-auto w-48 border-0 bg-transparent p-0 text-white placeholder:text-white/45 shadow-none focus-visible:ring-0"
+          placeholder="Caută membri, decizii, schimburi..."
+        />
+      </div>
 
-                          <button
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-slate-100"
-                            onClick={() => {
-                              setProfileMenuOpen(false)
-                              window.location.href = "/downloads/manifest.html"
-                            }}
-                          >
-                            Manifest VIVOS
-                          </button>
+      <div className="relative">
+        <button
+          type="button"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border transition"
+          style={{
+            borderColor: "rgba(255,255,255,0.12)",
+            background: "rgba(255,255,255,0.10)",
+            color: vivosTheme.colors.white,
+          }}
+          onClick={() => {
+            window.location.href = "/notifications"
+          }}
+        >
+          <Bell className="h-5 w-5" />
+        </button>
 
-                          <button
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-slate-100"
-                            onClick={() => {
-                              setProfileMenuOpen(false)
-                              setActive("settings")
-                            }}
-                          >
-                            Setări
-                          </button>
+        {showUnreadBadge && (
+          <div
+            className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white"
+            style={{
+              background: vivosTheme.colors.purple,
+              boxShadow: vivosTheme.shadows.soft,
+            }}
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </div>
+        )}
 
-                          <button
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-slate-100"
-                            onClick={() => {
-                              setProfileMenuOpen(false)
-                              setActive("about")
-                            }}
-                          >
-                            Despre
-                          </button>
+        {showPublicBadge && (
+          <div
+            className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white"
+            style={{
+              background: vivosTheme.colors.teal,
+              boxShadow: vivosTheme.shadows.soft,
+            }}
+          >
+            {publicPulseCount > 99 ? "99+" : publicPulseCount}
+          </div>
+        )}
+      </div>
 
-                          <button
-                            className="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-slate-100"
-                            onClick={async () => {
-                              setProfileMenuOpen(false)
-                              await supabase.auth.signOut()
-                              window.location.href = "/"
-                            }}
-                          >
-                            Logout
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <Button
-                    className="rounded-2xl"
-                    style={{
-                      background: vivosTheme.gradients.activeIcon,
-                      color: vivosTheme.colors.white,
-                      boxShadow: vivosTheme.shadows.bubble,
-                    }}
-                    onClick={() => {
-                      window.location.href = "/login"
-                    }}
-                  >
-                    Login
-                  </Button>
-                )}
+      {userEmail ? (
+        <>
+          <div
+            className="hidden max-w-[200px] truncate rounded-2xl border px-3 py-2 text-sm sm:block"
+            style={{
+              borderColor: "rgba(255,255,255,0.10)",
+              background: "rgba(255,255,255,0.08)",
+              color: "rgba(255,255,255,0.78)",
+            }}
+          >
+            {userEmail}
+          </div>
+
+          <div className="relative" ref={profileMenuRef}>
+            <button
+              className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              style={{ outline: "none" }}
+              onClick={() => setProfileMenuOpen((prev) => !prev)}
+            >
+              <Avatar className="h-12 w-12 rounded-2xl border border-white/15 shadow-sm">
+                <AvatarFallback
+                  className="rounded-2xl text-white"
+                  style={{
+                    background: getVivosAvatarGradient(userEmail),
+                  }}
+                >
+                  {userEmail.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+
+            {profileMenuOpen && (
+              <div
+                className="absolute right-0 top-14 z-50 w-52 rounded-2xl border p-2 shadow-lg"
+                style={{
+                  background: "rgba(18,46,84,0.98)",
+                  borderColor: "rgba(255,255,255,0.10)",
+                  boxShadow: vivosTheme.shadows.modal,
+                }}
+              >
+                <button
+                  className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
+                  onClick={() => {
+                    setProfileMenuOpen(false)
+                    window.location.href = "/profile"
+                  }}
+                >
+                  Profil
+                </button>
+
+                <button
+                  className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
+                  onClick={() => {
+                    setProfileMenuOpen(false)
+                    window.location.href = "/downloads/manifest.html"
+                  }}
+                >
+                  Manifest VIVOS
+                </button>
+
+                <button
+                  className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
+                  onClick={() => {
+                    setProfileMenuOpen(false)
+                    setActive("settings")
+                  }}
+                >
+                  Setări
+                </button>
+
+                <button
+                  className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
+                  onClick={() => {
+                    setProfileMenuOpen(false)
+                    setActive("about")
+                  }}
+                >
+                  Despre
+                </button>
+
+                <button
+                  className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 transition hover:bg-white/10"
+                  onClick={async () => {
+                    setProfileMenuOpen(false)
+                    await supabase.auth.signOut()
+                    window.location.href = "/"
+                  }}
+                >
+                  Logout
+                </button>
               </div>
-            </div>
-          </header>
+            )}
+          </div>
+        </>
+      ) : (
+        <Button
+          className="rounded-2xl border-0"
+          style={{
+            background: vivosTheme.gradients.activeIcon,
+            color: vivosTheme.colors.white,
+            boxShadow: vivosTheme.shadows.bubble,
+          }}
+          onClick={() => {
+            window.location.href = "/login"
+          }}
+        >
+          Login
+        </Button>
+      )}
+    </div>
+  </div>
+</header>
 
           <ScrollArea className="flex-1">
             <motion.div

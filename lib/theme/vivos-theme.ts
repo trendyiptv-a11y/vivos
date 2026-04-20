@@ -28,7 +28,7 @@ export const vivosTheme = {
 
     textPrimary: "#FFFFFF",
     textSoft: "rgba(255,255,255,0.82)",
-    textMuted: "rgba(255,255,255,0.60)",
+    textMuted: "rgba(255,255,255,0.58)",
     textFaint: "rgba(255,255,255,0.38)",
 
     borderSoft: "rgba(255,255,255,0.08)",
@@ -45,6 +45,9 @@ export const vivosTheme = {
     headerBackground: "rgba(23, 63, 114, 0.84)",
     footerBackground: "rgba(23, 63, 114, 0.90)",
 
+    navBackground:
+      "linear-gradient(180deg, rgba(23,63,114,0.92) 0%, rgba(18,46,84,0.96) 100%)",
+
     avatarPrimary:
       "linear-gradient(135deg, #C96AA1 0%, #9A71C1 55%, #63A6E6 100%)",
 
@@ -53,6 +56,12 @@ export const vivosTheme = {
 
     sendButton:
       "linear-gradient(135deg, #F8C13A 0%, #F79A42 100%)",
+
+    activePill:
+      "linear-gradient(135deg, #F8C13A 0%, #F79A42 100%)",
+
+    activeIcon:
+      "linear-gradient(135deg, #C96AA1 0%, #9A71C1 52%, #63A6E6 100%)",
 
     incomingCall:
       "linear-gradient(135deg, #C96AA1 0%, #9A71C1 100%)",
@@ -77,6 +86,8 @@ export const vivosTheme = {
     buttonWarm: "0 12px 24px rgba(70, 40, 0, 0.28)",
     modal: "0 24px 48px rgba(0,0,0,0.42)",
     avatar: "0 16px 36px rgba(0,0,0,0.28)",
+    nav: "0 -8px 30px rgba(5, 15, 35, 0.22)",
+    badge: "0 6px 16px rgba(120, 20, 20, 0.35)",
   },
 
   radii: {
@@ -103,6 +114,13 @@ export const vivosTheme = {
     footer: {
       background: "rgba(23, 63, 114, 0.90)",
       borderColor: "rgba(255,255,255,0.08)",
+    },
+
+    bottomNav: {
+      background:
+        "linear-gradient(180deg, rgba(23,63,114,0.92) 0%, rgba(18,46,84,0.96) 100%)",
+      borderColor: "rgba(255,255,255,0.10)",
+      boxShadow: "0 -8px 30px rgba(5, 15, 35, 0.22)",
     },
 
     menuPanel: {
@@ -143,6 +161,22 @@ export const vivosTheme = {
       boxShadow: "0 12px 24px rgba(70, 40, 0, 0.28)",
     },
 
+    navActivePill: {
+      background: "linear-gradient(135deg, #F8C13A 0%, #F79A42 100%)",
+      boxShadow: "0 12px 24px rgba(70, 40, 0, 0.28)",
+    },
+
+    navActiveIcon: {
+      background:
+        "linear-gradient(135deg, #C96AA1 0%, #9A71C1 52%, #63A6E6 100%)",
+      boxShadow: "0 8px 20px rgba(20, 30, 60, 0.28)",
+      color: "#FFFFFF",
+    },
+
+    navInactiveIcon: {
+      color: "rgba(255,255,255,0.58)",
+    },
+
     primaryAvatar: {
       background:
         "linear-gradient(135deg, #C96AA1 0%, #9A71C1 55%, #63A6E6 100%)",
@@ -164,6 +198,12 @@ export const vivosTheme = {
       borderColor: "rgba(247,154,66,0.25)",
       background: "rgba(247,154,66,0.12)",
       color: "#FFD0A0",
+    },
+
+    badge: {
+      background: "#F87171",
+      color: "#FFFFFF",
+      boxShadow: "0 6px 16px rgba(120, 20, 20, 0.35)",
     },
 
     callOverlay: {

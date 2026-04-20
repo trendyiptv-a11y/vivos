@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { ArrowLeft, MoreVertical, Phone, PhoneOff } from "lucide-react"
+import { ArrowLeft, MoreVertical, Phone, PhoneOff, PhoneIncoming, Mic, Send } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 
 type Message = {
@@ -62,27 +62,15 @@ function upsertMessage(list: Message[], incoming: Message) {
 function describeMicrophoneError(error: any) {
   const name = String(error?.name || "")
   const message = String(error?.message || "")
-
-  if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+  if (name === "NotAllowedError" || name === "PermissionDeniedError")
     return "Accesul la microfon este blocat. Permite microfonul pentru VIVOS și încearcă din nou."
-  }
-
-  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+  if (name === "NotFoundError" || name === "DevicesNotFoundError")
     return "Nu a fost găsit niciun microfon disponibil pe device."
-  }
-
-  if (name === "NotReadableError" || name === "TrackStartError") {
+  if (name === "NotReadableError" || name === "TrackStartError")
     return "Microfonul nu poate fi pornit acum. Închide alte aplicații care folosesc audio și încearcă din nou."
-  }
-
-  if (name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
+  if (name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError")
     return "Configurația audio a device-ului nu este compatibilă momentan."
-  }
-
-  if (message) {
-    return `Microfon indisponibil: ${message}`
-  }
-
+  if (message) return `Microfon indisponibil: ${message}`
   return "Microfonul nu poate fi folosit acum în aplicație."
 }
 
@@ -94,18 +82,11 @@ function isNearBottom(threshold = 160) {
 }
 
 function formatMessageTime(dateString: string) {
-  return new Date(dateString).toLocaleTimeString("ro-RO", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })
+  return new Date(dateString).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })
 }
 
 function formatMessageDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("ro-RO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  })
+  return new Date(dateString).toLocaleDateString("ro-RO", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
 export default function ConversationPage() {
@@ -148,56 +129,35 @@ export default function ConversationPage() {
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
+  // ── All hooks / logic below are IDENTICAL to original ─────────────────────
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (!profileMenuRef.current) return
-      if (!profileMenuRef.current.contains(event.target as Node)) {
-        setProfileMenuOpen(false)
-      }
+      if (!profileMenuRef.current.contains(event.target as Node)) setProfileMenuOpen(false)
     }
-
     document.addEventListener("mousedown", handleClickOutside)
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
+    return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
   useEffect(() => {
     async function loadTopBarState() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
+      const { data: { session } } = await supabase.auth.getSession()
       setUserEmail(session?.user?.email ?? null)
-
-      if (!session?.user) {
-        setUnreadCount(0)
-        setPublicPulseCount(0)
-        return
-      }
-
+      if (!session?.user) { setUnreadCount(0); setPublicPulseCount(0); return }
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-
       const [{ count: unread, error: unreadError }, { count: pulse, error: pulseError }] = await Promise.all([
         supabase.from("notifications").select("*", { count: "exact", head: true }).eq("user_id", session.user.id).eq("is_read", false),
         supabase.from("public_activity_feed").select("*", { count: "exact", head: true }).gte("created_at", since),
       ])
-
       if (!unreadError) setUnreadCount(unread || 0)
       if (!pulseError) setPublicPulseCount(pulse || 0)
     }
-
     loadTopBarState()
-
     const notificationsChannel = supabase.channel("conversation-topbar-notifications").on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => { loadTopBarState() }).subscribe()
     const pulseChannel = supabase.channel("conversation-topbar-pulse").on("postgres_changes", { event: "INSERT", schema: "public", table: "public_activity_feed" }, () => { loadTopBarState() }).subscribe()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => { loadTopBarState() })
-
-    return () => {
-      supabase.removeChannel(notificationsChannel)
-      supabase.removeChannel(pulseChannel)
-      subscription.unsubscribe()
-    }
+    return () => { supabase.removeChannel(notificationsChannel); supabase.removeChannel(pulseChannel); subscription.unsubscribe() }
   }, [])
 
   useEffect(() => { currentCallSessionIdRef.current = currentCallSessionId }, [currentCallSessionId])
@@ -218,7 +178,6 @@ export default function ConversationPage() {
     const previousCount = previousMessageCountRef.current
     const hasNewMessages = messages.length > previousCount
     previousMessageCountRef.current = messages.length
-
     if (!initialScrollDoneRef.current) {
       initialScrollDoneRef.current = true
       shouldStickToBottomRef.current = true
@@ -227,7 +186,6 @@ export default function ConversationPage() {
       const timerId = window.setTimeout(() => scrollToBottom("auto"), 120)
       return () => { window.cancelAnimationFrame(rafId); window.clearTimeout(timerId) }
     }
-
     if (hasNewMessages && shouldStickToBottomRef.current) scrollToBottom("smooth")
   }, [messages, scrollToBottom])
 
@@ -265,14 +223,8 @@ export default function ConversationPage() {
       peerConnectionRef.current.close()
       peerConnectionRef.current = null
     }
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop())
-      localStreamRef.current = null
-    }
-    if (remoteAudioRef.current) {
-      try { remoteAudioRef.current.pause() } catch {}
-      remoteAudioRef.current.srcObject = null
-    }
+    if (localStreamRef.current) { localStreamRef.current.getTracks().forEach((track) => track.stop()); localStreamRef.current = null }
+    if (remoteAudioRef.current) { try { remoteAudioRef.current.pause() } catch {}; remoteAudioRef.current.srcObject = null }
   }, [stopRingtone])
 
   const ensureLocalStream = useCallback(async () => {
@@ -287,10 +239,7 @@ export default function ConversationPage() {
       localStreamRef.current = stream
       setAudioPermissionMessage(null)
       return stream
-    } catch (error: any) {
-      setAudioPermissionMessage(describeMicrophoneError(error))
-      throw error
-    }
+    } catch (error: any) { setAudioPermissionMessage(describeMicrophoneError(error)); throw error }
   }, [])
 
   const retryMicrophoneAccess = useCallback(async () => { try { await ensureLocalStream() } catch (error) { console.error("Retry microphone access error:", error) } }, [ensureLocalStream])
@@ -300,32 +249,21 @@ export default function ConversationPage() {
     const res = await fetch("https://vivos-api.vercel.app/api/turn-credentials")
     const { iceServers } = await res.json()
     const pc = new RTCPeerConnection({ iceServers })
-
     pc.ontrack = async (event) => {
       const [remoteStream] = event.streams
       const audioEl = remoteAudioRef.current
       if (!audioEl || !remoteStream) return
-      audioEl.srcObject = remoteStream
-      audioEl.autoplay = true
-      audioEl.muted = false
-      audioEl.setAttribute("playsinline", "true")
+      audioEl.srcObject = remoteStream; audioEl.autoplay = true; audioEl.muted = false; audioEl.setAttribute("playsinline", "true")
       try { await audioEl.play() } catch (error) { console.error("Remote audio play error:", error) }
     }
-
     pc.onicecandidate = async (event) => {
       if (!event.candidate || !callChannelRef.current || !currentCallSessionIdRef.current) return
-      try {
-        await callChannelRef.current.send({ type: "broadcast", event: "ice_candidate", payload: { type: "ice_candidate", callSessionId: currentCallSessionIdRef.current, conversationId, fromUserId: currentUserId, candidate: event.candidate.toJSON() } })
-      } catch (error) { console.error("ICE send error:", error) }
+      try { await callChannelRef.current.send({ type: "broadcast", event: "ice_candidate", payload: { type: "ice_candidate", callSessionId: currentCallSessionIdRef.current, conversationId, fromUserId: currentUserId, candidate: event.candidate.toJSON() } }) } catch (error) { console.error("ICE send error:", error) }
     }
-
     pc.onconnectionstatechange = () => {
       const state = pc.connectionState
-      if (state === "failed" || state === "disconnected" || state === "closed") {
-        cleanupAudioCall(); setIncomingCall(null); setCurrentCallSessionId(null); setCallUiState("idle")
-      }
+      if (state === "failed" || state === "disconnected" || state === "closed") { cleanupAudioCall(); setIncomingCall(null); setCurrentCallSessionId(null); setCallUiState("idle") }
     }
-
     const stream = await ensureLocalStream()
     stream.getTracks().forEach((track) => pc.addTrack(track, stream))
     peerConnectionRef.current = pc
@@ -406,8 +344,7 @@ export default function ConversationPage() {
       const detail = (event as CustomEvent<RuntimeNetworkDetail>).detail || {}
       const connected = Boolean(detail.connected)
       const connectionType = typeof detail.connectionType === "string" ? detail.connectionType : null
-      setIsOffline(!connected)
-      setConnectionLabel(connectionType)
+      setIsOffline(!connected); setConnectionLabel(connectionType)
       if (connected) await refreshConversationState()
     }
     const heartbeat = window.setInterval(() => { if (document.visibilityState === "visible") markActiveConversation(userId) }, 15000)
@@ -431,8 +368,7 @@ export default function ConversationPage() {
     const channel = supabase.channel(`conversation-live-${conversationId}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` }, (payload) => {
       const incoming = payload.new as any
       if (!incoming?.id) return
-      const newMessage: Message = { id: incoming.id, sender_id: incoming.sender_id, body: incoming.body, created_at: incoming.created_at }
-      setMessages((prev) => upsertMessage(prev, newMessage))
+      setMessages((prev) => upsertMessage(prev, { id: incoming.id, sender_id: incoming.sender_id, body: incoming.body, created_at: incoming.created_at }))
     }).subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [conversationId])
@@ -443,10 +379,7 @@ export default function ConversationPage() {
   const acceptCallBySessionId = useCallback(async (callSessionId: string) => {
     if (!userId || !callChannelRef.current) return
     try {
-      setCallBusy(true)
-      stopRingtone()
-      await ensureLocalStream()
-      await ensurePeerConnection(userId)
+      setCallBusy(true); stopRingtone(); await ensureLocalStream(); await ensurePeerConnection(userId)
       acceptedCallSessionRef.current = callSessionId
       const { error: updateError } = await supabase.from("call_sessions").update({ status: "accepted", answered_at: new Date().toISOString() }).eq("id", callSessionId)
       if (updateError) { alert(`Nu am putut accepta apelul: ${updateError.message}`); cleanupAudioCall(); return }
@@ -482,9 +415,7 @@ export default function ConversationPage() {
       .on("broadcast", { event: "call_invite" }, ({ payload }) => {
         if (!payload || payload.toUserId !== userId || payload.fromUserId === userId) return
         setIncomingCall({ callSessionId: payload.callSessionId, fromUserId: payload.fromUserId })
-        setCurrentCallSessionId(payload.callSessionId)
-        setCallUiState("incoming")
-        playRingtone()
+        setCurrentCallSessionId(payload.callSessionId); setCallUiState("incoming"); playRingtone()
       })
       .on("broadcast", { event: "call_accept" }, async ({ payload }) => {
         if (!payload || payload.callSessionId !== currentCallSessionIdRef.current || !userId) return
@@ -502,12 +433,14 @@ export default function ConversationPage() {
         if (!payload || payload.callSessionId !== currentCallSessionIdRef.current) return
         if (acceptedCallSessionRef.current && payload.callSessionId === acceptedCallSessionRef.current) return
         if (callUiState === "connected") return
-        stopRingtone(); cleanupAudioCall(); setIncomingCall(null); setCurrentCallSessionId(null); setCallUiState("idle"); emitWindowEvent("vivos:call-rejected", { callSessionId: payload.callSessionId, conversationId, source: "broadcast" }); alert("Apel respins.")
+        stopRingtone(); cleanupAudioCall(); setIncomingCall(null); setCurrentCallSessionId(null); setCallUiState("idle")
+        emitWindowEvent("vivos:call-rejected", { callSessionId: payload.callSessionId, conversationId, source: "broadcast" }); alert("Apel respins.")
       })
       .on("broadcast", { event: "call_end" }, ({ payload }) => {
         if (!payload) return
         if (currentCallSessionIdRef.current && payload.callSessionId !== currentCallSessionIdRef.current) return
-        stopRingtone(); cleanupAudioCall(); setIncomingCall(null); setCurrentCallSessionId(null); setCallUiState("idle"); emitWindowEvent("vivos:call-ended", { callSessionId: payload.callSessionId, conversationId, source: "broadcast" })
+        stopRingtone(); cleanupAudioCall(); setIncomingCall(null); setCurrentCallSessionId(null); setCallUiState("idle")
+        emitWindowEvent("vivos:call-ended", { callSessionId: payload.callSessionId, conversationId, source: "broadcast" })
       })
       .on("broadcast", { event: "webrtc_offer" }, async ({ payload }) => {
         if (!payload || payload.callSessionId !== currentCallSessionIdRef.current || !userId) return
@@ -547,8 +480,7 @@ export default function ConversationPage() {
     if (!userId) return
     const callAction = searchParams.get("callAction")
     const targetCallSessionId = searchParams.get("callSessionId")
-    let cancelled = false
-    let attempts = 0
+    let cancelled = false; let attempts = 0
     async function syncIncomingCallFromDb() {
       const { data, error } = await supabase.from("call_sessions").select("id, caller_id, callee_id, status, created_at").eq("conversation_id", conversationId).eq("callee_id", userId).eq("status", "ringing").order("created_at", { ascending: false }).limit(1).maybeSingle()
       if (cancelled || error || !data?.id) return null
@@ -573,8 +505,7 @@ export default function ConversationPage() {
   async function handleStartCall() {
     if (!userId || !otherMember?.member_id || callUiState !== "idle" || !callChannelRef.current) return
     try {
-      setCallBusy(true)
-      await ensureLocalStream()
+      setCallBusy(true); await ensureLocalStream()
       const { data: callSession, error: callSessionError } = await supabase.from("call_sessions").insert({ conversation_id: conversationId, caller_id: userId, callee_id: otherMember.member_id, status: "ringing" }).select("id").single()
       if (callSessionError || !callSession?.id) { alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`); cleanupAudioCall(); return }
       const callSessionId = callSession.id
@@ -588,8 +519,7 @@ export default function ConversationPage() {
           if (!pushResponse.ok) console.error("Call push error:", pushResult)
         }
       } catch (pushError: any) { console.error("Call push request failed:", pushError) }
-      setCurrentCallSessionId(callSessionId)
-      setCallUiState("outgoing")
+      setCurrentCallSessionId(callSessionId); setCallUiState("outgoing")
     } catch (error: any) {
       console.error("Start call error:", error); alert(error?.message || "Nu am putut porni apelul."); cleanupAudioCall()
     } finally { setCallBusy(false) }
@@ -598,8 +528,7 @@ export default function ConversationPage() {
   async function handleEndCall() {
     if (!userId || !currentCallSessionId) { cleanupAudioCall(); setIncomingCall(null); setCallUiState("idle"); setCurrentCallSessionId(null); return }
     try {
-      setCallBusy(true)
-      stopRingtone()
+      setCallBusy(true); stopRingtone()
       await supabase.from("call_sessions").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", currentCallSessionId)
       await supabase.from("call_events").insert({ call_session_id: currentCallSessionId, actor_id: userId, event_type: "end", payload: { conversationId } })
       await callChannelRef.current?.send({ type: "broadcast", event: "call_end", payload: { type: "call_end", callSessionId: currentCallSessionId, conversationId, fromUserId: userId } })
@@ -624,81 +553,335 @@ export default function ConversationPage() {
       if (notificationError) console.error("Notification error:", notificationError)
       try {
         const pushResponse = await fetch("/api/notifications/send-message-push", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ conversationId, messageId: data.id, messageBody: cleanBody }) })
-        if (!pushResponse.ok) {
-          const pushResult = await pushResponse.json().catch(() => null)
-          console.error("Push send error:", pushResult)
-        }
+        if (!pushResponse.ok) { const pushResult = await pushResponse.json().catch(() => null); console.error("Push send error:", pushResult) }
       } catch (pushError) { console.error("Push request failed:", pushError) }
       shouldStickToBottomRef.current = true
       setMessages((prev) => upsertMessage(prev, { id: data.id, sender_id: data.sender_id, body: data.body, created_at: data.created_at }))
     }
-    setBody("")
-    setSending(false)
-    scrollToBottom("smooth")
+    setBody(""); setSending(false); scrollToBottom("smooth")
   }
 
+  // ── Derived UI values ──────────────────────────────────────────────────────
   const callDisplayName = otherName || "Membru"
   const callInitial = callDisplayName.trim().charAt(0).toUpperCase() || "M"
   const showCallOverlay = callUiState === "incoming" || callUiState === "outgoing" || callUiState === "connected"
 
+  // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-white text-slate-900">
+    <main className="min-h-screen bg-[#0f1117] text-white">
       <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
       <audio ref={ringtoneRef} src="/sounds/incoming-call.mp3" preload="auto" />
-      <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col bg-white">
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
-          <div className="flex items-center gap-3 px-3 py-3 sm:px-4">
-            <button type="button" onClick={() => router.push("/messages")} className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100"><ArrowLeft className="h-5 w-5" /></button>
-            <Avatar className="h-10 w-10 rounded-full border border-slate-200"><AvatarFallback className="rounded-full bg-slate-900 text-white">{callInitial}</AvatarFallback></Avatar>
-            <div className="min-w-0 flex-1"><p className="truncate text-base font-semibold">{loading ? "Se încarcă..." : otherName}</p><p className="truncate text-xs text-slate-500">{isOffline ? `Offline${connectionLabel ? ` · ${connectionLabel}` : ""}` : "Online în conversație"}</p></div>
-            {callUiState === "idle" ? <button type="button" onClick={handleStartCall} disabled={callBusy || !otherMember || isOffline} className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40" title={!otherMember ? "Conversația nu are încă membrul încărcat" : isOffline ? "Conexiune indisponibilă" : "Apelează"}><Phone className="h-5 w-5" /></button> : null}
-            {(callUiState === "outgoing" || callUiState === "connected") ? <button type="button" onClick={handleEndCall} disabled={callBusy} className="flex h-10 w-10 items-center justify-center rounded-full text-red-600 transition hover:bg-red-50 disabled:opacity-40" title={callUiState === "connected" ? "Închide apelul" : "Anulează apelul"}><PhoneOff className="h-5 w-5" /></button> : null}
+
+      <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col">
+
+        {/* ── HEADER ── */}
+        <header className="sticky top-0 z-20 border-b border-white/[0.07] bg-[#0f1117]/90 backdrop-blur-xl">
+          <div className="flex items-center gap-3 px-4 py-3">
+
+            {/* Back */}
+            <button
+              type="button"
+              onClick={() => router.push("/messages")}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-sm font-semibold text-white shadow-lg shadow-violet-900/40">
+                {callInitial}
+              </div>
+              {!isOffline && (
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[#0f1117] bg-emerald-400" />
+              )}
+            </div>
+
+            {/* Name + status */}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[15px] font-semibold leading-tight text-white">
+                {loading ? "Se încarcă..." : otherName}
+              </p>
+              <p className="truncate text-[11px] text-white/40">
+                {isOffline
+                  ? `Offline${connectionLabel ? ` · ${connectionLabel}` : ""}`
+                  : "Online acum"}
+              </p>
+            </div>
+
+            {/* Call button */}
+            {callUiState === "idle" && (
+              <button
+                type="button"
+                onClick={handleStartCall}
+                disabled={callBusy || !otherMember || isOffline}
+                title={!otherMember ? "Membrul nu e încărcat" : isOffline ? "Conexiune indisponibilă" : "Apelează"}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/50 transition hover:bg-white/[0.07] hover:text-emerald-400 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <Phone className="h-4 w-4" />
+              </button>
+            )}
+            {(callUiState === "outgoing" || callUiState === "connected") && (
+              <button
+                type="button"
+                onClick={handleEndCall}
+                disabled={callBusy}
+                title={callUiState === "connected" ? "Închide apelul" : "Anulează apelul"}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-red-400 transition hover:bg-red-500/10 disabled:opacity-40"
+              >
+                <PhoneOff className="h-4 w-4" />
+              </button>
+            )}
+
+            {/* Menu */}
             <div className="relative" ref={profileMenuRef}>
-              <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100" onClick={() => setProfileMenuOpen((prev) => !prev)}><MoreVertical className="h-5 w-5" /></button>
-              {profileMenuOpen ? <div className="absolute right-0 top-12 z-50 w-52 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
-                <button className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100" onClick={() => { setProfileMenuOpen(false); window.location.href = "/notifications" }}>Notificări</button>
-                <button className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100" onClick={() => { setProfileMenuOpen(false); window.location.href = "/profile" }}>Profil</button>
-                <button className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100" onClick={() => { setProfileMenuOpen(false); window.location.href = "/downloads/manifest.html" }}>Manifest VIVOS</button>
-                <button className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=settings" }}>Setări</button>
-                <button className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=about" }}>Despre</button>
-                <button className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100" onClick={async () => { setProfileMenuOpen(false); await supabase.auth.signOut(); window.location.href = "/" }}>Logout</button>
-              </div> : null}
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((p) => !p)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+              {profileMenuOpen && (
+                <div className="absolute right-0 top-11 z-50 w-52 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#1a1d27] shadow-2xl shadow-black/60">
+                  {[
+                    { label: "Notificări", href: "/notifications" },
+                    { label: "Profil", href: "/profile" },
+                    { label: "Manifest VIVOS", href: "/downloads/manifest.html" },
+                    { label: "Setări", href: "/?tab=settings" },
+                    { label: "Despre", href: "/?tab=about" },
+                  ].map(({ label, href }) => (
+                    <button
+                      key={label}
+                      className="block w-full px-4 py-2.5 text-left text-sm text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+                      onClick={() => { setProfileMenuOpen(false); window.location.href = href }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <div className="mx-3 my-1 h-px bg-white/[0.07]" />
+                  <button
+                    className="block w-full px-4 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10"
+                    onClick={async () => { setProfileMenuOpen(false); await supabase.auth.signOut(); window.location.href = "/" }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
-        {isOffline ? <div className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-800">Fără conexiune. VIVOS nu poate sincroniza conversația acum.{connectionLabel ? ` Rețea: ${connectionLabel}.` : ""}</div> : null}
-        {audioPermissionMessage ? <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div>{audioPermissionMessage}</div><div className="flex gap-2"><Button type="button" variant="outline" className="rounded-2xl" onClick={retryMicrophoneAccess}>Reîncearcă</Button><Button type="button" variant="outline" className="rounded-2xl" onClick={() => setAudioPermissionMessage(null)}>Închide</Button></div></div></div> : null}
-
-        <section className="flex-1 bg-[#F7F8FA] px-3 py-3 sm:px-4 sm:py-4">
-          {loading ? <div className="flex h-full items-center justify-center text-sm text-slate-500">Se încarcă conversația...</div> : messages.length === 0 ? <div className="flex h-full items-center justify-center"><div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">Nu există încă mesaje în această conversație.</div></div> : <div className="space-y-1.5 pb-20">
-            {messages.map((msg, index) => {
-              const mine = msg.sender_id === userId
-              const prev = messages[index - 1]
-              const showDateSeparator = !prev || formatMessageDate(prev.created_at) !== formatMessageDate(msg.created_at)
-              return <div key={msg.id}>
-                {showDateSeparator ? <div className="my-3 flex justify-center"><div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-500 shadow-sm">{formatMessageDate(msg.created_at)}</div></div> : null}
-                <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[88%] rounded-[20px] px-3.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:max-w-[76%] ${mine ? "rounded-br-[8px] bg-[#E8F1FF] text-slate-900" : "rounded-bl-[8px] border border-slate-200 bg-white text-slate-900"}`}>
-                    <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.45]">{msg.body}</p>
-                    <div className="mt-1 flex justify-end"><span className="text-[11px] text-slate-500">{formatMessageTime(msg.created_at)}</span></div>
-                  </div>
-                </div>
+        {/* ── BANNERS ── */}
+        {isOffline && (
+          <div className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">
+            Fără conexiune. VIVOS nu poate sincroniza conversația acum.
+            {connectionLabel && ` Rețea: ${connectionLabel}.`}
+          </div>
+        )}
+        {audioPermissionMessage && (
+          <div className="border-b border-orange-500/20 bg-orange-500/10 px-4 py-2.5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-orange-300">{audioPermissionMessage}</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={retryMicrophoneAccess}
+                  className="rounded-lg border border-orange-500/30 px-3 py-1 text-xs text-orange-300 transition hover:bg-orange-500/10"
+                >
+                  Reîncearcă
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAudioPermissionMessage(null)}
+                  className="rounded-lg border border-white/10 px-3 py-1 text-xs text-white/40 transition hover:bg-white/[0.05]"
+                >
+                  Închide
+                </button>
               </div>
-            })}
-            <div ref={bottomRef} />
-          </div>}
+            </div>
+          </div>
+        )}
+
+        {/* ── MESSAGES ── */}
+        <section className="flex-1 px-4 py-4">
+          {loading ? (
+            <div className="flex h-full items-center justify-center text-sm text-white/30">
+              Se încarcă conversația...
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="rounded-2xl border border-white/[0.07] bg-white/[0.03] px-5 py-3 text-sm text-white/30">
+                Nu există încă mesaje în această conversație.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1 pb-24">
+              {messages.map((msg, index) => {
+                const mine = msg.sender_id === userId
+                const prev = messages[index - 1]
+                const showDateSeparator =
+                  !prev || formatMessageDate(prev.created_at) !== formatMessageDate(msg.created_at)
+                const prevSame = prev && prev.sender_id === msg.sender_id && !showDateSeparator
+                const nextMsg = messages[index + 1]
+                const nextSame = nextMsg && nextMsg.sender_id === msg.sender_id
+
+                return (
+                  <div key={msg.id}>
+                    {showDateSeparator && (
+                      <div className="my-4 flex items-center gap-3">
+                        <div className="h-px flex-1 bg-white/[0.06]" />
+                        <span className="text-[11px] font-medium text-white/25">
+                          {formatMessageDate(msg.created_at)}
+                        </span>
+                        <div className="h-px flex-1 bg-white/[0.06]" />
+                      </div>
+                    )}
+
+                    <div className={`flex ${mine ? "justify-end" : "justify-start"} ${prevSame ? "mt-0.5" : "mt-2"}`}>
+                      <div
+                        className={[
+                          "max-w-[78%] px-3.5 py-2.5 sm:max-w-[68%]",
+                          "shadow-sm",
+                          mine
+                            ? "rounded-[18px] rounded-br-[6px] bg-violet-600 text-white"
+                            : "rounded-[18px] rounded-bl-[6px] border border-white/[0.07] bg-[#1a1d27] text-white/90",
+                          nextSame && mine ? "rounded-br-[18px]" : "",
+                          nextSame && !mine ? "rounded-bl-[18px]" : "",
+                        ].join(" ")}
+                      >
+                        <p className="whitespace-pre-wrap break-words text-[14.5px] leading-[1.5]">
+                          {msg.body}
+                        </p>
+                        <div className="mt-1 flex justify-end">
+                          <span className={`text-[10px] ${mine ? "text-violet-200/70" : "text-white/25"}`}>
+                            {formatMessageTime(msg.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+              <div ref={bottomRef} />
+            </div>
+          )}
         </section>
 
-        <div className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/96 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:px-4">
+        {/* ── INPUT ── */}
+        <div className="sticky bottom-0 z-10 border-t border-white/[0.06] bg-[#0f1117]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-xl">
           <form onSubmit={handleSend} className="flex items-end gap-2">
-            <textarea ref={textareaRef} value={body} onChange={(e) => setBody(e.target.value)} className="min-h-[42px] max-h-[120px] flex-1 resize-none rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-2.5 text-[15px] leading-5 outline-none transition focus:border-slate-300 focus:bg-white focus-visible:ring-2 focus-visible:ring-slate-200" placeholder="Scrie mesajul tău..." disabled={isOffline} rows={1} />
-            <Button type="submit" className="h-[42px] min-w-[88px] shrink-0 rounded-full px-4" disabled={sending || isOffline || !body.trim()}>{sending ? "..." : "Trimite"}</Button>
+            <textarea
+              ref={textareaRef}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              disabled={isOffline}
+              rows={1}
+              placeholder="Scrie un mesaj..."
+              className="min-h-[42px] max-h-[120px] flex-1 resize-none rounded-2xl border border-white/[0.09] bg-white/[0.05] px-4 py-2.5 text-[14.5px] leading-5 text-white placeholder-white/25 outline-none transition focus:border-violet-500/50 focus:bg-white/[0.07]"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(e as any) }
+              }}
+            />
+            <button
+              type="submit"
+              disabled={sending || isOffline || !body.trim()}
+              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-900/40 transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </form>
         </div>
       </div>
 
-      {showCallOverlay ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"><div className="w-full max-w-sm rounded-[2rem] bg-white p-6 shadow-2xl sm:p-8"><div className="flex flex-col items-center text-center"><div className="mb-5 flex h-24 w-24 items-center justify-center rounded-full bg-slate-100 text-3xl font-semibold text-slate-700 sm:h-28 sm:w-28 sm:text-4xl">{callInitial}</div><h2 className="max-w-full truncate text-2xl font-semibold text-slate-900">{callDisplayName}</h2>{callUiState === "incoming" ? <><p className="mt-2 text-sm text-slate-500">Apel incoming</p><p className="mt-1 text-xs text-slate-400">Te apelează acum</p><div className="mt-8 grid w-full grid-cols-2 gap-3"><button type="button" onClick={handleAcceptCall} disabled={callBusy || isOffline} className="rounded-2xl bg-emerald-600 px-4 py-4 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60">{callBusy ? "Se acceptă..." : "Răspunde"}</button><button type="button" onClick={handleRejectCall} disabled={callBusy} className="rounded-2xl bg-red-600 px-4 py-4 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60">{callBusy ? "Se respinge..." : "Respinge"}</button></div></> : null}{callUiState === "outgoing" ? <><p className="mt-2 text-sm text-slate-500">Se apelează...</p><p className="mt-1 text-xs text-slate-400">Așteptăm răspunsul</p><button type="button" onClick={handleEndCall} disabled={callBusy} className="mt-8 w-full rounded-2xl bg-red-600 px-4 py-4 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60">{callBusy ? "Se închide..." : "Anulează apelul"}</button></> : null}{callUiState === "connected" ? <><p className="mt-2 text-sm text-emerald-600">Conectat</p><p className="mt-1 text-xs text-slate-400">Apel audio activ</p><div className="mt-6 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Microfon activ</div><button type="button" onClick={handleEndCall} disabled={callBusy} className="mt-8 w-full rounded-2xl bg-red-600 px-4 py-4 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60">{callBusy ? "Se închide..." : "Închide apelul"}</button></> : null}</div></div></div> : null}
+      {/* ── CALL OVERLAY ── */}
+      {showCallOverlay && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-md sm:items-center">
+          <div className="w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[#13151f] shadow-2xl">
+
+            {/* Avatar section */}
+            <div className="flex flex-col items-center px-8 pt-10 pb-6 text-center">
+              <div
+                className={[
+                  "mb-5 flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold text-white",
+                  callUiState === "connected"
+                    ? "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-900/40"
+                    : callUiState === "incoming"
+                    ? "bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-900/40"
+                    : "bg-gradient-to-br from-slate-600 to-slate-700",
+                ].join(" ")}
+              >
+                {callInitial}
+              </div>
+              <h2 className="max-w-full truncate text-xl font-semibold text-white">{callDisplayName}</h2>
+
+              {callUiState === "incoming" && (
+                <div className="mt-2 flex items-center gap-1.5">
+                  <PhoneIncoming className="h-3.5 w-3.5 text-violet-400" />
+                  <p className="text-sm text-violet-300">Apel primit</p>
+                </div>
+              )}
+              {callUiState === "outgoing" && (
+                <p className="mt-2 text-sm text-white/40">Se apelează...</p>
+              )}
+              {callUiState === "connected" && (
+                <div className="mt-2 flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                  </span>
+                  <p className="text-sm font-medium text-emerald-400">Conectat</p>
+                </div>
+              )}
+            </div>
+
+            {/* Connected: mic indicator */}
+            {callUiState === "connected" && (
+              <div className="mx-6 mb-4 flex items-center gap-2 rounded-2xl bg-white/[0.05] px-4 py-3">
+                <Mic className="h-4 w-4 text-emerald-400" />
+                <span className="text-sm text-white/60">Microfon activ</span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="px-6 pb-8">
+              {callUiState === "incoming" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={handleAcceptCall}
+                    disabled={callBusy || isOffline}
+                    className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-sm font-medium text-white shadow transition hover:bg-emerald-500 disabled:opacity-50"
+                  >
+                    <Phone className="h-4 w-4" />
+                    {callBusy ? "..." : "Răspunde"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRejectCall}
+                    disabled={callBusy}
+                    className="flex items-center justify-center gap-2 rounded-2xl bg-red-600/20 py-4 text-sm font-medium text-red-400 border border-red-500/20 transition hover:bg-red-600/30 disabled:opacity-50"
+                  >
+                    <PhoneOff className="h-4 w-4" />
+                    {callBusy ? "..." : "Respinge"}
+                  </button>
+                </div>
+              )}
+              {(callUiState === "outgoing" || callUiState === "connected") && (
+                <button
+                  type="button"
+                  onClick={handleEndCall}
+                  disabled={callBusy}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 py-4 text-sm font-medium text-white shadow transition hover:bg-red-500 disabled:opacity-50"
+                >
+                  <PhoneOff className="h-4 w-4" />
+                  {callBusy ? "Se închide..." : callUiState === "connected" ? "Închide apelul" : "Anulează apelul"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

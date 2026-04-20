@@ -568,14 +568,14 @@ export default function ConversationPage() {
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#0d2847] text-white">
+    <main className="min-h-screen bg-[#0f1117] text-white">
       <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
       <audio ref={ringtoneRef} src="/sounds/incoming-call.mp3" preload="auto" />
 
       <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col">
 
         {/* ── HEADER ── */}
-        <header className="sticky top-0 z-20 border-b border-white/[0.07] bg-[#0d2847]/95 backdrop-blur-xl">
+        <header className="sticky top-0 z-20 border-b border-white/[0.07] bg-[#0f1117]/90 backdrop-blur-xl">
           <div className="flex items-center gap-3 px-4 py-3">
 
             {/* Back */}
@@ -593,7 +593,7 @@ export default function ConversationPage() {
                 {callInitial}
               </div>
               {!isOffline && (
-                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[#0d2847] bg-emerald-400" />
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[#0f1117] bg-emerald-400" />
               )}
             </div>
 
@@ -643,7 +643,7 @@ export default function ConversationPage() {
                 <MoreVertical className="h-4 w-4" />
               </button>
               {profileMenuOpen && (
-                <div className="absolute right-0 top-11 z-50 w-52 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c2540] shadow-2xl shadow-black/60">
+                <div className="absolute right-0 top-11 z-50 w-52 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#1a1d27] shadow-2xl shadow-black/60">
                   {[
                     { label: "Notificări", href: "/notifications" },
                     { label: "Profil", href: "/profile" },
@@ -745,7 +745,7 @@ export default function ConversationPage() {
                           "shadow-sm",
                           mine
                             ? "rounded-[18px] rounded-br-[6px] bg-violet-600 text-white"
-                            : "rounded-[18px] rounded-bl-[6px] border border-white/[0.07] bg-[#0e2d4a] text-white/90",
+                            : "rounded-[18px] rounded-bl-[6px] border border-white/[0.07] bg-[#1a1d27] text-white/90",
                           nextSame && mine ? "rounded-br-[18px]" : "",
                           nextSame && !mine ? "rounded-bl-[18px]" : "",
                         ].join(" ")}
@@ -769,7 +769,7 @@ export default function ConversationPage() {
         </section>
 
         {/* ── INPUT ── */}
-        <div className="sticky bottom-0 z-10 border-t border-white/[0.06] bg-[#0d2847]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-xl">
+        <div className="sticky bottom-0 z-10 border-t border-white/[0.06] bg-[#0f1117]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-xl">
           <form onSubmit={handleSend} className="flex items-end gap-2">
             <textarea
               ref={textareaRef}
@@ -796,8 +796,8 @@ export default function ConversationPage() {
 
       {/* ── CALL OVERLAY ── */}
       {showCallOverlay && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-6 backdrop-blur-md">
-          <div className="w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[#0c2540] shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-md sm:items-center">
+          <div className="w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[#13151f] shadow-2xl">
 
             {/* Avatar section */}
             <div className="flex flex-col items-center px-8 pt-10 pb-6 text-center">

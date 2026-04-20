@@ -143,6 +143,7 @@ export default function ConversationPage() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const [isOtherOnline, setIsOtherOnline] = useState(false)
 
   const [callUiState, setCallUiState] = useState<CallUiState>("idle")
   const [callBusy, setCallBusy] = useState(false)
@@ -742,6 +743,29 @@ export default function ConversationPage() {
     () => members.find((m) => m.member_id !== userId) || null,
     [members, userId]
   )
+
+  useEffect(() => {
+    if (!userId || !otherMember?.member_id) return
+
+    const channel = supabase
+      .channel(`presence-conv-${conversationId}`, {
+        config: { presence: { key: userId } },
+      })
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState()
+        const otherOnline = Object.keys(state).includes(otherMember.member_id)
+        setIsOtherOnline(otherOnline)
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ user_id: userId, online_at: new Date().toISOString() })
+        }
+      })
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId, otherMember?.member_id, conversationId])
 
   const otherName = useMemo(
     () =>
@@ -1406,7 +1430,7 @@ export default function ConversationPage() {
               >
                 {callInitial}
               </div>
-              {!isOffline && (
+              {isOtherOnline && (
                 <span
                   className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2"
                   style={{
@@ -1422,7 +1446,7 @@ export default function ConversationPage() {
                 {loading ? "Se încarcă..." : otherName}
               </p>
               <p className="truncate text-[11px]" style={{ color: "rgba(255,255,255,0.60)" }}>
-                {isOffline ? `Offline${connectionLabel ? ` · ${connectionLabel}` : ""}` : "Online acum"}
+                {isOtherOnline ? "Online acum" : "Offline"}
               </p>
             </div>
 

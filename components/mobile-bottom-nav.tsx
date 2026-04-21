@@ -121,7 +121,7 @@ function MobileBottomNavInner() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t backdrop-blur-xl md:hidden"
+      className="vivos-mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 border-t backdrop-blur-xl md:hidden"
       style={{
         background: vivosTheme.gradients.footerBackground,
         borderColor: vivosTheme.colors.borderSoft,

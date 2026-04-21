@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
+import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 type ProfileRow = {
   id: string
@@ -204,7 +205,10 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+      <main
+        className="flex min-h-screen items-center justify-center p-6"
+        style={{ background: vivosTheme.gradients.appBackground }}
+      >
         <Card className="w-full max-w-2xl rounded-3xl border-0 shadow-sm">
           <CardContent className="p-6">
             <p className="text-sm text-slate-600">Se încarcă profilul...</p>
@@ -215,196 +219,220 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="sticky top-0 z-10 mb-6 flex flex-col gap-3 bg-slate-50 px-6 pb-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-slate-500">Membru autentificat</p>
-            <h1 className="text-3xl font-semibold">Profil VIVOS</h1>
+    <main
+      className="min-h-screen"
+      style={{ background: vivosTheme.gradients.appBackground }}
+    >
+      <header
+        className="sticky top-0 z-10 border-b backdrop-blur-xl"
+        style={{
+          background: vivosTheme.styles.bottomNav.background,
+          borderColor: vivosTheme.styles.bottomNav.borderColor,
+          boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
+        }}
+      >
+        <div className="mx-auto flex min-h-[84px] max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <p
+              className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
+              style={{ color: "rgba(255,255,255,0.68)" }}
+            >
+              Membru autentificat
+            </p>
+            <h1
+              className="truncate text-lg font-semibold sm:text-2xl"
+              style={{ color: vivosTheme.colors.white }}
+            >
+              Profil VIVOS
+            </h1>
           </div>
 
-          <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/")}>
-            Înapoi în homepage
+          <Button
+            variant="outline"
+            className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15"
+            onClick={() => router.push("/")}
+          >
+            Înapoi
           </Button>
         </div>
+      </header>
 
-        <div className="space-y-6 px-6 pb-24">
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-2xl">Actualizează profilul</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSave} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Email</label>
-                    <Input value={email} readOnly className="rounded-2xl bg-slate-100" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Rol</label>
-                    <Input
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                      className="rounded-2xl"
-                      placeholder="member"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nume</label>
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="rounded-2xl"
-                      placeholder="Numele tău"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Alias</label>
-                    <Input
-                      value={alias}
-                      onChange={(e) => setAlias(e.target.value)}
-                      className="rounded-2xl"
-                      placeholder="Alias comunitar"
-                    />
-                  </div>
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-4 sm:px-6 sm:py-6">
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl">Actualizează profilul</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email</label>
+                  <Input value={email} readOnly className="rounded-2xl bg-slate-100" />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Competențe</label>
-                  <textarea
-                    value={skills}
-                    onChange={(e) => setSkills(e.target.value)}
-                    className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                    placeholder="ex: electrician, logistică, design, traduceri"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Ce oferi</label>
-                  <textarea
-                    value={offersSummary}
-                    onChange={(e) => setOffersSummary(e.target.value)}
-                    className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                    placeholder="Servicii, bunuri, timp, ajutor pe care îl poți oferi"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Ce cauți</label>
-                  <textarea
-                    value={needsSummary}
-                    onChange={(e) => setNeedsSummary(e.target.value)}
-                    className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                    placeholder="Sprijin, colaborări, resurse, nevoi curente"
-                  />
-                </div>
-
-                {message && (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-                    {message}
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button type="submit" className="rounded-2xl" disabled={saving}>
-                    {saving ? "Se salvează..." : "Salvează profilul"}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
+                  <label className="text-sm font-medium">Rol</label>
+                  <Input
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
                     className="rounded-2xl"
-                    onClick={() => router.push("/")}
-                  >
-                    Anulează
-                  </Button>
+                    placeholder="member"
+                  />
                 </div>
-              </form>
-            </CardContent>
-          </Card>
+              </div>
 
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-2xl">Schimbă parola</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Parolă nouă</label>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="rounded-2xl"
-                      placeholder="Introdu parola nouă"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Confirmă parola</label>
-                    <Input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="rounded-2xl"
-                      placeholder="Reintrodu parola"
-                      required
-                    />
-                  </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nume</label>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="rounded-2xl"
+                    placeholder="Numele tău"
+                  />
                 </div>
 
-                {passwordMessage && (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-                    {passwordMessage}
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button type="submit" className="rounded-2xl" disabled={passwordSaving}>
-                    {passwordSaving ? "Se actualizează..." : "Actualizează parola"}
-                  </Button>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Alias</label>
+                  <Input
+                    value={alias}
+                    onChange={(e) => setAlias(e.target.value)}
+                    className="rounded-2xl"
+                    placeholder="Alias comunitar"
+                  />
                 </div>
-              </form>
-            </CardContent>
-          </Card>
+              </div>
 
-          <Card className="rounded-3xl border border-red-200 bg-red-50 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-2xl text-red-700">Ștergere cont</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-red-700">
-                Această acțiune este permanentă. Contul tău, profilul și datele asociate vor fi
-                șterse definitiv din platformă.
-              </p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Competențe</label>
+                <textarea
+                  value={skills}
+                  onChange={(e) => setSkills(e.target.value)}
+                  className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  placeholder="ex: electrician, logistică, design, traduceri"
+                />
+              </div>
 
-              {deleteMessage && (
-                <div className="rounded-2xl border border-red-200 bg-white p-3 text-sm text-red-700">
-                  {deleteMessage}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Ce oferi</label>
+                <textarea
+                  value={offersSummary}
+                  onChange={(e) => setOffersSummary(e.target.value)}
+                  className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  placeholder="Servicii, bunuri, timp, ajutor pe care îl poți oferi"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Ce cauți</label>
+                <textarea
+                  value={needsSummary}
+                  onChange={(e) => setNeedsSummary(e.target.value)}
+                  className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  placeholder="Sprijin, colaborări, resurse, nevoi curente"
+                />
+              </div>
+
+              {message && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+                  {message}
                 </div>
               )}
 
               <div className="flex flex-col gap-3 sm:flex-row">
+                <Button type="submit" className="rounded-2xl" disabled={saving}>
+                  {saving ? "Se salvează..." : "Salvează profilul"}
+                </Button>
+
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-2xl border-red-300 text-red-700 hover:bg-red-100"
-                  onClick={handleDeleteAccount}
-                  disabled={deletingAccount}
+                  className="rounded-2xl"
+                  onClick={() => router.push("/")}
                 >
-                  {deletingAccount ? "Se șterge contul..." : "Șterge contul meu"}
+                  Anulează
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl">Schimbă parola</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Parolă nouă</label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="rounded-2xl"
+                    placeholder="Introdu parola nouă"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Confirmă parola</label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="rounded-2xl"
+                    placeholder="Reintrodu parola"
+                    required
+                  />
+                </div>
+              </div>
+
+              {passwordMessage && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+                  {passwordMessage}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button type="submit" className="rounded-2xl" disabled={passwordSaving}>
+                  {passwordSaving ? "Se actualizează..." : "Actualizează parola"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border border-red-200 bg-red-50 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl text-red-700">Ștergere cont</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-red-700">
+              Această acțiune este permanentă. Contul tău, profilul și datele asociate vor fi
+              șterse definitiv din platformă.
+            </p>
+
+            {deleteMessage && (
+              <div className="rounded-2xl border border-red-200 bg-white p-3 text-sm text-red-700">
+                {deleteMessage}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-2xl border-red-300 text-red-700 hover:bg-red-100"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+              >
+                {deletingAccount ? "Se șterge contul..." : "Șterge contul meu"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </main>
   )

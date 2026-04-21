@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase/client"
+import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 type NotificationRow = {
   id: string
@@ -182,25 +183,59 @@ export default function NotificationsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-4xl">
-        <div className="sticky top-0 z-10 mb-6 flex flex-col gap-3 bg-slate-50 px-6 pb-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-slate-500">Monitorizare</p>
-            <h1 className="text-3xl font-semibold">Notificări</h1>
+    <main
+      className="min-h-screen"
+      style={{ background: vivosTheme.gradients.appBackground }}
+    >
+      <header
+        className="sticky top-0 z-10 border-b backdrop-blur-xl"
+        style={{
+          background: vivosTheme.styles.bottomNav.background,
+          borderColor: vivosTheme.styles.bottomNav.borderColor,
+          boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
+        }}
+      >
+        <div className="mx-auto flex min-h-[84px] max-w-4xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <p
+              className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
+              style={{ color: "rgba(255,255,255,0.68)" }}
+            >
+              Monitorizare
+            </p>
+            <h1
+              className="truncate text-lg font-semibold sm:text-2xl"
+              style={{ color: vivosTheme.colors.white }}
+            >
+              Notificări
+            </h1>
           </div>
 
           <div className="flex gap-3">
-            <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/")}>
+            <Button
+              variant="outline"
+              className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15"
+              onClick={() => router.push("/")}
+            >
               Înapoi
             </Button>
-            <Button className="rounded-2xl" onClick={markAllRead}>
+            <Button
+              className="rounded-2xl border-0"
+              style={{
+                background: vivosTheme.gradients.activeIcon,
+                color: vivosTheme.colors.white,
+                boxShadow: vivosTheme.shadows.bubble,
+              }}
+              onClick={markAllRead}
+            >
               Marchează tot ca citit
             </Button>
           </div>
         </div>
+      </header>
 
-        <Card className="mx-6 mb-24 rounded-3xl border-0 shadow-sm">
+      <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
+        <Card className="mb-24 rounded-3xl border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-2xl">Ultimele evenimente</CardTitle>
             <div className="text-sm text-slate-500">{items.length} notificări</div>

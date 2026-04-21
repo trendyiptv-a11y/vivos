@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase/client"
+import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 type MemberRow = {
   id: string
@@ -65,7 +66,10 @@ export default function MemberPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 p-6">
+      <main
+        className="min-h-screen p-6"
+        style={{ background: vivosTheme.gradients.appBackground }}
+      >
         <div className="mx-auto max-w-4xl">
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardContent className="p-6">
@@ -79,10 +83,13 @@ export default function MemberPage() {
 
   if (!member) {
     return (
-      <main className="min-h-screen bg-slate-50 p-6">
+      <main
+        className="min-h-screen p-6"
+        style={{ background: vivosTheme.gradients.appBackground }}
+      >
         <div className="mx-auto max-w-4xl">
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="space-y-4 p-6">
               <p className="text-sm text-slate-600">{message || "Membrul nu a fost găsit."}</p>
               <Button className="rounded-2xl" onClick={() => router.push("/")}>
                 Înapoi
@@ -105,21 +112,52 @@ export default function MemberPage() {
     : []
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-slate-500">Profil membru</p>
-            <h1 className="text-3xl font-semibold">{displayName}</h1>
-            <p className="mt-1 text-sm text-slate-500">{member.email}</p>
+    <main
+      className="min-h-screen"
+      style={{ background: vivosTheme.gradients.appBackground }}
+    >
+      <header
+        className="sticky top-0 z-10 border-b backdrop-blur-xl"
+        style={{
+          background: vivosTheme.styles.bottomNav.background,
+          borderColor: vivosTheme.styles.bottomNav.borderColor,
+          boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
+        }}
+      >
+        <div className="mx-auto flex min-h-[84px] max-w-4xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <p
+              className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
+              style={{ color: "rgba(255,255,255,0.68)" }}
+            >
+              Profil membru
+            </p>
+            <h1
+              className="truncate text-lg font-semibold sm:text-2xl"
+              style={{ color: vivosTheme.colors.white }}
+            >
+              {displayName}
+            </h1>
+            <p
+              className="mt-1 truncate text-sm"
+              style={{ color: "rgba(255,255,255,0.72)" }}
+            >
+              {member.email}
+            </p>
           </div>
 
-          <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/")}>
+          <Button
+            variant="outline"
+            className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15"
+            onClick={() => router.push("/")}
+          >
             Înapoi la membri
           </Button>
         </div>
+      </header>
 
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
+        <div className="grid gap-6 pb-24 lg:grid-cols-[1.2fr_0.8fr]">
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="text-2xl">Profil public intern</CardTitle>

@@ -5,11 +5,12 @@ import { useParams, useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowLeft,
   MoreVertical,
-  Phone,
-  PhoneOff,
-  PhoneIncoming,
   Mic,
   MicOff,
+  Phone,
+  PhoneIncoming,
+  PhoneOff,
+  RefreshCcw,
   Send,
   Video,
   VideoOff,
@@ -54,25 +55,13 @@ const vivosColors = {
   bgPrimary: "#173F72",
   bgSecondary: "#214A80",
   bgPanel: "#1B3560",
-  bgPanelSoft: "#24497D",
   white: "#F2F2F2",
-  whiteSoft: "#E8E8E8",
-
-  yellow: "#F8C13A",
-  orange: "#F79A42",
-
   pink: "#C96AA1",
   purple: "#9A71C1",
-
   blueLight: "#63A6E6",
   teal: "#45BFD2",
-
-  arcBlueLeft: "#4C86C9",
-  arcBlueRight: "#5E95D3",
-
   success: "#34D399",
   danger: "#F87171",
-  warning: "#FBBF24",
 }
 
 function emitWindowEvent(name: string, detail: Record<string, unknown> = {}) {
@@ -95,44 +84,43 @@ function upsertMessage(list: Message[], incoming: Message) {
   return sortMessages([...list, incoming])
 }
 
-function describeMicrophoneError(error: any) {
+function describeMediaError(error: any, desiredCallType: CallType) {
   const name = String(error?.name || "")
   const message = String(error?.message || "")
 
   if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-    return "Accesul la microfon este blocat. Permite microfonul pentru VIVOS și încearcă din nou."
+    return desiredCallType === "video"
+      ? "Accesul la cameră sau microfon este blocat. Permite accesul pentru VIVOS și încearcă din nou."
+      : "Accesul la microfon este blocat. Permite microfonul pentru VIVOS și încearcă din nou."
   }
-  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-    return "Nu a fost găsit niciun microfon disponibil pe device."
-  }
-  if (name === "NotReadableError" || name === "TrackStartError") {
-    return "Microfonul nu poate fi pornit acum. Închide alte aplicații care folosesc audio și încearcă din nou."
-  }
-  if (name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
-    return "Configurația audio a device-ului nu este compatibilă momentan."
-  }
-  if (message) return `Microfon indisponibil: ${message}`
-  return "Microfonul nu poate fi folosit acum în aplicație."
-}
 
-function describeCameraError(error: any) {
-  const name = String(error?.name || "")
-  const message = String(error?.message || "")
-
-  if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-    return "Accesul la cameră este blocat. Permite camera pentru VIVOS și încearcă din nou."
-  }
   if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-    return "Nu a fost găsită nicio cameră disponibilă pe device."
+    return desiredCallType === "video"
+      ? "Acest dispozitiv nu are cameră sau microfon disponibil pentru apel video."
+      : "Acest dispozitiv nu are microfon disponibil pentru apel audio."
   }
+
   if (name === "NotReadableError" || name === "TrackStartError") {
-    return "Camera nu poate fi pornită acum. Închide alte aplicații care folosesc camera și încearcă din nou."
+    return desiredCallType === "video"
+      ? "Camera sau microfonul nu pot fi pornite acum. Închide alte aplicații care folosesc media și încearcă din nou."
+      : "Microfonul nu poate fi pornit acum. Închide alte aplicații care folosesc audio și încearcă din nou."
   }
+
   if (name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
-    return "Configurația camerei nu este compatibilă momentan."
+    return desiredCallType === "video"
+      ? "Configurația camerei nu este compatibilă momentan pe acest dispozitiv."
+      : "Configurația audio a device-ului nu este compatibilă momentan."
   }
-  if (message) return `Camera indisponibilă: ${message}`
-  return "Camera nu poate fi folosită acum în aplicație."
+
+  if (message) {
+    return desiredCallType === "video"
+      ? `Camera sau microfon indisponibile: ${message}`
+      : `Microfon indisponibil: ${message}`
+  }
+
+  return desiredCallType === "video"
+    ? "Apelul video nu poate porni pe acest dispozitiv."
+    : "Apelul audio nu poate porni pe acest dispozitiv."
 }
 
 function isNearBottom(threshold = 160) {
@@ -170,8 +158,7 @@ export default function ConversationPage() {
   const [body, setBody] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [members, setMembers] = useState<Member[]>([])
-  const [audioPermissionMessage, setAudioPermissionMessage] = useState<string | null>(null)
-  const [videoPermissionMessage, setVideoPermissionMessage] = useState<string | null>(null)
+  const [mediaPermissionMessage, setMediaPermissionMessage] = useState<string | null>(null)
   const [isOffline, setIsOffline] = useState(false)
   const [connectionLabel, setConnectionLabel] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -183,21 +170,22 @@ export default function ConversationPage() {
   const [callBusy, setCallBusy] = useState(false)
   const [currentCallSessionId, setCurrentCallSessionId] = useState<string | null>(null)
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null)
-  const [currentCallType, setCurrentCallType] = useState<CallType | null>(null)
-  const [micEnabled, setMicEnabled] = useState(true)
-  const [cameraEnabled, setCameraEnabled] = useState(true)
+  const [currentCallType, setCurrentCallType] = useState<CallType>("audio")
+  const [isMicEnabled, setIsMicEnabled] = useState(true)
+  const [isCameraEnabled, setIsCameraEnabled] = useState(true)
+  const [usingFrontCamera, setUsingFrontCamera] = useState(true)
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
-  const ringtoneRef = useRef<HTMLAudioElement | null>(null)
   const localVideoRef = useRef<HTMLVideoElement | null>(null)
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null)
+  const ringtoneRef = useRef<HTMLAudioElement | null>(null)
   const callChannelRef = useRef<any>(null)
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
   const currentCallSessionIdRef = useRef<string | null>(null)
   const callUiStateRef = useRef<CallUiState>("idle")
-  const currentCallTypeRef = useRef<CallType | null>(null)
+  const currentCallTypeRef = useRef<CallType>("audio")
   const autoActionHandledRef = useRef<string | null>(null)
   const acceptedCallSessionRef = useRef<string | null>(null)
   const initialScrollDoneRef = useRef(false)
@@ -277,23 +265,17 @@ export default function ConversationPage() {
 
     const notificationsChannel = supabase
       .channel("conversation-topbar-notifications")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
-        loadTopBarState()
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, loadTopBarState)
       .subscribe()
 
     const pulseChannel = supabase
       .channel("conversation-topbar-pulse")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "public_activity_feed" }, () => {
-        loadTopBarState()
-      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "public_activity_feed" }, loadTopBarState)
       .subscribe()
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      loadTopBarState()
-    })
+    } = supabase.auth.onAuthStateChange(loadTopBarState)
 
     return () => {
       supabase.removeChannel(notificationsChannel)
@@ -358,7 +340,6 @@ export default function ConversationPage() {
   const stopRingtone = useCallback(() => {
     const el = ringtoneRef.current
     if (!el) return
-
     try {
       el.pause()
       el.currentTime = 0
@@ -370,7 +351,6 @@ export default function ConversationPage() {
   const playRingtone = useCallback(async () => {
     const el = ringtoneRef.current
     if (!el) return
-
     try {
       el.loop = true
       await el.play()
@@ -379,68 +359,26 @@ export default function ConversationPage() {
     }
   }, [])
 
-  const attachLocalVideoStream = useCallback(async (stream: MediaStream | null) => {
-    const videoEl = localVideoRef.current
-    if (!videoEl) return
-    videoEl.srcObject = stream
-    if (stream) {
-      videoEl.muted = true
-      videoEl.playsInline = true
-      videoEl.autoplay = true
+  const syncLocalVideoPreview = useCallback(async () => {
+    const localVideo = localVideoRef.current
+    if (!localVideo) return
+
+    if (localStreamRef.current && localStreamRef.current.getVideoTracks().length > 0) {
+      localVideo.srcObject = localStreamRef.current
+      localVideo.muted = true
+      localVideo.autoplay = true
+      localVideo.playsInline = true
       try {
-        await videoEl.play()
+        await localVideo.play()
       } catch (error) {
-        console.error("Local video play error:", error)
+        console.error("Local video preview play error:", error)
       }
+    } else {
+      localVideo.srcObject = null
     }
   }, [])
 
-  const attachRemoteMediaStream = useCallback(
-    async (stream: MediaStream | null, callType: CallType | null) => {
-      const remoteVideoEl = remoteVideoRef.current
-      const remoteAudioEl = remoteAudioRef.current
-
-      if (remoteVideoEl) {
-        remoteVideoEl.srcObject = null
-      }
-      if (remoteAudioEl) {
-        try {
-          remoteAudioEl.pause()
-        } catch {}
-        remoteAudioEl.srcObject = null
-      }
-
-      if (!stream || !callType) return
-
-      if (callType === "video" && remoteVideoEl) {
-        remoteVideoEl.srcObject = stream
-        remoteVideoEl.autoplay = true
-        remoteVideoEl.playsInline = true
-        remoteVideoEl.muted = false
-        try {
-          await remoteVideoEl.play()
-        } catch (error) {
-          console.error("Remote video play error:", error)
-        }
-        return
-      }
-
-      if (remoteAudioEl) {
-        remoteAudioEl.srcObject = stream
-        remoteAudioEl.autoplay = true
-        remoteAudioEl.muted = false
-        remoteAudioEl.setAttribute("playsinline", "true")
-        try {
-          await remoteAudioEl.play()
-        } catch (error) {
-          console.error("Remote audio play error:", error)
-        }
-      }
-    },
-    []
-  )
-
-  const cleanupMediaCall = useCallback(() => {
+  const cleanupAudioCall = useCallback(() => {
     stopRingtone()
 
     if (peerConnectionRef.current) {
@@ -463,41 +401,39 @@ export default function ConversationPage() {
       remoteAudioRef.current.srcObject = null
     }
 
-    if (remoteVideoRef.current) {
-      try {
-        remoteVideoRef.current.pause()
-      } catch {}
-      remoteVideoRef.current.srcObject = null
-    }
-
     if (localVideoRef.current) {
-      try {
-        localVideoRef.current.pause()
-      } catch {}
       localVideoRef.current.srcObject = null
     }
 
-    setMicEnabled(true)
-    setCameraEnabled(true)
-    setCurrentCallType(null)
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null
+    }
+
+    setIsMicEnabled(true)
+    setIsCameraEnabled(true)
+    setUsingFrontCamera(true)
+    setCurrentCallType("audio")
   }, [stopRingtone])
 
   const ensureLocalStream = useCallback(
-    async (callType: CallType) => {
-      if (localStreamRef.current) {
-        const hasVideoTrack = localStreamRef.current.getVideoTracks().length > 0
+    async (desiredCallType: CallType) => {
+      const existing = localStreamRef.current
 
-        if (callType === "video" && !hasVideoTrack) {
-          localStreamRef.current.getTracks().forEach((track) => track.stop())
-          localStreamRef.current = null
-        } else {
-          if (callType === "video") {
-            await attachLocalVideoStream(localStreamRef.current)
-          }
-          setMicEnabled(true)
-          setCameraEnabled(callType === "video")
-          return localStreamRef.current
+      if (existing) {
+        const hasVideo = existing.getVideoTracks().length > 0
+        if (desiredCallType === "audio" || hasVideo) {
+          setIsMicEnabled(existing.getAudioTracks().every((track) => track.enabled))
+          setIsCameraEnabled(
+            existing.getVideoTracks().length > 0
+              ? existing.getVideoTracks().every((track) => track.enabled)
+              : false
+          )
+          await syncLocalVideoPreview()
+          return existing
         }
+
+        existing.getTracks().forEach((track) => track.stop())
+        localStreamRef.current = null
       }
 
       if (
@@ -506,64 +442,44 @@ export default function ConversationPage() {
         !navigator.mediaDevices.getUserMedia
       ) {
         const err = new Error("Browserul nu suportă accesul la media.")
-        setAudioPermissionMessage(describeMicrophoneError(err))
+        setMediaPermissionMessage(describeMediaError(err, desiredCallType))
         throw err
       }
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
-          video:
-            callType === "video"
-              ? {
-                  facingMode: "user",
-                  width: { ideal: 640 },
-                  height: { ideal: 480 },
-                }
-              : false,
+          video: desiredCallType === "video" ? { facingMode: usingFrontCamera ? "user" : "environment" } : false,
         })
 
         localStreamRef.current = stream
-        setAudioPermissionMessage(null)
-        setVideoPermissionMessage(null)
-        setMicEnabled(true)
-        setCameraEnabled(callType === "video")
-
-        if (callType === "video") {
-          await attachLocalVideoStream(stream)
-        }
-
+        setMediaPermissionMessage(null)
+        setIsMicEnabled(stream.getAudioTracks().every((track) => track.enabled))
+        setIsCameraEnabled(
+          stream.getVideoTracks().length > 0
+            ? stream.getVideoTracks().every((track) => track.enabled)
+            : false
+        )
+        await syncLocalVideoPreview()
         return stream
       } catch (error: any) {
-        if (callType === "video") {
-          setVideoPermissionMessage(describeCameraError(error))
-        } else {
-          setAudioPermissionMessage(describeMicrophoneError(error))
-        }
+        setMediaPermissionMessage(describeMediaError(error, desiredCallType))
         throw error
       }
     },
-    [attachLocalVideoStream]
+    [syncLocalVideoPreview, usingFrontCamera]
   )
 
-  const retryMicrophoneAccess = useCallback(async () => {
+  const retryMediaAccess = useCallback(async () => {
     try {
-      await ensureLocalStream("audio")
+      await ensureLocalStream(currentCallTypeRef.current)
     } catch (error) {
-      console.error("Retry microphone access error:", error)
-    }
-  }, [ensureLocalStream])
-
-  const retryCameraAccess = useCallback(async () => {
-    try {
-      await ensureLocalStream("video")
-    } catch (error) {
-      console.error("Retry camera access error:", error)
+      console.error("Retry media access error:", error)
     }
   }, [ensureLocalStream])
 
   const ensurePeerConnection = useCallback(
-    async (currentUserId: string, callType: CallType) => {
+    async (currentUserId: string, desiredCallType: CallType) => {
       if (peerConnectionRef.current) return peerConnectionRef.current
 
       const res = await fetch("https://vivos-api.vercel.app/api/turn-credentials")
@@ -577,7 +493,31 @@ export default function ConversationPage() {
       pc.ontrack = async (event) => {
         const [remoteStream] = event.streams
         if (!remoteStream) return
-        await attachRemoteMediaStream(remoteStream, currentCallTypeRef.current || callType)
+
+        const audioEl = remoteAudioRef.current
+        if (audioEl) {
+          audioEl.srcObject = remoteStream
+          audioEl.autoplay = true
+          audioEl.muted = false
+          audioEl.setAttribute("playsinline", "true")
+          try {
+            await audioEl.play()
+          } catch (error) {
+            console.error("Remote audio play error:", error)
+          }
+        }
+
+        const remoteVideo = remoteVideoRef.current
+        if (remoteVideo) {
+          remoteVideo.srcObject = remoteStream
+          remoteVideo.autoplay = true
+          remoteVideo.playsInline = true
+          try {
+            await remoteVideo.play()
+          } catch (error) {
+            console.error("Remote video play error:", error)
+          }
+        }
       }
 
       pc.onicecandidate = async (event) => {
@@ -592,8 +532,8 @@ export default function ConversationPage() {
               callSessionId: currentCallSessionIdRef.current,
               conversationId,
               fromUserId: currentUserId,
-              callType: currentCallTypeRef.current || callType,
               candidate: event.candidate.toJSON(),
+              callType: currentCallTypeRef.current,
             },
           })
         } catch (error) {
@@ -604,21 +544,90 @@ export default function ConversationPage() {
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState
         if (state === "failed" || state === "disconnected" || state === "closed") {
-          cleanupMediaCall()
+          cleanupAudioCall()
           setIncomingCall(null)
           setCurrentCallSessionId(null)
           setCallUiState("idle")
         }
       }
 
-      const stream = await ensureLocalStream(callType)
+      const stream = await ensureLocalStream(desiredCallType)
       stream.getTracks().forEach((track) => pc.addTrack(track, stream))
+      await syncLocalVideoPreview()
 
       peerConnectionRef.current = pc
       return pc
     },
-    [attachRemoteMediaStream, cleanupMediaCall, conversationId, ensureLocalStream]
+    [cleanupAudioCall, conversationId, ensureLocalStream, syncLocalVideoPreview]
   )
+
+  const toggleMic = useCallback(() => {
+    const stream = localStreamRef.current
+    if (!stream) return
+    const tracks = stream.getAudioTracks()
+    if (!tracks.length) return
+
+    const nextEnabled = !tracks[0].enabled
+    tracks.forEach((track) => {
+      track.enabled = nextEnabled
+    })
+    setIsMicEnabled(nextEnabled)
+  }, [])
+
+  const toggleCamera = useCallback(async () => {
+    const stream = localStreamRef.current
+    if (!stream) return
+
+    const tracks = stream.getVideoTracks()
+    if (!tracks.length) return
+
+    const nextEnabled = !tracks[0].enabled
+    tracks.forEach((track) => {
+      track.enabled = nextEnabled
+    })
+    setIsCameraEnabled(nextEnabled)
+    await syncLocalVideoPreview()
+  }, [syncLocalVideoPreview])
+
+  const switchCamera = useCallback(async () => {
+    try {
+      const stream = localStreamRef.current
+      if (!stream) return
+
+      const audioTracks = stream.getAudioTracks()
+      const videoTracks = stream.getVideoTracks()
+      if (!videoTracks.length) return
+
+      const nextFacingMode = usingFrontCamera ? "environment" : "user"
+
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: audioTracks.length > 0,
+        video: { facingMode: nextFacingMode },
+      })
+
+      const newVideoTrack = newStream.getVideoTracks()[0]
+      if (!newVideoTrack) return
+
+      const pc = peerConnectionRef.current
+      if (pc) {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video")
+        if (sender) {
+          await sender.replaceTrack(newVideoTrack)
+        }
+      }
+
+      videoTracks.forEach((track) => track.stop())
+      stream.removeTrack(videoTracks[0])
+      stream.addTrack(newVideoTrack)
+
+      localStreamRef.current = stream
+      setUsingFrontCamera(!usingFrontCamera)
+      setIsCameraEnabled(newVideoTrack.enabled)
+      await syncLocalVideoPreview()
+    } catch (error) {
+      console.error("Switch camera error:", error)
+    }
+  }, [usingFrontCamera, syncLocalVideoPreview])
 
   const markActiveConversation = useCallback(
     async (currentUserId: string) => {
@@ -630,7 +639,6 @@ export default function ConversationPage() {
         },
         { onConflict: "user_id,conversation_id" }
       )
-
       if (error) console.error("Active conversation upsert error:", error)
     },
     [conversationId]
@@ -752,7 +760,6 @@ export default function ConversationPage() {
 
   const refreshConversationState = useCallback(async () => {
     if (!userId) return
-
     await Promise.all([
       markActiveConversation(userId),
       loadMessagesOnly(),
@@ -836,8 +843,7 @@ export default function ConversationPage() {
     const handleNativeNetworkChange = async (event: Event) => {
       const detail = (event as CustomEvent<RuntimeNetworkDetail>).detail || {}
       const connected = Boolean(detail.connected)
-      const connectionType =
-        typeof detail.connectionType === "string" ? detail.connectionType : null
+      const connectionType = typeof detail.connectionType === "string" ? detail.connectionType : null
 
       setIsOffline(!connected)
       setConnectionLabel(connectionType)
@@ -933,30 +939,17 @@ export default function ConversationPage() {
   )
 
   const acceptCallBySessionId = useCallback(
-    async (callSessionId: string) => {
+    async (callSessionId: string, acceptedType?: CallType) => {
       if (!userId || !callChannelRef.current) return
 
-      let effectiveCallType: CallType =
-        incomingCall?.callSessionId === callSessionId
-          ? incomingCall.callType
-          : currentCallTypeRef.current || "audio"
+      const typeToUse = acceptedType || currentCallTypeRef.current || "audio"
 
       try {
-        const { data: callRow, error: callRowError } = await supabase
-          .from("call_sessions")
-          .select("id, call_type")
-          .eq("id", callSessionId)
-          .maybeSingle()
-
-        if (!callRowError && callRow?.call_type) {
-          effectiveCallType = callRow.call_type === "video" ? "video" : "audio"
-        }
-
         setCallBusy(true)
-        setCurrentCallType(effectiveCallType)
         stopRingtone()
-        await ensureLocalStream(effectiveCallType)
-        await ensurePeerConnection(userId, effectiveCallType)
+        setCurrentCallType(typeToUse)
+        await ensureLocalStream(typeToUse)
+        await ensurePeerConnection(userId, typeToUse)
 
         acceptedCallSessionRef.current = callSessionId
 
@@ -965,12 +958,13 @@ export default function ConversationPage() {
           .update({
             status: "accepted",
             answered_at: new Date().toISOString(),
+            call_type: typeToUse,
           })
           .eq("id", callSessionId)
 
         if (updateError) {
           alert(`Nu am putut accepta apelul: ${updateError.message}`)
-          cleanupMediaCall()
+          cleanupAudioCall()
           return
         }
 
@@ -978,7 +972,7 @@ export default function ConversationPage() {
           call_session_id: callSessionId,
           actor_id: userId,
           event_type: "accept",
-          payload: { conversationId, callType: effectiveCallType },
+          payload: { conversationId, callType: typeToUse },
         })
 
         await callChannelRef.current.send({
@@ -989,15 +983,11 @@ export default function ConversationPage() {
             callSessionId,
             conversationId,
             fromUserId: userId,
-            callType: effectiveCallType,
+            callType: typeToUse,
           },
         })
 
-        emitWindowEvent("vivos:call-accepted", {
-          callSessionId,
-          conversationId,
-          callType: effectiveCallType,
-        })
+        emitWindowEvent("vivos:call-accepted", { callSessionId, conversationId, callType: typeToUse })
 
         setIncomingCall(null)
         setCurrentCallSessionId(callSessionId)
@@ -1006,21 +996,12 @@ export default function ConversationPage() {
       } catch (error: any) {
         console.error("Accept call error:", error)
         alert(error?.message || "Nu am putut accepta apelul.")
-        cleanupMediaCall()
+        cleanupAudioCall()
       } finally {
         setCallBusy(false)
       }
     },
-    [
-      userId,
-      incomingCall,
-      conversationId,
-      stopRingtone,
-      ensureLocalStream,
-      ensurePeerConnection,
-      cleanupMediaCall,
-      router,
-    ]
+    [userId, conversationId, stopRingtone, ensureLocalStream, ensurePeerConnection, cleanupAudioCall, router]
   )
 
   const rejectCallBySessionId = useCallback(
@@ -1040,7 +1021,7 @@ export default function ConversationPage() {
           call_session_id: callSessionId,
           actor_id: userId,
           event_type: "reject",
-          payload: { conversationId, callType: currentCallTypeRef.current || "audio" },
+          payload: { conversationId },
         })
 
         await callChannelRef.current.send({
@@ -1051,13 +1032,12 @@ export default function ConversationPage() {
             callSessionId,
             conversationId,
             fromUserId: userId,
-            callType: currentCallTypeRef.current || "audio",
           },
         })
 
         emitWindowEvent("vivos:call-rejected", { callSessionId, conversationId })
 
-        cleanupMediaCall()
+        cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
         setCallUiState("idle")
@@ -1069,12 +1049,12 @@ export default function ConversationPage() {
         setCallBusy(false)
       }
     },
-    [userId, conversationId, stopRingtone, cleanupMediaCall, router]
+    [userId, conversationId, stopRingtone, cleanupAudioCall, router]
   )
 
   const handleAcceptCall = useCallback(async () => {
     if (!incomingCall?.callSessionId) return
-    await acceptCallBySessionId(incomingCall.callSessionId)
+    await acceptCallBySessionId(incomingCall.callSessionId, incomingCall.callType)
   }, [incomingCall, acceptCallBySessionId])
 
   const handleRejectCall = useCallback(async () => {
@@ -1097,8 +1077,8 @@ export default function ConversationPage() {
           fromUserId: payload.fromUserId,
           callType: incomingType,
         })
-        setCurrentCallType(incomingType)
         setCurrentCallSessionId(payload.callSessionId)
+        setCurrentCallType(incomingType)
         setCallUiState("incoming")
         playRingtone()
       })
@@ -1123,8 +1103,8 @@ export default function ConversationPage() {
               callSessionId: payload.callSessionId,
               conversationId,
               fromUserId: userId,
-              callType: acceptedType,
               sdp: offer,
+              callType: acceptedType,
             },
           })
 
@@ -1138,8 +1118,8 @@ export default function ConversationPage() {
           setCallUiState("connected")
         } catch (error) {
           console.error("Offer create error:", error)
-          alert("Nu am putut porni media apelului.")
-          cleanupMediaCall()
+          alert("Nu am putut porni apelul.")
+          cleanupAudioCall()
           setCurrentCallSessionId(null)
           setCallUiState("idle")
         }
@@ -1150,7 +1130,7 @@ export default function ConversationPage() {
         if (callUiStateRef.current === "connected") return
 
         stopRingtone()
-        cleanupMediaCall()
+        cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
         setCallUiState("idle")
@@ -1168,7 +1148,7 @@ export default function ConversationPage() {
         if (currentCallSessionIdRef.current && payload.callSessionId !== currentCallSessionIdRef.current) return
 
         stopRingtone()
-        cleanupMediaCall()
+        cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
         setCallUiState("idle")
@@ -1202,8 +1182,8 @@ export default function ConversationPage() {
               callSessionId: payload.callSessionId,
               conversationId,
               fromUserId: userId,
-              callType: offerType,
               sdp: answer,
+              callType: offerType,
             },
           })
 
@@ -1217,7 +1197,6 @@ export default function ConversationPage() {
 
         try {
           stopRingtone()
-
           const pc = peerConnectionRef.current
           if (!pc) return
 
@@ -1233,7 +1212,6 @@ export default function ConversationPage() {
         try {
           const pc = peerConnectionRef.current
           if (!pc || !payload.candidate) return
-
           await pc.addIceCandidate(new RTCIceCandidate(payload.candidate))
         } catch (error) {
           console.error("ICE handling error:", error)
@@ -1251,7 +1229,7 @@ export default function ConversationPage() {
     conversationId,
     userId,
     ensurePeerConnection,
-    cleanupMediaCall,
+    cleanupAudioCall,
     playRingtone,
     stopRingtone,
   ])
@@ -1261,7 +1239,6 @@ export default function ConversationPage() {
 
     const callAction = searchParams.get("callAction")
     const targetCallSessionId = searchParams.get("callSessionId")
-    const fallbackCallType = searchParams.get("callType") === "video" ? "video" : "audio"
 
     let cancelled = false
     let attempts = 0
@@ -1279,22 +1256,17 @@ export default function ConversationPage() {
 
       if (cancelled || error || !data?.id) return null
 
-      const dbCallType: CallType =
-        data.call_type === "video" ? "video" : fallbackCallType === "video" ? "video" : "audio"
+      const dbCallType: CallType = data.call_type === "video" ? "video" : "audio"
 
       if (!incomingCall || incomingCall.callSessionId !== data.id) {
-        setIncomingCall({
-          callSessionId: data.id,
-          fromUserId: data.caller_id,
-          callType: dbCallType,
-        })
-        setCurrentCallType(dbCallType)
+        setIncomingCall({ callSessionId: data.id, fromUserId: data.caller_id, callType: dbCallType })
         setCurrentCallSessionId(data.id)
+        setCurrentCallType(dbCallType)
         setCallUiState("incoming")
         playRingtone()
       }
 
-      return data
+      return { ...data, callType: dbCallType }
     }
 
     const timer = window.setInterval(async () => {
@@ -1330,7 +1302,7 @@ export default function ConversationPage() {
       if (callAction === "answer") {
         autoActionHandledRef.current = targetCallSessionId
         window.clearInterval(timer)
-        await acceptCallBySessionId(targetCallSessionId)
+        await acceptCallBySessionId(targetCallSessionId, dbCall.callType)
         return
       }
 
@@ -1378,23 +1350,22 @@ export default function ConversationPage() {
           status: "ringing",
           call_type: callType,
         })
-        .select("id, call_type")
+        .select("id")
         .single()
 
       if (callSessionError || !callSession?.id) {
         alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`)
-        cleanupMediaCall()
+        cleanupAudioCall()
         return
       }
 
       const callSessionId = callSession.id
-      const persistedCallType: CallType = callSession.call_type === "video" ? "video" : "audio"
 
       await supabase.from("call_events").insert({
         call_session_id: callSessionId,
         actor_id: userId,
         event_type: "invite",
-        payload: { conversationId, callType: persistedCallType },
+        payload: { conversationId, callType },
       })
 
       await callChannelRef.current.send({
@@ -1406,7 +1377,7 @@ export default function ConversationPage() {
           conversationId,
           fromUserId: userId,
           toUserId: otherMember.member_id,
-          callType: persistedCallType,
+          callType,
         },
       })
 
@@ -1428,7 +1399,7 @@ export default function ConversationPage() {
                 conversationId,
                 callSessionId,
                 calleeId: otherMember.member_id,
-                callType: persistedCallType,
+                callType,
               }),
             }
           )
@@ -1447,7 +1418,7 @@ export default function ConversationPage() {
     } catch (error: any) {
       console.error("Start call error:", error)
       alert(error?.message || "Nu am putut porni apelul.")
-      cleanupMediaCall()
+      cleanupAudioCall()
     } finally {
       setCallBusy(false)
     }
@@ -1455,7 +1426,7 @@ export default function ConversationPage() {
 
   async function handleEndCall() {
     if (!userId || !currentCallSessionId) {
-      cleanupMediaCall()
+      cleanupAudioCall()
       setIncomingCall(null)
       setCallUiState("idle")
       setCurrentCallSessionId(null)
@@ -1475,7 +1446,7 @@ export default function ConversationPage() {
         call_session_id: currentCallSessionId,
         actor_id: userId,
         event_type: "end",
-        payload: { conversationId, callType: currentCallTypeRef.current || "audio" },
+        payload: { conversationId, callType: currentCallTypeRef.current },
       })
 
       await callChannelRef.current?.send({
@@ -1486,7 +1457,7 @@ export default function ConversationPage() {
           callSessionId: currentCallSessionId,
           conversationId,
           fromUserId: userId,
-          callType: currentCallTypeRef.current || "audio",
+          callType: currentCallTypeRef.current,
         },
       })
     } catch (error) {
@@ -1498,7 +1469,7 @@ export default function ConversationPage() {
         source: "local",
       })
 
-      cleanupMediaCall()
+      cleanupAudioCall()
       setIncomingCall(null)
       setCurrentCallSessionId(null)
       setCallUiState("idle")
@@ -1572,7 +1543,6 @@ export default function ConversationPage() {
         }
 
         shouldStickToBottomRef.current = true
-
         setMessages((prev) =>
           upsertMessage(prev, {
             id: data.id,
@@ -1595,41 +1565,24 @@ export default function ConversationPage() {
     await sendCurrentMessage()
   }
 
-  function toggleMic() {
-    const stream = localStreamRef.current
-    if (!stream) return
-
-    const audioTracks = stream.getAudioTracks()
-    if (!audioTracks.length) return
-
-    const nextEnabled = !micEnabled
-    audioTracks.forEach((track) => {
-      track.enabled = nextEnabled
-    })
-    setMicEnabled(nextEnabled)
-  }
-
-  function toggleCamera() {
-    const stream = localStreamRef.current
-    if (!stream) return
-
-    const videoTracks = stream.getVideoTracks()
-    if (!videoTracks.length) return
-
-    const nextEnabled = !cameraEnabled
-    videoTracks.forEach((track) => {
-      track.enabled = nextEnabled
-    })
-    setCameraEnabled(nextEnabled)
-  }
-
   const otherMemberHasIdentity = Boolean(otherMember)
   const callDisplayName = otherName || "Membru"
   const callInitial = callDisplayName.trim().charAt(0).toUpperCase() || "V"
   const showCallOverlay =
     callUiState === "incoming" || callUiState === "outgoing" || callUiState === "connected"
   const isVideoCall = currentCallType === "video"
-  const incomingVideoCall = incomingCall?.callType === "video"
+
+  useEffect(() => {
+    if (showCallOverlay && isVideoCall) {
+      document.body.classList.add("vivos-call-active")
+    } else {
+      document.body.classList.remove("vivos-call-active")
+    }
+
+    return () => {
+      document.body.classList.remove("vivos-call-active")
+    }
+  }, [showCallOverlay, isVideoCall])
 
   return (
     <main
@@ -1694,14 +1647,14 @@ export default function ConversationPage() {
               <>
                 <button
                   type="button"
-                  onClick={() => handleStartCall("audio")}
+                  onClick={() => void handleStartCall("audio")}
                   disabled={callBusy || !otherMemberHasIdentity || isOffline}
                   title={
                     !otherMemberHasIdentity
                       ? "Membrul nu e încărcat"
                       : isOffline
-                      ? "Conexiune indisponibilă"
-                      : "Apel audio"
+                        ? "Conexiune indisponibilă"
+                        : "Apel audio"
                   }
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-30"
                   style={{ color: "rgba(255,255,255,0.70)" }}
@@ -1711,14 +1664,14 @@ export default function ConversationPage() {
 
                 <button
                   type="button"
-                  onClick={() => handleStartCall("video")}
+                  onClick={() => void handleStartCall("video")}
                   disabled={callBusy || !otherMemberHasIdentity || isOffline}
                   title={
                     !otherMemberHasIdentity
                       ? "Membrul nu e încărcat"
                       : isOffline
-                      ? "Conexiune indisponibilă"
-                      : "Apel video"
+                        ? "Conexiune indisponibilă"
+                        : "Apel video"
                   }
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-30"
                   style={{ color: "rgba(255,255,255,0.70)" }}
@@ -1817,7 +1770,7 @@ export default function ConversationPage() {
           </div>
         )}
 
-        {audioPermissionMessage && (
+        {mediaPermissionMessage && (
           <div
             className="border-b px-4 py-2.5"
             style={{
@@ -1827,12 +1780,12 @@ export default function ConversationPage() {
           >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs" style={{ color: "#FFD0A0" }}>
-                {audioPermissionMessage}
+                {mediaPermissionMessage}
               </p>
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={retryMicrophoneAccess}
+                  onClick={retryMediaAccess}
                   className="rounded-lg border px-3 py-1 text-xs transition"
                   style={{
                     borderColor: "rgba(247,154,66,0.35)",
@@ -1843,47 +1796,7 @@ export default function ConversationPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAudioPermissionMessage(null)}
-                  className="rounded-lg border px-3 py-1 text-xs transition"
-                  style={{
-                    borderColor: "rgba(255,255,255,0.14)",
-                    color: "rgba(255,255,255,0.62)",
-                  }}
-                >
-                  Închide
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {videoPermissionMessage && (
-          <div
-            className="border-b px-4 py-2.5"
-            style={{
-              borderColor: "rgba(99,166,230,0.24)",
-              background: "rgba(99,166,230,0.12)",
-            }}
-          >
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs" style={{ color: "#CFE3FF" }}>
-                {videoPermissionMessage}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={retryCameraAccess}
-                  className="rounded-lg border px-3 py-1 text-xs transition"
-                  style={{
-                    borderColor: "rgba(99,166,230,0.35)",
-                    color: "#CFE3FF",
-                  }}
-                >
-                  Reîncearcă
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVideoPermissionMessage(null)}
+                  onClick={() => setMediaPermissionMessage(null)}
                   className="rounded-lg border px-3 py-1 text-xs transition"
                   style={{
                     borderColor: "rgba(255,255,255,0.14)",
@@ -2027,293 +1940,290 @@ export default function ConversationPage() {
         </div>
       </div>
 
-      {showCallOverlay && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
+      {showCallOverlay && isVideoCall && (
+        <div className="fixed inset-0 z-[120] overflow-hidden bg-black">
+          <div className="absolute inset-0">
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="h-full w-full object-cover"
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.18) 100%)",
+              }}
+            />
+          </div>
+
+          {!isCameraEnabled && callUiState === "connected" && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="rounded-[2rem] px-6 py-4 text-center text-white"
+                style={{ background: "rgba(10,18,36,0.58)", backdropFilter: "blur(14px)" }}
+              >
+                <VideoOff className="mx-auto mb-3 h-10 w-10 opacity-80" />
+                <p className="text-base font-semibold">Camera este oprită</p>
+                <p className="mt-1 text-sm text-white/70">Celălalt participant nu vede video-ul tău.</p>
+              </div>
+            </div>
+          )}
+
+          <div className="absolute left-0 right-0 top-0 z-10 px-4 pt-[max(16px,env(safe-area-inset-top))]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xl font-semibold text-white">{callDisplayName}</p>
+                <p className="mt-1 text-sm text-white/70">
+                  {callUiState === "incoming"
+                    ? "Apel video primit"
+                    : callUiState === "outgoing"
+                      ? "Se apelează..."
+                      : callUiState === "connected"
+                        ? "Conectat"
+                        : "Pregătire apel"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleEndCall}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white backdrop-blur-md"
+              >
+                <PhoneOff className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="absolute right-4 top-[calc(env(safe-area-inset-top)+72px)] z-10">
+            <div className="relative overflow-hidden rounded-[1.25rem] border border-white/15 bg-black/30 shadow-2xl backdrop-blur-md">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="h-40 w-28 object-cover sm:h-48 sm:w-36"
+                style={{ transform: "scaleX(-1)" }}
+              />
+              {!isCameraEnabled && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/65 text-white">
+                  <VideoOff className="mb-2 h-6 w-6" />
+                  <span className="text-xs font-medium">Camera oprită</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {callUiState === "incoming" && (
+            <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+24px)] z-10 px-5">
+              <div className="mx-auto grid max-w-sm grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={handleAcceptCall}
+                  disabled={callBusy || isOffline}
+                  className="flex items-center justify-center gap-2 rounded-full px-5 py-4 text-sm font-semibold text-white shadow-xl disabled:opacity-50"
+                  style={{
+                    background: "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)",
+                  }}
+                >
+                  <Phone className="h-4 w-4" />
+                  {callBusy ? "..." : "Răspunde"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleRejectCall}
+                  disabled={callBusy}
+                  className="flex items-center justify-center gap-2 rounded-full px-5 py-4 text-sm font-semibold text-white shadow-xl disabled:opacity-50"
+                  style={{
+                    background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)",
+                  }}
+                >
+                  <PhoneOff className="h-4 w-4" />
+                  {callBusy ? "..." : "Respinge"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {(callUiState === "outgoing" || callUiState === "connected") && (
+            <div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+18px)] z-10 px-4">
+              <div className="mx-auto flex max-w-md items-center justify-center gap-3 rounded-full border border-white/10 bg-black/30 px-4 py-3 backdrop-blur-xl">
+                <button
+                  type="button"
+                  onClick={toggleMic}
+                  className="flex h-14 w-14 items-center justify-center rounded-full text-white transition"
+                  style={{
+                    background: isMicEnabled ? "rgba(255,255,255,0.12)" : "rgba(248,113,113,0.20)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                  }}
+                >
+                  {isMicEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleCamera}
+                  className="flex h-14 w-14 items-center justify-center rounded-full text-white transition"
+                  style={{
+                    background: isCameraEnabled ? "rgba(255,255,255,0.12)" : "rgba(248,113,113,0.20)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                  }}
+                >
+                  {isCameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={switchCamera}
+                  className="flex h-14 w-14 items-center justify-center rounded-full text-white transition"
+                  style={{
+                    background: "rgba(255,255,255,0.12)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                  }}
+                >
+                  <RefreshCcw className="h-5 w-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleEndCall}
+                  disabled={callBusy}
+                  className="flex h-16 min-w-[84px] items-center justify-center rounded-full px-5 text-white shadow-xl disabled:opacity-50"
+                  style={{
+                    background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)",
+                  }}
+                >
+                  <PhoneOff className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showCallOverlay && !isVideoCall && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/65 p-4 backdrop-blur-md">
           <div
-            className={`w-full overflow-hidden rounded-[2rem] border shadow-2xl ${
-              isVideoCall ? "max-w-4xl" : "max-w-sm"
-            }`}
+            className="w-full max-w-sm overflow-hidden rounded-[2rem] border shadow-2xl"
             style={{
-              background: isVideoCall
-                ? "linear-gradient(180deg, rgba(11,22,43,0.98) 0%, rgba(8,16,31,0.98) 100%)"
-                : "linear-gradient(180deg, rgba(27,53,96,0.98) 0%, rgba(19,39,71,0.98) 100%)",
+              background: "linear-gradient(180deg, rgba(27,53,96,0.98) 0%, rgba(19,39,71,0.98) 100%)",
               borderColor: "rgba(255,255,255,0.10)",
             }}
           >
-            {isVideoCall ? (
-              <div className="relative aspect-[16/9] w-full bg-black">
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  className="h-full w-full object-cover"
-                />
-
-                {callUiState !== "connected" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-[rgba(0,0,0,0.35)] px-6 text-center">
-                    <div
-                      className="mb-4 flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold text-white"
-                      style={{
-                        background:
-                          callUiState === "incoming"
-                            ? "linear-gradient(135deg, #C96AA1 0%, #9A71C1 100%)"
-                            : "linear-gradient(135deg, #4C86C9 0%, #214A80 100%)",
-                        boxShadow: "0 16px 36px rgba(0,0,0,0.28)",
-                      }}
-                    >
-                      {callInitial}
-                    </div>
-
-                    <h2 className="max-w-full truncate text-xl font-semibold text-white">
-                      {callDisplayName}
-                    </h2>
-
-                    <p className="mt-2 text-sm text-white/75">
-                      {callUiState === "incoming"
-                        ? "Apel video primit"
-                        : callUiState === "outgoing"
-                        ? "Se apelează video..."
-                        : "Conectare video..."}
-                    </p>
-                  </div>
-                )}
-
-                <div className="absolute right-4 top-4 h-28 w-20 overflow-hidden rounded-2xl border border-white/15 bg-black/50 shadow-xl sm:h-36 sm:w-28">
-                  {cameraEnabled ? (
-                    <video
-                      ref={localVideoRef}
-                      autoPlay
-                      muted
-                      playsInline
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-[rgba(255,255,255,0.06)] text-white/70">
-                      <VideoOff className="h-5 w-5" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="absolute left-0 right-0 top-0 flex items-start justify-between p-4">
-                  <div>
-                    <p className="text-sm font-semibold text-white">{callDisplayName}</p>
-                    <p className="mt-1 text-xs text-white/70">
-                      {callUiState === "incoming"
-                        ? incomingVideoCall
-                          ? "Video primit"
-                          : "Apel primit"
-                        : callUiState === "outgoing"
-                        ? "Se apelează..."
-                        : callUiState === "connected"
-                        ? "Conectat"
-                        : ""}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-16">
-                  {callUiState === "incoming" ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={handleAcceptCall}
-                        disabled={callBusy || isOffline}
-                        className="flex items-center justify-center gap-2 rounded-2xl py-4 text-sm font-medium text-white shadow transition disabled:opacity-50"
-                        style={{
-                          background: "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)",
-                        }}
-                      >
-                        <Phone className="h-4 w-4" />
-                        {callBusy ? "..." : "Răspunde"}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleRejectCall}
-                        disabled={callBusy}
-                        className="flex items-center justify-center gap-2 rounded-2xl border py-4 text-sm font-medium transition disabled:opacity-50"
-                        style={{
-                          borderColor: "rgba(248,113,113,0.25)",
-                          background: "rgba(248,113,113,0.12)",
-                          color: "#FCA5A5",
-                        }}
-                      >
-                        <PhoneOff className="h-4 w-4" />
-                        {callBusy ? "..." : "Respinge"}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-3">
-                      {callUiState === "connected" && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={toggleMic}
-                            className="flex h-12 w-12 items-center justify-center rounded-full border text-white transition"
-                            style={{
-                              borderColor: "rgba(255,255,255,0.14)",
-                              background: micEnabled ? "rgba(255,255,255,0.10)" : "rgba(248,113,113,0.20)",
-                            }}
-                            title={micEnabled ? "Oprește microfonul" : "Pornește microfonul"}
-                          >
-                            {micEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={toggleCamera}
-                            className="flex h-12 w-12 items-center justify-center rounded-full border text-white transition"
-                            style={{
-                              borderColor: "rgba(255,255,255,0.14)",
-                              background: cameraEnabled ? "rgba(255,255,255,0.10)" : "rgba(248,113,113,0.20)",
-                            }}
-                            title={cameraEnabled ? "Oprește camera" : "Pornește camera"}
-                          >
-                            {cameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-                          </button>
-                        </>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={handleEndCall}
-                        disabled={callBusy}
-                        className="flex h-14 min-w-[160px] items-center justify-center gap-2 rounded-full px-6 text-sm font-medium text-white shadow transition disabled:opacity-50"
-                        style={{
-                          background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)",
-                        }}
-                      >
-                        <PhoneOff className="h-4 w-4" />
-                        {callBusy
-                          ? "Se închide..."
-                          : callUiState === "connected"
-                          ? "Închide apelul"
-                          : "Anulează apelul"}
-                      </button>
-                    </div>
-                  )}
-                </div>
+            <div className="flex flex-col items-center px-8 pt-10 pb-6 text-center">
+              <div
+                className="mb-5 flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold text-white"
+                style={{
+                  background:
+                    callUiState === "connected"
+                      ? "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)"
+                      : callUiState === "incoming"
+                        ? "linear-gradient(135deg, #C96AA1 0%, #9A71C1 100%)"
+                        : "linear-gradient(135deg, #4C86C9 0%, #214A80 100%)",
+                  boxShadow: "0 16px 36px rgba(0,0,0,0.28)",
+                }}
+              >
+                {callInitial}
               </div>
-            ) : (
-              <>
-                <div className="flex flex-col items-center px-8 pt-10 pb-6 text-center">
-                  <div
-                    className="mb-5 flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold text-white"
+
+              <h2 className="max-w-full truncate text-xl font-semibold text-white">{callDisplayName}</h2>
+
+              {callUiState === "incoming" && (
+                <div className="mt-2 flex items-center gap-1.5">
+                  <PhoneIncoming className="h-3.5 w-3.5" style={{ color: vivosColors.pink }} />
+                  <p className="text-sm" style={{ color: "#E5B3D2" }}>
+                    Apel primit
+                  </p>
+                </div>
+              )}
+
+              {callUiState === "outgoing" && (
+                <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.52)" }}>
+                  Se apelează...
+                </p>
+              )}
+
+              {callUiState === "connected" && (
+                <div className="mt-2 flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span
+                      className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+                      style={{ background: vivosColors.teal }}
+                    />
+                    <span
+                      className="relative inline-flex h-2 w-2 rounded-full"
+                      style={{ background: vivosColors.teal }}
+                    />
+                  </span>
+                  <p className="text-sm font-medium" style={{ color: "#93E9F2" }}>
+                    Conectat
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {callUiState === "connected" && (
+              <div
+                className="mx-6 mb-4 flex items-center gap-2 rounded-2xl px-4 py-3"
+                style={{ background: "rgba(255,255,255,0.06)" }}
+              >
+                <Mic className="h-4 w-4" style={{ color: vivosColors.teal }} />
+                <span className="text-sm" style={{ color: "rgba(255,255,255,0.68)" }}>
+                  Microfon activ
+                </span>
+              </div>
+            )}
+
+            <div className="px-6 pb-8">
+              {callUiState === "incoming" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={handleAcceptCall}
+                    disabled={callBusy || isOffline}
+                    className="flex items-center justify-center gap-2 rounded-2xl py-4 text-sm font-medium text-white shadow transition disabled:opacity-50"
                     style={{
-                      background:
-                        callUiState === "connected"
-                          ? "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)"
-                          : callUiState === "incoming"
-                          ? "linear-gradient(135deg, #C96AA1 0%, #9A71C1 100%)"
-                          : "linear-gradient(135deg, #4C86C9 0%, #214A80 100%)",
-                      boxShadow: "0 16px 36px rgba(0,0,0,0.28)",
+                      background: "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)",
                     }}
                   >
-                    {callInitial}
-                  </div>
+                    <Phone className="h-4 w-4" />
+                    {callBusy ? "..." : "Răspunde"}
+                  </button>
 
-                  <h2 className="max-w-full truncate text-xl font-semibold text-white">{callDisplayName}</h2>
-
-                  {callUiState === "incoming" && (
-                    <div className="mt-2 flex items-center gap-1.5">
-                      <PhoneIncoming className="h-3.5 w-3.5" style={{ color: vivosColors.pink }} />
-                      <p className="text-sm" style={{ color: "#E5B3D2" }}>
-                        Apel primit
-                      </p>
-                    </div>
-                  )}
-
-                  {callUiState === "outgoing" && (
-                    <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.52)" }}>
-                      Se apelează...
-                    </p>
-                  )}
-
-                  {callUiState === "connected" && (
-                    <div className="mt-2 flex items-center gap-1.5">
-                      <span className="relative flex h-2 w-2">
-                        <span
-                          className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
-                          style={{ background: vivosColors.teal }}
-                        />
-                        <span
-                          className="relative inline-flex h-2 w-2 rounded-full"
-                          style={{ background: vivosColors.teal }}
-                        />
-                      </span>
-                      <p className="text-sm font-medium" style={{ color: "#93E9F2" }}>
-                        Conectat
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {callUiState === "connected" && (
-                  <div
-                    className="mx-6 mb-4 flex items-center gap-2 rounded-2xl px-4 py-3"
-                    style={{ background: "rgba(255,255,255,0.06)" }}
+                  <button
+                    type="button"
+                    onClick={handleRejectCall}
+                    disabled={callBusy}
+                    className="flex items-center justify-center gap-2 rounded-2xl border py-4 text-sm font-medium transition disabled:opacity-50"
+                    style={{
+                      borderColor: "rgba(248,113,113,0.25)",
+                      background: "rgba(248,113,113,0.12)",
+                      color: "#FCA5A5",
+                    }}
                   >
-                    <Mic className="h-4 w-4" style={{ color: vivosColors.teal }} />
-                    <span className="text-sm" style={{ color: "rgba(255,255,255,0.68)" }}>
-                      Microfon activ
-                    </span>
-                  </div>
-                )}
-
-                <div className="px-6 pb-8">
-                  {callUiState === "incoming" && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={handleAcceptCall}
-                        disabled={callBusy || isOffline}
-                        className="flex items-center justify-center gap-2 rounded-2xl py-4 text-sm font-medium text-white shadow transition disabled:opacity-50"
-                        style={{
-                          background: "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)",
-                        }}
-                      >
-                        <Phone className="h-4 w-4" />
-                        {callBusy ? "..." : "Răspunde"}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleRejectCall}
-                        disabled={callBusy}
-                        className="flex items-center justify-center gap-2 rounded-2xl border py-4 text-sm font-medium transition disabled:opacity-50"
-                        style={{
-                          borderColor: "rgba(248,113,113,0.25)",
-                          background: "rgba(248,113,113,0.12)",
-                          color: "#FCA5A5",
-                        }}
-                      >
-                        <PhoneOff className="h-4 w-4" />
-                        {callBusy ? "..." : "Respinge"}
-                      </button>
-                    </div>
-                  )}
-
-                  {(callUiState === "outgoing" || callUiState === "connected") && (
-                    <button
-                      type="button"
-                      onClick={handleEndCall}
-                      disabled={callBusy}
-                      className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-medium text-white shadow transition disabled:opacity-50"
-                      style={{
-                        background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)",
-                      }}
-                    >
-                      <PhoneOff className="h-4 w-4" />
-                      {callBusy
-                        ? "Se închide..."
-                        : callUiState === "connected"
-                        ? "Închide apelul"
-                        : "Anulează apelul"}
-                    </button>
-                  )}
+                    <PhoneOff className="h-4 w-4" />
+                    {callBusy ? "..." : "Respinge"}
+                  </button>
                 </div>
-              </>
-            )}
+              )}
+
+              {(callUiState === "outgoing" || callUiState === "connected") && (
+                <button
+                  type="button"
+                  onClick={handleEndCall}
+                  disabled={callBusy}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-medium text-white shadow transition disabled:opacity-50"
+                  style={{
+                    background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)",
+                  }}
+                >
+                  <PhoneOff className="h-4 w-4" />
+                  {callBusy ? "Se închide..." : callUiState === "connected" ? "Închide apelul" : "Anulează apelul"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

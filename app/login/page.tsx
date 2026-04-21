@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
+import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -37,11 +38,24 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+    <main
+      className="flex min-h-screen items-center justify-center p-6"
+      style={{ background: vivosTheme.gradients.appBackground }}
+    >
       <Card className="w-full max-w-md rounded-3xl border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">Intră în VIVOS</CardTitle>
+        <CardHeader className="pb-4 text-center">
+          <div className="mb-3 flex justify-center">
+            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl shadow-sm">
+              <img src="/icons/icon-192.png" alt="VIVOS" className="h-14 w-14 object-cover" />
+            </div>
+          </div>
+
+          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
+            Platforma comunitară
+          </p>
+          <CardTitle className="mt-2 text-2xl">Intră în VIVOS</CardTitle>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
@@ -83,7 +97,16 @@ export default function LoginPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full rounded-2xl border-0"
+              style={{
+                background: vivosTheme.gradients.activeIcon,
+                color: vivosTheme.colors.white,
+                boxShadow: vivosTheme.shadows.bubble,
+              }}
+              disabled={loading}
+            >
               {loading ? "Se conectează..." : "Login"}
             </Button>
 

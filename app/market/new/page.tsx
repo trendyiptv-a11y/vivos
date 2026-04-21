@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
+import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 export default function MarketNewPage() {
   const router = useRouter()
@@ -69,7 +70,10 @@ export default function MarketNewPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+      <main
+        className="flex min-h-screen items-center justify-center p-6"
+        style={{ background: vivosTheme.gradients.appBackground }}
+      >
         <Card className="w-full max-w-2xl rounded-3xl border-0 shadow-sm">
           <CardContent className="p-6">
             <p className="text-sm text-slate-600">Se pregătește formularul...</p>
@@ -80,19 +84,45 @@ export default function MarketNewPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-slate-500">Piață comunitară</p>
-            <h1 className="text-3xl font-semibold">Publică ofertă sau cerere</h1>
+    <main
+      className="min-h-screen"
+      style={{ background: vivosTheme.gradients.appBackground }}
+    >
+      <header
+        className="sticky top-0 z-10 border-b backdrop-blur-xl"
+        style={{
+          background: vivosTheme.styles.bottomNav.background,
+          borderColor: vivosTheme.styles.bottomNav.borderColor,
+          boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
+        }}
+      >
+        <div className="mx-auto flex min-h-[84px] max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <p
+              className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
+              style={{ color: "rgba(255,255,255,0.68)" }}
+            >
+              Piață comunitară
+            </p>
+            <h1
+              className="truncate text-lg font-semibold sm:text-2xl"
+              style={{ color: vivosTheme.colors.white }}
+            >
+              Publică ofertă sau cerere
+            </h1>
           </div>
 
-          <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/market")}>
+          <Button
+            variant="outline"
+            className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15"
+            onClick={() => router.push("/market")}
+          >
             Înapoi la piață
           </Button>
         </div>
+      </header>
 
+      <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
         <Card className="rounded-3xl border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="text-2xl">Postare nouă</CardTitle>

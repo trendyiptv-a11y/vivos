@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       pwa_url:
-        description: 'URL-ul PWA'
+        description: "URL-ul PWA"
         required: true
-        default: 'https://vivos-land.vercel.app'
+        default: "https://vivos-land.vercel.app"
 
 jobs:
   build:
@@ -23,13 +23,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup Java JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -43,6 +43,15 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
           java -version
+
+      - name: Compute app version
+        run: |
+          VERSION_CODE=${{ github.run_number }}
+          VERSION_NAME="1.0.${{ github.run_number }}"
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          echo "Using VERSION_NAME=$VERSION_NAME"
+          echo "Using VERSION_CODE=$VERSION_CODE"
 
       - name: Create Bubblewrap config
         run: |
@@ -71,8 +80,8 @@ jobs:
             "startUrl": "/",
             "iconUrl": "https://vivos-land.vercel.app/icons/icon-512.png",
             "maskableIconUrl": "https://vivos-land.vercel.app/icons/icon-512-maskable.png",
-            "appVersion": "1.0.0",
-            "appVersionCode": 1,
+            "appVersion": "${VERSION_NAME}",
+            "appVersionCode": ${VERSION_CODE},
             "signingKey": {
               "path": "./android.keystore",
               "alias": "${{ secrets.KEY_ALIAS }}"
@@ -153,10 +162,15 @@ jobs:
       - name: Find artifacts
         run: find . -type f \( -name "*.apk" -o -name "*.aab" \)
 
-      - name: Upload artifacts
+      - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: vivos-app
+          name: vivos-signed-apk
+          path: signed-output/app-release-signed.apk
+
+      - name: Upload AAB bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: vivos-aab
           path: |
-            signed-output/app-release-signed.apk
             **/*.aab

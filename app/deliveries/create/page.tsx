@@ -13,10 +13,25 @@ type DeliveryPriority = "normal" | "urgent" | "community_help"
 type DeliveryRewardType = "free" | "donation" | "paid" | "barter"
 type TransportMode = "walking" | "bike" | "car" | "other"
 
-function readCourierModeFromLocation() {
-  if (typeof window === "undefined") return false
+function readParamsFromLocation() {
+  if (typeof window === "undefined") {
+    return {
+      isCourierMode: false,
+      marketPostId: "",
+      title: "",
+      location: "",
+      category: "",
+    }
+  }
+
   const params = new URLSearchParams(window.location.search)
-  return params.get("mode") === "courier"
+  return {
+    isCourierMode: params.get("mode") === "courier",
+    marketPostId: params.get("market_post_id") || "",
+    title: params.get("title") || "",
+    location: params.get("location") || "",
+    category: params.get("category") || "",
+  }
 }
 
 export default function CreateDeliveryPage() {
@@ -26,6 +41,7 @@ export default function CreateDeliveryPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [userId, setUserId] = useState<string | null>(null)
+  const [marketPostId, setMarketPostId] = useState<string>("")
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -48,7 +64,26 @@ export default function CreateDeliveryPage() {
   const [isActive, setIsActive] = useState(true)
 
   useEffect(() => {
-    setIsCourierMode(readCourierModeFromLocation())
+    const params = readParamsFromLocation()
+    setIsCourierMode(params.isCourierMode)
+    setMarketPostId(params.marketPostId)
+
+    if (!params.isCourierMode) {
+      if (params.title) {
+        setTitle(`Livrare pentru: ${params.title}`)
+        setDescription(`Cerere de livrare pornită din piață pentru postarea: ${params.title}`)
+      }
+
+      if (params.location) {
+        setPickupArea(params.location)
+      }
+
+      if (params.category) {
+        setCategory(params.category === "document" ? "document" : "market_item")
+      } else if (params.marketPostId) {
+        setCategory("market_item")
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -64,7 +99,7 @@ export default function CreateDeliveryPage() {
 
       setUserId(session.user.id)
 
-      if (readCourierModeFromLocation()) {
+      if (readParamsFromLocation().isCourierMode) {
         const { data } = await supabase
           .from("courier_profiles")
           .select("display_name, transport_mode, coverage_areas, availability_notes, max_package_size, is_active")
@@ -108,6 +143,8 @@ export default function CreateDeliveryPage() {
         reward_type: rewardType,
         reward_amount: rewardAmount ? Number(rewardAmount) : null,
         priority,
+        is_market_linked: !!marketPostId,
+        market_listing_id: marketPostId || null,
       })
       .select("id, title, priority")
       .single()
@@ -125,6 +162,7 @@ export default function CreateDeliveryPage() {
       payload: {
         title: data.title,
         priority: data.priority,
+        market_post_id: marketPostId || null,
       },
     })
 
@@ -227,6 +265,12 @@ export default function CreateDeliveryPage() {
               </form>
             ) : (
               <form className="space-y-4" onSubmit={handleCreateDelivery}>
+                {marketPostId ? (
+                  <div className="rounded-2xl border bg-slate-50 p-4 text-sm text-slate-600">
+                    Cererea a fost pornită dintr-o postare din piață. Titlul și categoria au fost precompletate.
+                  </div>
+                ) : null}
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Titlu</label>
                   <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex. Transport obiect din piață" required />

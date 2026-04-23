@@ -336,6 +336,15 @@ export default function DeliveryDetailPage() {
       )
     }
 
+    if (name === "mark_delivery_delivered") {
+      await sendNotification(
+        request?.created_by || null,
+        "delivery_delivered",
+        "Livrarea a fost predată",
+        `Curierul a marcat ca predată cererea: ${request?.title || "Livrare"}`
+      )
+    }
+
     setBusy(false)
   }
 

@@ -401,12 +401,19 @@ export default function MarketPage() {
             </div>
           </div>
 
-          <div className="mt-5 flex gap-3">
+          <div className="mt-5 flex flex-wrap gap-3">
             <Button
               className="rounded-2xl bg-white text-[#173F74] hover:bg-white"
               onClick={() => router.push("/market/new")}
             >
               Publică
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/15"
+              onClick={() => router.push("/deliveries")}
+            >
+              Deschide livrări
             </Button>
           </div>
         </div>
@@ -478,6 +485,16 @@ export default function MarketPage() {
                       disabled={busyAuthorId === post.author_id}
                     >
                       {busyAuthorId === post.author_id ? "Se deschide..." : "Contactează autorul"}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="rounded-2xl"
+                      onClick={() =>
+                        router.push(`/deliveries/create?market_post_id=${post.id}&title=${encodeURIComponent(post.title)}`)
+                      }
+                    >
+                      Solicită livrare
                     </Button>
                   </div>
                 </div>

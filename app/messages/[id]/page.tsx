@@ -792,10 +792,31 @@ export default function ConversationPage() {
         data: { session },
       } = await supabase.auth.getSession()
 
-      if (!session?.user) {
-        router.push("/login")
-        return
-      }
+     if (!session?.user) {
+  await new Promise((resolve) => setTimeout(resolve, 400))
+
+  const {
+    data: { session: retrySession },
+  } = await supabase.auth.getSession()
+
+  if (!retrySession?.user) {
+    router.push("/login")
+    return
+  }
+
+  setUserId(retrySession.user.id)
+  setUserEmail(retrySession.user.email ?? null)
+
+  await Promise.all([
+    loadMessagesOnly(),
+    loadMembersOnly(),
+    markActiveConversation(retrySession.user.id),
+    markConversationNotificationsRead(retrySession.user.id),
+  ])
+
+  setLoading(false)
+  return
+}
 
       setUserId(session.user.id)
       setUserEmail(session.user.email ?? null)

@@ -24,6 +24,12 @@ function eventBadge(eventType: string) {
   if (eventType === "market_post_created") return "Piață"
   if (eventType === "new_message") return "Mesaj"
   if (eventType === "fund_request_created") return "Fond mutual"
+  if (eventType === "delivery_request_accepted") return "Livrări"
+  if (eventType === "delivery_picked_up") return "Livrări"
+  if (eventType === "delivery_delivered") return "Livrări"
+  if (eventType === "delivery_completed") return "Livrări"
+  if (eventType === "delivery_cancelled") return "Livrări"
+  if (eventType === "delivery_review_received") return "Evaluare"
   return "Eveniment"
 }
 
@@ -36,6 +42,18 @@ function getStaticNotificationHref(item: NotificationRow) {
   }
   if (item.event_type === "fund_request_created") {
     return "/fund"
+  }
+  if (
+    [
+      "delivery_request_accepted",
+      "delivery_picked_up",
+      "delivery_delivered",
+      "delivery_completed",
+      "delivery_cancelled",
+      "delivery_review_received",
+    ].includes(item.event_type) && item.ref_id
+  ) {
+    return `/deliveries/${item.ref_id}`
   }
   return null
 }
@@ -140,13 +158,6 @@ export default function NotificationsPage() {
         .select("conversation_id")
         .eq("id", item.ref_id)
         .maybeSingle()
-
-      console.log("resolve new_message href", {
-        notificationId: item.id,
-        ref_id: item.ref_id,
-        data,
-        error,
-      })
 
       if (!error && data?.conversation_id) {
         return `/messages/${data.conversation_id}`

@@ -1387,20 +1387,19 @@ export default function ConversationPage() {
         } = await supabase.auth.getSession()
 
         if (session?.access_token) {
-          const pushResponse = await fetch(
-            "https://vivos-api.vercel.app/api/notifications/send-call-push",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({
-                conversationId,
-                callSessionId,
-                calleeId: otherMember.member_id,
-                callType,
-              }),
+          const pushResponse = await fetch("/api/notifications/send-call-push", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session.access_token}`,
+  },
+  body: JSON.stringify({
+    conversationId,
+    callSessionId,
+    calleeId: otherMember.member_id,
+    callType,
+  }),
+})
             }
           )
 

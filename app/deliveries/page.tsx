@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Bell, Bike, Car, ClipboardList, Package, Plus, UserCheck } from "lucide-react"
+import { Bell, Bike, Car, ClipboardList, Package, Plus, Search, UserCheck } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
 
@@ -16,6 +16,8 @@ type DeliveryRewardType = "free" | "donation" | "paid" | "barter"
 type DeliveryCategory = "document" | "small_package" | "shopping" | "market_item" | "community_help" | "other"
 type TransportMode = "walking" | "bike" | "car" | "other"
 type DeliveryTab = "browse" | "my_requests" | "my_deliveries" | "courier"
+type DeliveryFilter = "all" | "open" | "accepted" | "picked_up" | "delivered" | "completed" | "cancelled" | "urgent" | "community_help"
+type DeliverySort = "newest" | "oldest" | "urgent_first" | "status"
 
 type DeliveryRequest = {
   id: string
@@ -134,6 +136,76 @@ function transportIcon(mode: TransportMode) {
   return <UserCheck className="h-4 w-4" />
 }
 
+function matchesFilter(request: DeliveryRequest, filter: DeliveryFilter) {
+  if (filter === "all") return true
+  if (filter === "urgent") return request.priority === "urgent"
+  if (filter === "community_help") return request.priority === "community_help" || request.category === "community_help"
+  return request.status === filter
+}
+
+function statusRank(status: DeliveryStatus) {
+  switch (status) {
+    case "open":
+      return 0
+    case "accepted":
+      return 1
+    case "picked_up":
+      return 2
+    case "delivered":
+      return 3
+    case "completed":
+      return 4
+    case "cancelled":
+      return 5
+    default:
+      return 99
+  }
+}
+
+function sortRequests(items: DeliveryRequest[], sort: DeliverySort) {
+  const copy = [...items]
+  if (sort === "oldest") {
+    return copy.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  }
+  if (sort === "urgent_first") {
+    return copy.sort((a, b) => {
+      const ap = a.priority === "urgent" ? 0 : a.priority === "community_help" ? 1 : 2
+      const bp = b.priority === "urgent" ? 0 : b.priority === "community_help" ? 1 : 2
+      if (ap !== bp) return ap - bp
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+  }
+  if (sort === "status") {
+    return copy.sort((a, b) => {
+      const diff = statusRank(a.status) - statusRank(b.status)
+      if (diff !== 0) return diff
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+  }
+  return copy.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+}
+
+function filterAndSortRequests(items: DeliveryRequest[], query: string, filter: DeliveryFilter, sort: DeliverySort) {
+  const q = query.trim().toLowerCase()
+  const filtered = items.filter((request) => {
+    if (!matchesFilter(request, filter)) return false
+    if (!q) return true
+    const haystack = [
+      request.title,
+      request.description || "",
+      request.pickup_area,
+      request.dropoff_area,
+      categoryLabel(request.category),
+      priorityLabel(request.priority),
+      statusLabel(request.status),
+    ]
+      .join(" ")
+      .toLowerCase()
+    return haystack.includes(q)
+  })
+  return sortRequests(filtered, sort)
+}
+
 function DeliveryCard({
   request,
   actionLabel,
@@ -199,6 +271,9 @@ export default function DeliveriesPage() {
   const [myDeliveries, setMyDeliveries] = useState<DeliveryRequest[]>([])
   const [courierProfile, setCourierProfile] = useState<CourierProfile | null>(null)
   const [activeTab, setActiveTabState] = useState<DeliveryTab>("browse")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filter, setFilter] = useState<DeliveryFilter>("all")
+  const [sort, setSort] = useState<DeliverySort>("newest")
 
   useEffect(() => {
     setActiveTabState(readTabFromLocation())
@@ -318,6 +393,10 @@ export default function DeliveriesPage() {
     setActiveTabState(tab)
     router.push(`/deliveries?tab=${tab}`)
   }
+
+  const filteredBrowseRequests = useMemo(() => filterAndSortRequests(browseRequests, searchQuery, filter, sort), [browseRequests, searchQuery, filter, sort])
+  const filteredMyRequests = useMemo(() => filterAndSortRequests(myRequests, searchQuery, filter, sort), [myRequests, searchQuery, filter, sort])
+  const filteredMyDeliveries = useMemo(() => filterAndSortRequests(myDeliveries, searchQuery, filter, sort), [myDeliveries, searchQuery, filter, sort])
 
   const showUnreadBadge = !!userEmail && unreadCount > 0
   const showPublicBadge = !userEmail && publicPulseCount > 0
@@ -439,11 +518,54 @@ export default function DeliveriesPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant={activeTab === "browse" ? "default" : "outline"} className="rounded-2xl" onClick={() => setTab("browse")}>Browse</Button>
-          <Button variant={activeTab === "my_requests" ? "default" : "outline"} className="rounded-2xl" onClick={() => setTab("my_requests")}>My Requests</Button>
-          <Button variant={activeTab === "my_deliveries" ? "default" : "outline"} className="rounded-2xl" onClick={() => setTab("my_deliveries")}>My Deliveries</Button>
-          <Button variant={activeTab === "courier" ? "default" : "outline"} className="rounded-2xl" onClick={() => setTab("courier")}>Courier</Button>
+          <Button variant={activeTab === "browse" ? "default" : "outline"} className="rounded-2xl" onClick={() => setTab("browse")}>Descoperă</Button>
+          <Button variant={activeTab === "my_requests" ? "default" : "outline"} className="rounded-2xl" onClick={() => setTab("my_requests")}>Cererile mele</Button>
+          <Button variant={activeTab === "my_deliveries" ? "default" : "outline"} className="rounded-2xl" onClick={() => setTab("my_deliveries")}>Livrările mele</Button>
+          <Button variant={activeTab === "courier" ? "default" : "outline"} className="rounded-2xl" onClick={() => setTab("courier")}>Curier</Button>
         </div>
+
+        {activeTab !== "courier" && (
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardContent className="grid gap-3 p-4 sm:grid-cols-[1.3fr_0.9fr_0.9fr]">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  className="h-11 w-full rounded-2xl border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-900 outline-none"
+                  placeholder="Caută după titlu, zonă sau categorie"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <select
+                className="h-11 w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm text-slate-900"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as DeliveryFilter)}
+              >
+                <option value="all">Toate</option>
+                <option value="open">Deschise</option>
+                <option value="accepted">Acceptate</option>
+                <option value="picked_up">Ridicate</option>
+                <option value="delivered">Predate</option>
+                <option value="completed">Finalizate</option>
+                <option value="cancelled">Anulate</option>
+                <option value="urgent">Urgente</option>
+                <option value="community_help">Ajutor comunitar</option>
+              </select>
+
+              <select
+                className="h-11 w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm text-slate-900"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as DeliverySort)}
+              >
+                <option value="newest">Cele mai noi</option>
+                <option value="oldest">Cele mai vechi</option>
+                <option value="urgent_first">Urgente primele</option>
+                <option value="status">După status</option>
+              </select>
+            </CardContent>
+          </Card>
+        )}
 
         {loading ? (
           <Card className="rounded-3xl border-0 shadow-sm"><CardContent className="p-6 text-sm text-slate-600">Se încarcă livrările...</CardContent></Card>
@@ -455,13 +577,13 @@ export default function DeliveriesPage() {
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl">Cereri deschise</CardTitle>
-              <div className="text-sm text-slate-500">{browseRequests.length} disponibile</div>
+              <div className="text-sm text-slate-500">{filteredBrowseRequests.length} afișate</div>
             </CardHeader>
             <CardContent className="space-y-4 pb-24">
-              {browseRequests.length === 0 ? (
-                <div className="rounded-2xl border p-6 text-sm text-slate-600">Nu există cereri deschise în acest moment.</div>
+              {filteredBrowseRequests.length === 0 ? (
+                <div className="rounded-2xl border p-6 text-sm text-slate-600">Nu există rezultate pentru filtrele curente.</div>
               ) : (
-                browseRequests.map((request) => (
+                filteredBrowseRequests.map((request) => (
                   <DeliveryCard key={request.id} request={request} actionLabel="Vezi detalii" actionHref={`/deliveries/${request.id}`} />
                 ))
               )}
@@ -473,13 +595,13 @@ export default function DeliveriesPage() {
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl">Cererile mele</CardTitle>
-              <div className="text-sm text-slate-500">{myRequests.length} totale</div>
+              <div className="text-sm text-slate-500">{filteredMyRequests.length} afișate</div>
             </CardHeader>
             <CardContent className="space-y-4 pb-24">
-              {myRequests.length === 0 ? (
-                <div className="rounded-2xl border p-6 text-sm text-slate-600">Nu ai creat încă cereri de livrare.</div>
+              {filteredMyRequests.length === 0 ? (
+                <div className="rounded-2xl border p-6 text-sm text-slate-600">Nu există rezultate pentru filtrele curente.</div>
               ) : (
-                myRequests.map((request) => (
+                filteredMyRequests.map((request) => (
                   <DeliveryCard key={request.id} request={request} actionLabel="Administrează" actionHref={`/deliveries/${request.id}`} />
                 ))
               )}
@@ -491,13 +613,13 @@ export default function DeliveriesPage() {
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl">Livrările mele</CardTitle>
-              <div className="text-sm text-slate-500">{myDeliveries.length} acceptate</div>
+              <div className="text-sm text-slate-500">{filteredMyDeliveries.length} afișate</div>
             </CardHeader>
             <CardContent className="space-y-4 pb-24">
-              {myDeliveries.length === 0 ? (
-                <div className="rounded-2xl border p-6 text-sm text-slate-600">Nu ai acceptat încă nicio livrare.</div>
+              {filteredMyDeliveries.length === 0 ? (
+                <div className="rounded-2xl border p-6 text-sm text-slate-600">Nu există rezultate pentru filtrele curente.</div>
               ) : (
-                myDeliveries.map((request) => (
+                filteredMyDeliveries.map((request) => (
                   <DeliveryCard key={request.id} request={request} actionLabel="Continuă" actionHref={`/deliveries/${request.id}`} />
                 ))
               )}

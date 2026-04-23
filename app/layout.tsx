@@ -8,6 +8,7 @@ import InAppPushBanner from "@/components/InAppPushBanner"
 import NativeRuntimeBridge from "@/components/NativeRuntimeBridge"
 import NativeHapticsBridge from "@/components/NativeHapticsBridge"
 import GlobalPresence from "@/components/GlobalPresence"
+import DeliveryChatContextBanner from "@/components/DeliveryChatContextBanner"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 export const metadata: Metadata = {
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <NativePushSetup />
         <NativeHapticsBridge />
         <InAppPushBanner />
+        <DeliveryChatContextBanner />
 
         <div className="relative min-h-screen pb-24 md:pb-0">
           {children}

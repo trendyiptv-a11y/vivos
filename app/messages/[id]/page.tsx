@@ -123,13 +123,6 @@ function describeMediaError(error: any, desiredCallType: CallType) {
     : "Apelul audio nu poate porni pe acest dispozitiv."
 }
 
-function isNearBottom(threshold = 160) {
-  const scrollTop = window.scrollY || document.documentElement.scrollTop || 0
-  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0
-  const totalHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 0
-  return totalHeight - (scrollTop + viewportHeight) <= threshold
-}
-
 function formatMessageTime(dateString: string) {
   return new Date(dateString).toLocaleTimeString("ro-RO", {
     hour: "2-digit",
@@ -176,6 +169,7 @@ export default function ConversationPage() {
   const [usingFrontCamera, setUsingFrontCamera] = useState(true)
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null)
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
   const localVideoRef = useRef<HTMLVideoElement | null>(null)
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null)
@@ -296,14 +290,23 @@ export default function ConversationPage() {
   }, [])
 
   useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) return
+
     const handleScroll = () => {
-      shouldStickToBottomRef.current = isNearBottom()
+      const threshold = 160
+      const distanceFromBottom =
+        container.scrollHeight - (container.scrollTop + container.clientHeight)
+      shouldStickToBottomRef.current = distanceFromBottom <= threshold
     }
 
     handleScroll()
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    container.addEventListener("scroll", handleScroll, { passive: true })
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll)
+    }
+  }, [messages.length])
 
   useEffect(() => {
     if (!messages.length) return
@@ -792,31 +795,31 @@ export default function ConversationPage() {
         data: { session },
       } = await supabase.auth.getSession()
 
-     if (!session?.user) {
-  await new Promise((resolve) => setTimeout(resolve, 400))
+      if (!session?.user) {
+        await new Promise((resolve) => setTimeout(resolve, 400))
 
-  const {
-    data: { session: retrySession },
-  } = await supabase.auth.getSession()
+        const {
+          data: { session: retrySession },
+        } = await supabase.auth.getSession()
 
-  if (!retrySession?.user) {
-    router.push("/login")
-    return
-  }
+        if (!retrySession?.user) {
+          router.push("/login")
+          return
+        }
 
-  setUserId(retrySession.user.id)
-  setUserEmail(retrySession.user.email ?? null)
+        setUserId(retrySession.user.id)
+        setUserEmail(retrySession.user.email ?? null)
 
-  await Promise.all([
-    loadMessagesOnly(),
-    loadMembersOnly(),
-    markActiveConversation(retrySession.user.id),
-    markConversationNotificationsRead(retrySession.user.id),
-  ])
+        await Promise.all([
+          loadMessagesOnly(),
+          loadMembersOnly(),
+          markActiveConversation(retrySession.user.id),
+          markConversationNotificationsRead(retrySession.user.id),
+        ])
 
-  setLoading(false)
-  return
-}
+        setLoading(false)
+        return
+      }
 
       setUserId(session.user.id)
       setUserEmail(session.user.email ?? null)
@@ -1400,66 +1403,67 @@ export default function ConversationPage() {
     rejectCallBySessionId,
   ])
 
- async function handleStartCall(callType: CallType) {
-  if (!userId || !otherMember?.member_id || callUiState !== "idle" || !callChannelRef.current) {
-    return
-  }
-
-  try {
-    setCallBusy(true)
-    setCurrentCallType(callType)
-    await ensureLocalStream(callType)
-
-    const { data: callSession, error: callSessionError } = await supabase
-      .from("call_sessions")
-      .insert({
-        conversation_id: conversationId,
-        caller_id: userId,
-        callee_id: otherMember.member_id,
-        status: "ringing",
-        call_type: callType,
-      })
-      .select("id")
-      .single()
-
-    if (callSessionError || !callSession?.id) {
-      alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`)
-      cleanupAudioCall()
+  async function handleStartCall(callType: CallType) {
+    if (!userId || !otherMember?.member_id || callUiState !== "idle" || !callChannelRef.current) {
       return
     }
 
-    const callSessionId = callSession.id
+    try {
+      setCallBusy(true)
+      setCurrentCallType(callType)
+      await ensureLocalStream(callType)
 
-    await supabase.from("call_events").insert({
-      call_session_id: callSessionId,
-      actor_id: userId,
-      event_type: "invite",
-      payload: { conversationId, callType },
-    })
+      const { data: callSession, error: callSessionError } = await supabase
+        .from("call_sessions")
+        .insert({
+          conversation_id: conversationId,
+          caller_id: userId,
+          callee_id: otherMember.member_id,
+          status: "ringing",
+          call_type: callType,
+        })
+        .select("id")
+        .single()
 
-    await callChannelRef.current.send({
-      type: "broadcast",
-      event: "call_invite",
-      payload: {
-        type: "call_invite",
-        callSessionId,
-        conversationId,
-        fromUserId: userId,
-        toUserId: otherMember.member_id,
-        callType,
-      },
-    })
+      if (callSessionError || !callSession?.id) {
+        alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`)
+        cleanupAudioCall()
+        return
+      }
 
-    setCurrentCallSessionId(callSessionId)
-    setCallUiState("outgoing")
-  } catch (error: any) {
-    console.error("Start call error:", error)
-    alert(error?.message || "Nu am putut porni apelul.")
-    cleanupAudioCall()
-  } finally {
-    setCallBusy(false)
+      const callSessionId = callSession.id
+
+      await supabase.from("call_events").insert({
+        call_session_id: callSessionId,
+        actor_id: userId,
+        event_type: "invite",
+        payload: { conversationId, callType },
+      })
+
+      await callChannelRef.current.send({
+        type: "broadcast",
+        event: "call_invite",
+        payload: {
+          type: "call_invite",
+          callSessionId,
+          conversationId,
+          fromUserId: userId,
+          toUserId: otherMember.member_id,
+          callType,
+        },
+      })
+
+      setCurrentCallSessionId(callSessionId)
+      setCallUiState("outgoing")
+    } catch (error: any) {
+      console.error("Start call error:", error)
+      alert(error?.message || "Nu am putut porni apelul.")
+      cleanupAudioCall()
+    } finally {
+      setCallBusy(false)
+    }
   }
-}
+
   async function handleEndCall() {
     if (!userId || !currentCallSessionId) {
       cleanupAudioCall()
@@ -1622,7 +1626,7 @@ export default function ConversationPage() {
 
   return (
     <main
-      className="min-h-screen text-white"
+      className="h-[100dvh] overflow-hidden text-white"
       style={{
         background:
           "radial-gradient(circle at top, rgba(99,166,230,0.16), transparent 28%), linear-gradient(180deg, #173F72 0%, #163865 48%, #122E54 100%)",
@@ -1631,7 +1635,7 @@ export default function ConversationPage() {
       <audio ref={remoteAudioRef} autoPlay playsInline preload="none" />
       <audio ref={ringtoneRef} src="/sounds/incoming-call.mp3" preload="auto" />
 
-      <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col">
+      <div className="mx-auto flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden">
         <header
           className="sticky top-0 z-20 border-b backdrop-blur-xl"
           style={{
@@ -1846,7 +1850,10 @@ export default function ConversationPage() {
           </div>
         )}
 
-        <section className="flex-1 px-4 py-4">
+        <section
+          ref={messagesContainerRef}
+          className="min-h-0 flex-1 overflow-y-auto px-4 py-4"
+        >
           {loading ? (
             <div
               className="flex h-full items-center justify-center text-sm"
@@ -1868,7 +1875,7 @@ export default function ConversationPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-1 pb-24">
+            <div className="space-y-1 pb-6">
               {messages.map((msg, index) => {
                 const mine = msg.sender_id === userId
                 const prev = messages[index - 1]
@@ -1893,7 +1900,9 @@ export default function ConversationPage() {
                       </div>
                     )}
 
-                    <div className={`flex ${mine ? "justify-end" : "justify-start"} ${prevSame ? "mt-0.5" : "mt-2"}`}>
+                    <div
+                      className={`flex ${mine ? "justify-end" : "justify-start"} ${prevSame ? "mt-0.5" : "mt-2"}`}
+                    >
                       <div
                         className={[
                           "max-w-[78%] px-3.5 py-2.5 sm:max-w-[68%]",
@@ -1941,10 +1950,12 @@ export default function ConversationPage() {
         </section>
 
         <div
-          className="sticky bottom-0 z-10 border-t px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-xl"
+          className="z-10 border-t px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-xl"
           style={{
-            borderColor: "rgba(255,255,255,0.08)",
-            background: "rgba(23, 63, 114, 0.90)",
+            borderColor: "rgba(255,255,255,0.12)",
+            background:
+              "linear-gradient(180deg, rgba(29,58,102,0.98) 0%, rgba(20,47,88,0.99) 100%)",
+            boxShadow: "0 -16px 36px rgba(6, 14, 32, 0.34)",
           }}
         >
           <form onSubmit={handleSend} className="flex items-end gap-2">
@@ -1957,8 +1968,10 @@ export default function ConversationPage() {
               placeholder="Scrie un mesaj..."
               className="min-h-[42px] max-h-[120px] flex-1 resize-none rounded-2xl px-4 py-2.5 text-[14.5px] leading-5 text-white placeholder-white/25 outline-none transition"
               style={{
-                border: "1px solid rgba(255,255,255,0.10)",
-                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.16)",
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.09) 100%)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -1973,7 +1986,7 @@ export default function ConversationPage() {
               className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl text-white transition disabled:cursor-not-allowed disabled:opacity-30"
               style={{
                 background: "linear-gradient(135deg, #F8C13A 0%, #F79A42 100%)",
-                boxShadow: "0 12px 24px rgba(70, 40, 0, 0.28)",
+                boxShadow: "0 10px 24px rgba(90, 46, 0, 0.34)",
               }}
             >
               <Send className="h-4 w-4" />

@@ -354,6 +354,15 @@ export default function DeliveryDetailPage() {
       )
     }
 
+    if (name === "cancel_delivery_request") {
+      await sendNotification(
+        request?.assigned_to || null,
+        "delivery_cancelled",
+        "Livrarea a fost anulată",
+        `Cererea a fost anulată: ${request?.title || "Livrare"}`
+      )
+    }
+
     setBusy(false)
   }
 

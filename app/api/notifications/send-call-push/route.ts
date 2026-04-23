@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
     const conversationId = String(body.conversationId || "")
     const callSessionId = String(body.callSessionId || "")
     const calleeId = String(body.calleeId || "")
+    const callType = body.callType === "video" ? "video" : "audio"
 
     if (!conversationId || !callSessionId || !calleeId) {
       return NextResponse.json(
@@ -78,6 +79,49 @@ export async function POST(req: NextRequest) {
 
     if (calleeId === user.id) {
       return NextResponse.json({ ok: true, skipped: "self-call" })
+    }
+
+    const activeThreshold = new Date(Date.now() - 90 * 1000).toISOString()
+
+    const { data: activeConversation, error: activeConversationError } = await supabaseAdmin
+      .from("active_conversations")
+      .select("user_id, conversation_id, updated_at")
+      .eq("user_id", calleeId)
+      .eq("conversation_id", conversationId)
+      .gte("updated_at", activeThreshold)
+      .maybeSingle()
+
+    if (activeConversationError) {
+      console.error("active_conversations read error:", activeConversationError)
+    }
+
+    if (activeConversation?.user_id && activeConversation?.conversation_id) {
+      return NextResponse.json({
+        ok: true,
+        skipped: "callee-active-in-conversation",
+      })
+    }
+
+    const { data: callSession, error: callSessionError } = await supabaseAdmin
+      .from("call_sessions")
+      .select("id, status, caller_id, callee_id, call_type")
+      .eq("id", callSessionId)
+      .maybeSingle()
+
+    if (callSessionError) {
+      return NextResponse.json({ error: callSessionError.message }, { status: 500 })
+    }
+
+    if (!callSession?.id) {
+      return NextResponse.json({ ok: true, skipped: "call-session-not-found" })
+    }
+
+    if (callSession.callee_id !== calleeId || callSession.caller_id !== user.id) {
+      return NextResponse.json({ ok: true, skipped: "call-session-mismatch" })
+    }
+
+    if (callSession.status !== "ringing") {
+      return NextResponse.json({ ok: true, skipped: `call-not-ringing:${callSession.status}` })
     }
 
     const { data: callerProfile } = await supabaseAdmin
@@ -122,8 +166,11 @@ export async function POST(req: NextRequest) {
     const tag = `incoming-call-${callSessionId}`
 
     const webNotificationPayload = JSON.stringify({
-      title: "Apel incoming",
-      body: `${callerName} te apelează în VIVOS`,
+      title: callType === "video" ? "Apel video incoming" : "Apel incoming",
+      body:
+        callType === "video"
+          ? `${callerName} te apelează video în VIVOS`
+          : `${callerName} te apelează în VIVOS`,
       tag,
       url: openUrl,
       answerUrl,
@@ -131,6 +178,7 @@ export async function POST(req: NextRequest) {
       conversationId,
       callSessionId,
       callerName,
+      callType,
       notificationType: "incoming_call",
       requireInteraction: true,
       vibrate: [300, 150, 300, 150, 300],
@@ -189,10 +237,15 @@ export async function POST(req: NextRequest) {
                 conversationId: toDataValue(conversationId),
                 callSessionId: toDataValue(callSessionId),
                 callerName: toDataValue(callerName),
+                callType: toDataValue(callType),
                 notificationType: "incoming_call",
                 tag: toDataValue(tag),
-                title: "Apel incoming",
-                body: toDataValue(`${callerName} te apelează în VIVOS`),
+                title: callType === "video" ? "Apel video incoming" : "Apel incoming",
+                body: toDataValue(
+                  callType === "video"
+                    ? `${callerName} te apelează video în VIVOS`
+                    : `${callerName} te apelează în VIVOS`
+                ),
               },
               android: {
                 priority: "high",

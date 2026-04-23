@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   Home,
   MessageCircle,
+  Package,
   ShoppingBag,
   Users,
   Wallet,
@@ -24,6 +25,7 @@ const items = [
   { label: "Membri", href: "/", tab: "members", icon: Users, eventTypes: [] },
   { label: "Mesaje", href: "/messages", tab: null, icon: MessageCircle, eventTypes: ["new_message"] },
   { label: "Piață", href: "/market", tab: null, icon: ShoppingBag, eventTypes: ["market_post_created"] },
+  { label: "Livrări", href: "/deliveries", tab: null, icon: Package, eventTypes: [] },
   { label: "Portofel", href: "/wallet", tab: null, icon: Wallet, eventTypes: [] },
 ]
 
@@ -128,7 +130,7 @@ function MobileBottomNavInner() {
         boxShadow: vivosTheme.shadows.medium,
       }}
     >
-      <div className="mx-auto grid max-w-lg grid-cols-5 pb-safe">
+      <div className="mx-auto grid max-w-lg grid-cols-6 pb-safe">
         {itemsWithBadges.map((item) => {
           const Icon = item.icon
           const active = item.tab

@@ -265,6 +265,19 @@ export default function DeliveryDetailPage() {
 
   const canReview = !!reviewTargetUserId && !existingMyReview
 
+  async function sendNotification(targetUserId: string | null, eventType: string, title: string, body?: string | null) {
+    if (!targetUserId || targetUserId === currentUserId || !requestId) return
+
+    await supabase.from("notifications").insert({
+      user_id: targetUserId,
+      event_type: eventType,
+      title,
+      body: body || null,
+      ref_id: requestId,
+      is_read: false,
+    })
+  }
+
   async function openDirectConversation(otherMemberId: string) {
     if (!currentUserId) return false
 

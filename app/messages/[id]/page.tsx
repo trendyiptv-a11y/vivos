@@ -186,7 +186,6 @@ export default function ConversationPage() {
   const currentCallSessionIdRef = useRef<string | null>(null)
   const callUiStateRef = useRef<CallUiState>("idle")
   const currentCallTypeRef = useRef<CallType>("audio")
-  const autoActionHandledRef = useRef<string | null>(null)
   const acceptedCallSessionRef = useRef<string | null>(null)
   const initialScrollDoneRef = useRef(false)
   const shouldStickToBottomRef = useRef(true)
@@ -865,9 +864,13 @@ export default function ConversationPage() {
       }
     }
 
+    const handlePageHide = () => {
+      void clearActiveConversation(userId)
+    }
+
     const heartbeat = window.setInterval(() => {
       if (document.visibilityState === "visible") {
-        markActiveConversation(userId)
+        void markActiveConversation(userId)
       }
     }, 15000)
 
@@ -875,6 +878,8 @@ export default function ConversationPage() {
     window.addEventListener("focus", handleFocus)
     window.addEventListener("online", handleOnline)
     window.addEventListener("offline", handleOffline)
+    window.addEventListener("pagehide", handlePageHide)
+    window.addEventListener("beforeunload", handlePageHide)
     window.addEventListener("vivos:app-active", handleNativeAppActive as EventListener)
     window.addEventListener("vivos:network-change", handleNativeNetworkChange as EventListener)
 
@@ -884,9 +889,11 @@ export default function ConversationPage() {
       window.removeEventListener("focus", handleFocus)
       window.removeEventListener("online", handleOnline)
       window.removeEventListener("offline", handleOffline)
+      window.removeEventListener("pagehide", handlePageHide)
+      window.removeEventListener("beforeunload", handlePageHide)
       window.removeEventListener("vivos:app-active", handleNativeAppActive as EventListener)
       window.removeEventListener("vivos:network-change", handleNativeNetworkChange as EventListener)
-      clearActiveConversation(userId)
+      void clearActiveConversation(userId)
     }
   }, [userId, refreshConversationState, clearActiveConversation, markActiveConversation])
 
@@ -957,7 +964,7 @@ export default function ConversationPage() {
 
   const acceptCallBySessionId = useCallback(
     async (callSessionId: string, acceptedType?: CallType) => {
-      if (!userId || !callChannelRef.current) return
+      if (!userId) return
 
       const typeToUse = acceptedType || currentCallTypeRef.current || "audio"
 
@@ -965,10 +972,34 @@ export default function ConversationPage() {
         setCallBusy(true)
         stopRingtone()
         setCurrentCallType(typeToUse)
+        setCurrentCallSessionId(callSessionId)
+
         await ensureLocalStream(typeToUse)
         await ensurePeerConnection(userId, typeToUse)
 
         acceptedCallSessionRef.current = callSessionId
+
+        const { data: currentSession, error: sessionReadError } = await supabase
+          .from("call_sessions")
+          .select("id, status, call_type")
+          .eq("id", callSessionId)
+          .maybeSingle()
+
+        if (sessionReadError || !currentSession?.id) {
+          cleanupAudioCall()
+          setIncomingCall(null)
+          setCurrentCallSessionId(null)
+          setCallUiState("idle")
+          return
+        }
+
+        if (currentSession.status !== "ringing" && currentSession.status !== "accepted") {
+          cleanupAudioCall()
+          setIncomingCall(null)
+          setCurrentCallSessionId(null)
+          setCallUiState("idle")
+          return
+        }
 
         const { error: updateError } = await supabase
           .from("call_sessions")
@@ -982,6 +1013,9 @@ export default function ConversationPage() {
         if (updateError) {
           alert(`Nu am putut accepta apelul: ${updateError.message}`)
           cleanupAudioCall()
+          setIncomingCall(null)
+          setCurrentCallSessionId(null)
+          setCallUiState("idle")
           return
         }
 
@@ -992,17 +1026,19 @@ export default function ConversationPage() {
           payload: { conversationId, callType: typeToUse },
         })
 
-        await callChannelRef.current.send({
-          type: "broadcast",
-          event: "call_accept",
-          payload: {
-            type: "call_accept",
-            callSessionId,
-            conversationId,
-            fromUserId: userId,
-            callType: typeToUse,
-          },
-        })
+        if (callChannelRef.current) {
+          await callChannelRef.current.send({
+            type: "broadcast",
+            event: "call_accept",
+            payload: {
+              type: "call_accept",
+              callSessionId,
+              conversationId,
+              fromUserId: userId,
+              callType: typeToUse,
+            },
+          })
+        }
 
         emitWindowEvent("vivos:call-accepted", {
           callSessionId,
@@ -1011,13 +1047,15 @@ export default function ConversationPage() {
         })
 
         setIncomingCall(null)
-        setCurrentCallSessionId(callSessionId)
         setCallUiState("connected")
         router.replace(`/messages/${conversationId}`)
       } catch (error: any) {
         console.error("Accept call error:", error)
         alert(error?.message || "Nu am putut accepta apelul.")
         cleanupAudioCall()
+        setIncomingCall(null)
+        setCurrentCallSessionId(null)
+        setCallUiState("idle")
       } finally {
         setCallBusy(false)
       }
@@ -1276,97 +1314,67 @@ export default function ConversationPage() {
     const callAction = searchParams.get("callAction")
     const targetCallSessionId = searchParams.get("callSessionId")
 
+    if (!callAction || !targetCallSessionId) return
+
     let cancelled = false
-    let attempts = 0
 
-    async function syncIncomingCallFromDb() {
-      const { data, error } = await supabase
-        .from("call_sessions")
-        .select("id, caller_id, callee_id, status, created_at, call_type")
-        .eq("conversation_id", conversationId)
-        .eq("callee_id", userId)
-        .eq("status", "ringing")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
+    async function resolveAndHandleAction() {
+      try {
+        const { data, error } = await supabase
+          .from("call_sessions")
+          .select("id, caller_id, callee_id, status, created_at, call_type")
+          .eq("id", targetCallSessionId)
+          .eq("conversation_id", conversationId)
+          .eq("callee_id", userId)
+          .maybeSingle()
 
-      if (cancelled || error || !data?.id) return null
+        if (cancelled || error || !data?.id) return
 
-      const dbCallType: CallType = data.call_type === "video" ? "video" : "audio"
+        const dbCallType: CallType = data.call_type === "video" ? "video" : "audio"
 
-      if (!incomingCall || incomingCall.callSessionId !== data.id) {
-        setIncomingCall({
-          callSessionId: data.id,
-          fromUserId: data.caller_id,
-          callType: dbCallType,
-        })
-        setCurrentCallSessionId(data.id)
-        setCurrentCallType(dbCallType)
-        setCallUiState("incoming")
-        playRingtone()
+        if (callAction === "answer") {
+          if (data.status === "ringing") {
+            setIncomingCall({
+              callSessionId: data.id,
+              fromUserId: data.caller_id,
+              callType: dbCallType,
+            })
+            setCurrentCallSessionId(data.id)
+            setCurrentCallType(dbCallType)
+            await acceptCallBySessionId(data.id, dbCallType)
+          }
+          return
+        }
+
+        if (callAction === "decline") {
+          if (data.status === "ringing") {
+            setIncomingCall({
+              callSessionId: data.id,
+              fromUserId: data.caller_id,
+              callType: dbCallType,
+            })
+            setCurrentCallSessionId(data.id)
+            setCurrentCallType(dbCallType)
+            await rejectCallBySessionId(data.id)
+          }
+        }
+      } catch (error) {
+        console.error("Notification call action resolve error:", error)
       }
-
-      return { ...data, callType: dbCallType }
     }
 
-    const timer = window.setInterval(async () => {
-      attempts += 1
-
-      if (cancelled) {
-        window.clearInterval(timer)
-        return
-      }
-
-      const dbCall = await syncIncomingCallFromDb()
-
-      if (!dbCall?.id) {
-        if (attempts >= 12) window.clearInterval(timer)
-        return
-      }
-
-      if (!targetCallSessionId || dbCall.id !== targetCallSessionId) {
-        if (attempts >= 12) window.clearInterval(timer)
-        return
-      }
-
-      if (callBusy) {
-        if (attempts >= 12) window.clearInterval(timer)
-        return
-      }
-
-      if (autoActionHandledRef.current === targetCallSessionId) {
-        window.clearInterval(timer)
-        return
-      }
-
-      if (callAction === "answer") {
-        autoActionHandledRef.current = targetCallSessionId
-        window.clearInterval(timer)
-        await acceptCallBySessionId(targetCallSessionId, dbCall.callType)
-        return
-      }
-
-      if (callAction === "decline") {
-        autoActionHandledRef.current = targetCallSessionId
-        window.clearInterval(timer)
-        await rejectCallBySessionId(targetCallSessionId)
-        return
-      }
-
-      if (attempts >= 12) window.clearInterval(timer)
-    }, 500)
+    const timer = window.setTimeout(() => {
+      void resolveAndHandleAction()
+    }, 350)
 
     return () => {
       cancelled = true
-      window.clearInterval(timer)
+      window.clearTimeout(timer)
     }
   }, [
     userId,
     conversationId,
     searchParams,
-    incomingCall,
-    callBusy,
-    playRingtone,
     acceptCallBySessionId,
     rejectCallBySessionId,
   ])

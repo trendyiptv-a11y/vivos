@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
 
@@ -43,6 +44,15 @@ type DeliveryEvent = {
   actor_id: string | null
   event_type: string
   payload: Record<string, unknown>
+  created_at: string
+}
+
+type DeliveryReview = {
+  id: string
+  reviewer_id: string
+  reviewed_user_id: string
+  rating: number
+  comment: string | null
   created_at: string
 }
 
@@ -117,6 +127,10 @@ function eventLabel(eventType: string) {
   }
 }
 
+function ratingLabel(rating: number) {
+  return "★".repeat(rating) + "☆".repeat(5 - rating)
+}
+
 export default function DeliveryDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -124,10 +138,14 @@ export default function DeliveryDetailPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [chatBusy, setChatBusy] = useState(false)
+  const [reviewBusy, setReviewBusy] = useState(false)
   const [message, setMessage] = useState("")
   const [request, setRequest] = useState<DeliveryRequest | null>(null)
   const [events, setEvents] = useState<DeliveryEvent[]>([])
+  const [reviews, setReviews] = useState<DeliveryReview[]>([])
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState("")
 
   const requestId = Array.isArray(params?.id) ? params.id[0] : params?.id
 
@@ -148,7 +166,7 @@ export default function DeliveryDetailPage() {
 
       setCurrentUserId(session.user.id)
 
-      const [requestResult, eventsResult] = await Promise.all([
+      const [requestResult, eventsResult, reviewsResult] = await Promise.all([
         supabase
           .from("delivery_requests")
           .select("id, created_by, assigned_to, title, description, category, pickup_area, dropoff_area, pickup_notes, dropoff_notes, reward_type, reward_amount, priority, status, created_at, accepted_at, picked_up_at, delivered_at, completed_at, cancelled_at, time_window_start, time_window_end")
@@ -159,12 +177,18 @@ export default function DeliveryDetailPage() {
           .select("id, actor_id, event_type, payload, created_at")
           .eq("delivery_request_id", requestId)
           .order("created_at", { ascending: true }),
+        supabase
+          .from("delivery_reviews")
+          .select("id, reviewer_id, reviewed_user_id, rating, comment, created_at")
+          .eq("delivery_request_id", requestId)
+          .order("created_at", { ascending: true }),
       ])
 
       if (requestResult.error) {
         setMessage(requestResult.error.message)
         setRequest(null)
         setEvents([])
+        setReviews([])
         setLoading(false)
         return
       }
@@ -173,8 +197,13 @@ export default function DeliveryDetailPage() {
         setMessage(eventsResult.error.message)
       }
 
+      if (reviewsResult.error) {
+        setMessage(reviewsResult.error.message)
+      }
+
       setRequest((requestResult.data as DeliveryRequest) ?? null)
       setEvents((eventsResult.data as DeliveryEvent[]) ?? [])
+      setReviews((reviewsResult.data as DeliveryReview[]) ?? [])
       setLoading(false)
     }
 
@@ -190,9 +219,15 @@ export default function DeliveryDetailPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "delivery_events", filter: `delivery_request_id=eq.${requestId}` }, loadData)
       .subscribe()
 
+    const reviewsChannel = supabase
+      .channel(`delivery-detail-reviews-${requestId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "delivery_reviews", filter: `delivery_request_id=eq.${requestId}` }, loadData)
+      .subscribe()
+
     return () => {
       supabase.removeChannel(requestsChannel)
       supabase.removeChannel(eventsChannel)
+      supabase.removeChannel(reviewsChannel)
     }
   }, [requestId, router])
 
@@ -211,6 +246,24 @@ export default function DeliveryDetailPage() {
   }, [currentUserId, request])
 
   const canMessage = !!chatTargetUserId && !!currentUserId && chatTargetUserId !== currentUserId
+
+  const reviewTargetUserId = useMemo(() => {
+    if (!request || !currentUserId || request.status !== "completed") return null
+    if (currentUserId === request.created_by) return request.assigned_to
+    if (currentUserId === request.assigned_to) return request.created_by
+    return null
+  }, [currentUserId, request])
+
+  const existingMyReview = useMemo(() => {
+    if (!currentUserId || !reviewTargetUserId) return null
+    return (
+      reviews.find(
+        (item) => item.reviewer_id === currentUserId && item.reviewed_user_id === reviewTargetUserId
+      ) || null
+    )
+  }, [currentUserId, reviewTargetUserId, reviews])
+
+  const canReview = !!reviewTargetUserId && !existingMyReview
 
   async function openDirectConversation(otherMemberId: string) {
     if (!currentUserId) return false
@@ -267,6 +320,31 @@ export default function DeliveryDetailPage() {
       setMessage("Nu am putut porni conversația.")
       setChatBusy(false)
     }
+  }
+
+  async function handleSubmitReview() {
+    if (!requestId || !currentUserId || !reviewTargetUserId) return
+
+    setReviewBusy(true)
+    setMessage("")
+
+    const { error } = await supabase.from("delivery_reviews").insert({
+      delivery_request_id: requestId,
+      reviewer_id: currentUserId,
+      reviewed_user_id: reviewTargetUserId,
+      rating: reviewRating,
+      comment: reviewComment.trim() || null,
+    })
+
+    if (error) {
+      setMessage(error.message)
+      setReviewBusy(false)
+      return
+    }
+
+    setReviewComment("")
+    setReviewRating(5)
+    setReviewBusy(false)
   }
 
   return (
@@ -356,6 +434,66 @@ export default function DeliveryDetailPage() {
                     {busy ? "Se procesează..." : "Anulează cererea"}
                   </Button>
                 ) : null}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-3xl border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl">Evaluări</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {canReview ? (
+                  <div className="rounded-2xl border p-4">
+                    <p className="text-sm font-medium text-slate-900">Lasă o evaluare pentru această livrare</p>
+                    <div className="mt-3 grid gap-4 sm:grid-cols-[140px_1fr]">
+                      <div className="space-y-2">
+                        <label className="text-sm text-slate-600">Rating</label>
+                        <select
+                          className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                          value={reviewRating}
+                          onChange={(e) => setReviewRating(Number(e.target.value))}
+                        >
+                          <option value={5}>5</option>
+                          <option value={4}>4</option>
+                          <option value={3}>3</option>
+                          <option value={2}>2</option>
+                          <option value={1}>1</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm text-slate-600">Comentariu</label>
+                        <Input value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder="Opțional" />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <Button className="rounded-2xl" disabled={reviewBusy} onClick={handleSubmitReview}>
+                        {reviewBusy ? "Se salvează..." : "Trimite evaluarea"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : existingMyReview ? (
+                  <div className="rounded-2xl border p-4 text-sm text-slate-600">
+                    Ai trimis deja evaluarea ta pentru această livrare.
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border p-4 text-sm text-slate-600">
+                    Evaluările devin disponibile după finalizarea livrării.
+                  </div>
+                )}
+
+                {reviews.length === 0 ? (
+                  <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu există evaluări încă.</div>
+                ) : (
+                  reviews.map((review) => (
+                    <div key={review.id} className="rounded-2xl border p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="rounded-xl">{ratingLabel(review.rating)}</Badge>
+                        <span className="text-sm text-slate-600">{formatDateTime(review.created_at)}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-700">{review.comment?.trim() || "Fără comentariu."}</p>
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
 

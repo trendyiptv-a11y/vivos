@@ -123,6 +123,7 @@ export default function DeliveryDetailPage() {
 
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [chatBusy, setChatBusy] = useState(false)
   const [message, setMessage] = useState("")
   const [request, setRequest] = useState<DeliveryRequest | null>(null)
   const [events, setEvents] = useState<DeliveryEvent[]>([])
@@ -203,6 +204,14 @@ export default function DeliveryDetailPage() {
   const canComplete = !!request && request.status === "delivered" && isCreator
   const canCancel = !!request && isCreator && (request.status === "open" || request.status === "accepted")
 
+  const chatTargetUserId = useMemo(() => {
+    if (!request || !currentUserId) return null
+    if (currentUserId === request.created_by) return request.assigned_to
+    return request.created_by
+  }, [currentUserId, request])
+
+  const canMessage = !!chatTargetUserId && !!currentUserId && chatTargetUserId !== currentUserId
+
   async function runRpc(name: string) {
     if (!requestId) return
     setBusy(true)
@@ -215,6 +224,37 @@ export default function DeliveryDetailPage() {
     }
 
     setBusy(false)
+  }
+
+  async function handleStartChat() {
+    if (!chatTargetUserId || !currentUserId) return
+
+    try {
+      setChatBusy(true)
+      setMessage("")
+
+      const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
+        other_member_id: chatTargetUserId,
+      })
+
+      if (error || !data) {
+        setMessage(error?.message || "Nu am putut porni conversația.")
+        setChatBusy(false)
+        return
+      }
+
+      await supabase
+        .from("conversation_hidden_for_users")
+        .delete()
+        .eq("conversation_id", data)
+        .eq("user_id", currentUserId)
+
+      router.push(`/messages/${data}`)
+    } catch (error) {
+      console.error("Delivery start chat error:", error)
+      setMessage("Nu am putut porni conversația.")
+      setChatBusy(false)
+    }
   }
 
   return (
@@ -269,6 +309,12 @@ export default function DeliveryDetailPage() {
                 <CardTitle className="text-xl">Acțiuni</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-3">
+                {canMessage ? (
+                  <Button variant="outline" className="rounded-2xl" disabled={chatBusy} onClick={handleStartChat}>
+                    {chatBusy ? "Se deschide..." : "Trimite mesaj"}
+                  </Button>
+                ) : null}
+
                 {canAccept ? (
                   <Button className="rounded-2xl" disabled={busy} onClick={() => runRpc("accept_delivery_request") }>
                     {busy ? "Se procesează..." : "Accept livrarea"}

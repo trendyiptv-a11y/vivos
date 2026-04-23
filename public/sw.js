@@ -1,4 +1,4 @@
-const SW_VERSION = "vivos-sw-v5-answer-only"
+const SW_VERSION = "vivos-sw-v6-answer-decline"
 
 self.addEventListener("install", () => {
   self.skipWaiting()
@@ -33,10 +33,15 @@ self.addEventListener("push", (event) => {
     vibrate: payload.vibrate || undefined,
     actions:
       notificationType === "incoming_call"
-        ? [{ action: "answer", title: "Răspunde" }]
+        ? [
+            { action: "answer", title: "Răspunde" },
+            { action: "decline", title: "Respinge" },
+          ]
         : [],
     data: {
       url: payload.url || "/messages",
+      answerUrl: payload.answerUrl || null,
+      declineUrl: payload.declineUrl || null,
       conversationId: payload.conversationId || null,
       callSessionId: payload.callSessionId || null,
       notificationType,
@@ -53,7 +58,7 @@ self.addEventListener("notificationclick", (event) => {
 
   const data = event.notification.data || {}
   const action = event.action || ""
-  const notificationType = data.notificationType || "generic"
+  const notificationType = data.notificationType || ""
   const conversationId = data.conversationId || ""
   const callSessionId = data.callSessionId || ""
 
@@ -61,9 +66,15 @@ self.addEventListener("notificationclick", (event) => {
 
   if (notificationType === "incoming_call" && conversationId && callSessionId) {
     if (action === "answer") {
-      targetUrl = `/messages/${conversationId}?callAction=answer&callSessionId=${callSessionId}`
+      targetUrl =
+        data.answerUrl ||
+        `/messages/${conversationId}?callAction=answer&callSessionId=${callSessionId}`
+    } else if (action === "decline") {
+      targetUrl =
+        data.declineUrl ||
+        `/messages/${conversationId}?callAction=decline&callSessionId=${callSessionId}`
     } else {
-      targetUrl = `/messages/${conversationId}`
+      targetUrl = data.url || `/messages/${conversationId}`
     }
   }
 

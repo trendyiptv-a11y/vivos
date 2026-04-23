@@ -265,12 +265,20 @@ export default function ConversationPage() {
 
     const notificationsChannel = supabase
       .channel("conversation-topbar-notifications")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, loadTopBarState)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications" },
+        loadTopBarState
+      )
       .subscribe()
 
     const pulseChannel = supabase
       .channel("conversation-topbar-pulse")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "public_activity_feed" }, loadTopBarState)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "public_activity_feed" },
+        loadTopBarState
+      )
       .subscribe()
 
     const {
@@ -449,7 +457,10 @@ export default function ConversationPage() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
-          video: desiredCallType === "video" ? { facingMode: usingFrontCamera ? "user" : "environment" } : false,
+          video:
+            desiredCallType === "video"
+              ? { facingMode: usingFrontCamera ? "user" : "environment" }
+              : false,
         })
 
         localStreamRef.current = stream
@@ -843,7 +854,8 @@ export default function ConversationPage() {
     const handleNativeNetworkChange = async (event: Event) => {
       const detail = (event as CustomEvent<RuntimeNetworkDetail>).detail || {}
       const connected = Boolean(detail.connected)
-      const connectionType = typeof detail.connectionType === "string" ? detail.connectionType : null
+      const connectionType =
+        typeof detail.connectionType === "string" ? detail.connectionType : null
 
       setIsOffline(!connected)
       setConnectionLabel(connectionType)
@@ -883,7 +895,12 @@ export default function ConversationPage() {
       .channel(`conversation-live-${conversationId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
         (payload) => {
           const incoming = payload.new as any
           if (!incoming?.id) return
@@ -987,7 +1004,11 @@ export default function ConversationPage() {
           },
         })
 
-        emitWindowEvent("vivos:call-accepted", { callSessionId, conversationId, callType: typeToUse })
+        emitWindowEvent("vivos:call-accepted", {
+          callSessionId,
+          conversationId,
+          callType: typeToUse,
+        })
 
         setIncomingCall(null)
         setCurrentCallSessionId(callSessionId)
@@ -1001,12 +1022,26 @@ export default function ConversationPage() {
         setCallBusy(false)
       }
     },
-    [userId, conversationId, stopRingtone, ensureLocalStream, ensurePeerConnection, cleanupAudioCall, router]
+    [
+      userId,
+      conversationId,
+      stopRingtone,
+      ensureLocalStream,
+      ensurePeerConnection,
+      cleanupAudioCall,
+      router,
+    ]
   )
 
   const rejectCallBySessionId = useCallback(
     async (callSessionId: string) => {
-      if (!userId || !callChannelRef.current) return
+      if (!userId) {
+        cleanupAudioCall()
+        setIncomingCall(null)
+        setCurrentCallSessionId(null)
+        setCallUiState("idle")
+        return
+      }
 
       try {
         setCallBusy(true)
@@ -1024,28 +1059,29 @@ export default function ConversationPage() {
           payload: { conversationId },
         })
 
-        await callChannelRef.current.send({
-          type: "broadcast",
-          event: "call_reject",
-          payload: {
-            type: "call_reject",
-            callSessionId,
-            conversationId,
-            fromUserId: userId,
-          },
-        })
+        if (callChannelRef.current) {
+          await callChannelRef.current.send({
+            type: "broadcast",
+            event: "call_reject",
+            payload: {
+              type: "call_reject",
+              callSessionId,
+              conversationId,
+              fromUserId: userId,
+            },
+          })
+        }
 
         emitWindowEvent("vivos:call-rejected", { callSessionId, conversationId })
-
+      } catch (error) {
+        console.error("Reject call error:", error)
+        alert("Nu am putut respinge apelul.")
+      } finally {
         cleanupAudioCall()
         setIncomingCall(null)
         setCurrentCallSessionId(null)
         setCallUiState("idle")
         router.replace(`/messages/${conversationId}`)
-      } catch (error) {
-        console.error("Reject call error:", error)
-        alert("Nu am putut respinge apelul.")
-      } finally {
         setCallBusy(false)
       }
     },
@@ -1259,7 +1295,11 @@ export default function ConversationPage() {
       const dbCallType: CallType = data.call_type === "video" ? "video" : "audio"
 
       if (!incomingCall || incomingCall.callSessionId !== data.id) {
-        setIncomingCall({ callSessionId: data.id, fromUserId: data.caller_id, callType: dbCallType })
+        setIncomingCall({
+          callSessionId: data.id,
+          fromUserId: data.caller_id,
+          callType: dbCallType,
+        })
         setCurrentCallSessionId(data.id)
         setCurrentCallType(dbCallType)
         setCallUiState("incoming")
@@ -1388,20 +1428,18 @@ export default function ConversationPage() {
 
         if (session?.access_token) {
           const pushResponse = await fetch("/api/notifications/send-call-push", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${session.access_token}`,
-  },
-  body: JSON.stringify({
-    conversationId,
-    callSessionId,
-    calleeId: otherMember.member_id,
-    callType,
-  }),
-})
-            }
-          )
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              conversationId,
+              callSessionId,
+              calleeId: otherMember.member_id,
+              callType,
+            }),
+          })
 
           const pushResult = await pushResponse.json().catch(() => null)
           if (!pushResponse.ok) {
@@ -1811,7 +1849,10 @@ export default function ConversationPage() {
 
         <section className="flex-1 px-4 py-4">
           {loading ? (
-            <div className="flex h-full items-center justify-center text-sm" style={{ color: "rgba(255,255,255,0.40)" }}>
+            <div
+              className="flex h-full items-center justify-center text-sm"
+              style={{ color: "rgba(255,255,255,0.40)" }}
+            >
               Se încarcă conversația...
             </div>
           ) : messages.length === 0 ? (
@@ -1843,7 +1884,10 @@ export default function ConversationPage() {
                     {showDateSeparator && (
                       <div className="my-4 flex items-center gap-3">
                         <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.08)" }} />
-                        <span className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.35)" }}>
+                        <span
+                          className="text-[11px] font-medium"
+                          style={{ color: "rgba(255,255,255,0.35)" }}
+                        >
                           {formatMessageDate(msg.created_at)}
                         </span>
                         <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.08)" }} />
@@ -1942,12 +1986,7 @@ export default function ConversationPage() {
       {showCallOverlay && isVideoCall && (
         <div className="fixed inset-0 z-[120] overflow-hidden bg-black">
           <div className="absolute inset-0">
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="h-full w-full object-cover"
-            />
+            <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
             <div
               className="absolute inset-0"
               style={{

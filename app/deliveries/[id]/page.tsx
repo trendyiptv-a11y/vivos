@@ -212,6 +212,28 @@ export default function DeliveryDetailPage() {
 
   const canMessage = !!chatTargetUserId && !!currentUserId && chatTargetUserId !== currentUserId
 
+  async function openDirectConversation(otherMemberId: string) {
+    if (!currentUserId) return false
+
+    const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
+      other_member_id: otherMemberId,
+    })
+
+    if (error || !data) {
+      setMessage(error?.message || "Nu am putut porni conversația.")
+      return false
+    }
+
+    await supabase
+      .from("conversation_hidden_for_users")
+      .delete()
+      .eq("conversation_id", data)
+      .eq("user_id", currentUserId)
+
+    router.push(`/messages/${data}?delivery=${requestId || ""}`)
+    return true
+  }
+
   async function runRpc(name: string) {
     if (!requestId) return
     setBusy(true)
@@ -221,6 +243,13 @@ export default function DeliveryDetailPage() {
 
     if (error) {
       setMessage(error.message)
+      setBusy(false)
+      return
+    }
+
+    if (name === "accept_delivery_request" && request?.created_by && currentUserId) {
+      const opened = await openDirectConversation(request.created_by)
+      if (opened) return
     }
 
     setBusy(false)
@@ -232,24 +261,7 @@ export default function DeliveryDetailPage() {
     try {
       setChatBusy(true)
       setMessage("")
-
-      const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
-        other_member_id: chatTargetUserId,
-      })
-
-      if (error || !data) {
-        setMessage(error?.message || "Nu am putut porni conversația.")
-        setChatBusy(false)
-        return
-      }
-
-      await supabase
-        .from("conversation_hidden_for_users")
-        .delete()
-        .eq("conversation_id", data)
-        .eq("user_id", currentUserId)
-
-      router.push(`/messages/${data}`)
+      await openDirectConversation(chatTargetUserId)
     } catch (error) {
       console.error("Delivery start chat error:", error)
       setMessage("Nu am putut porni conversația.")

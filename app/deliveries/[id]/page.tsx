@@ -400,6 +400,13 @@ export default function DeliveryDetailPage() {
       return
     }
 
+    await sendNotification(
+      reviewTargetUserId,
+      "delivery_review_received",
+      "Ai primit o evaluare",
+      `A fost adăugată o evaluare pentru livrarea: ${request?.title || "Livrare"}`
+    )
+
     setReviewComment("")
     setReviewRating(5)
     setReviewBusy(false)

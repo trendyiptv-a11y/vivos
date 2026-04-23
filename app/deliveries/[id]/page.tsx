@@ -345,6 +345,15 @@ export default function DeliveryDetailPage() {
       )
     }
 
+    if (name === "complete_delivery_request") {
+      await sendNotification(
+        request?.assigned_to || null,
+        "delivery_completed",
+        "Livrarea a fost confirmată",
+        `Creatorul a confirmat finalizarea pentru: ${request?.title || "Livrare"}`
+      )
+    }
+
     setBusy(false)
   }
 

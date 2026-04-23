@@ -1,3 +1,5 @@
+"use server"
+
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import webpush from "web-push"
@@ -76,17 +78,6 @@ export async function POST(req: NextRequest) {
 
     if (calleeId === user.id) {
       return NextResponse.json({ ok: true, skipped: "self-call" })
-    }
-
-    const { data: activeConversation } = await supabaseAdmin
-      .from("active_conversations")
-      .select("user_id, conversation_id")
-      .eq("user_id", calleeId)
-      .eq("conversation_id", conversationId)
-      .maybeSingle()
-
-    if (activeConversation) {
-      return NextResponse.json({ ok: true, skipped: "callee-active-in-conversation" })
     }
 
     const { data: callerProfile } = await supabaseAdmin

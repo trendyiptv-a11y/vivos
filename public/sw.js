@@ -1,4 +1,4 @@
-const SW_VERSION = "vivos-sw-v6-answer-decline"
+const SW_VERSION = "vivos-sw-v7-client-routing-fix"
 
 self.addEventListener("install", () => {
   self.skipWaiting()
@@ -62,36 +62,50 @@ self.addEventListener("notificationclick", (event) => {
   const conversationId = data.conversationId || ""
   const callSessionId = data.callSessionId || ""
 
-  let targetUrl = data.url || "/messages"
+  let targetPath = data.url || "/messages"
 
   if (notificationType === "incoming_call" && conversationId && callSessionId) {
     if (action === "answer") {
-      targetUrl =
+      targetPath =
         data.answerUrl ||
         `/messages/${conversationId}?callAction=answer&callSessionId=${callSessionId}`
     } else if (action === "decline") {
-      targetUrl =
+      targetPath =
         data.declineUrl ||
         `/messages/${conversationId}?callAction=decline&callSessionId=${callSessionId}`
     } else {
-      targetUrl = data.url || `/messages/${conversationId}`
+      targetPath = data.url || `/messages/${conversationId}`
     }
   }
 
+  const absoluteUrl = new URL(targetPath, self.location.origin).toString()
+
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if ("focus" in client) {
-          return client.focus().then(() => {
-            if ("navigate" in client) {
-              return client.navigate(targetUrl)
-            }
-          })
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clientList) => {
+      const sameOriginClients = clientList.filter((client) => {
+        try {
+          return new URL(client.url).origin === self.location.origin
+        } catch {
+          return false
         }
+      })
+
+      const appClient =
+        sameOriginClients.find((client) => client.url.startsWith(self.location.origin + "/")) ||
+        sameOriginClients[0]
+
+      if (appClient) {
+        await appClient.focus()
+
+        if ("navigate" in appClient) {
+          await appClient.navigate(absoluteUrl)
+        }
+
+        return
       }
 
       if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl)
+        return self.clients.openWindow(absoluteUrl)
       }
     })
   )

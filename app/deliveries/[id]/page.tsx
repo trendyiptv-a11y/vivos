@@ -327,6 +327,15 @@ export default function DeliveryDetailPage() {
       }
     }
 
+    if (name === "mark_delivery_picked_up") {
+      await sendNotification(
+        request?.created_by || null,
+        "delivery_picked_up",
+        "Livrarea a fost ridicată",
+        `Curierul a ridicat cererea: ${request?.title || "Livrare"}`
+      )
+    }
+
     setBusy(false)
   }
 

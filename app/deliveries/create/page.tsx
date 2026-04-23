@@ -1,7 +1,7 @@
 "use client"
 
-import { FormEvent, useEffect, useMemo, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { FormEvent, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,11 +13,16 @@ type DeliveryPriority = "normal" | "urgent" | "community_help"
 type DeliveryRewardType = "free" | "donation" | "paid" | "barter"
 type TransportMode = "walking" | "bike" | "car" | "other"
 
+function readCourierModeFromLocation() {
+  if (typeof window === "undefined") return false
+  const params = new URLSearchParams(window.location.search)
+  return params.get("mode") === "courier"
+}
+
 export default function CreateDeliveryPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const isCourierMode = useMemo(() => searchParams.get("mode") === "courier", [searchParams])
 
+  const [isCourierMode, setIsCourierMode] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [userId, setUserId] = useState<string | null>(null)
@@ -43,6 +48,10 @@ export default function CreateDeliveryPage() {
   const [isActive, setIsActive] = useState(true)
 
   useEffect(() => {
+    setIsCourierMode(readCourierModeFromLocation())
+  }, [])
+
+  useEffect(() => {
     async function bootstrap() {
       const {
         data: { session },
@@ -55,7 +64,7 @@ export default function CreateDeliveryPage() {
 
       setUserId(session.user.id)
 
-      if (isCourierMode) {
+      if (readCourierModeFromLocation()) {
         const { data } = await supabase
           .from("courier_profiles")
           .select("display_name, transport_mode, coverage_areas, availability_notes, max_package_size, is_active")
@@ -74,7 +83,7 @@ export default function CreateDeliveryPage() {
     }
 
     bootstrap()
-  }, [isCourierMode, router])
+  }, [router])
 
   async function handleCreateDelivery(event: FormEvent) {
     event.preventDefault()

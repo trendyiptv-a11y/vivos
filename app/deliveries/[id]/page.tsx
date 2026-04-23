@@ -313,9 +313,18 @@ export default function DeliveryDetailPage() {
       return
     }
 
-    if (name === "accept_delivery_request" && request?.created_by && currentUserId) {
-      const opened = await openDirectConversation(request.created_by)
-      if (opened) return
+    if (name === "accept_delivery_request") {
+      await sendNotification(
+        request?.created_by || null,
+        "delivery_request_accepted",
+        "Livrarea ta a fost acceptată",
+        `Un membru a acceptat cererea: ${request?.title || "Livrare"}`
+      )
+
+      if (request?.created_by && currentUserId) {
+        const opened = await openDirectConversation(request.created_by)
+        if (opened) return
+      }
     }
 
     setBusy(false)

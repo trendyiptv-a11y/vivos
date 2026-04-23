@@ -25,7 +25,20 @@ const items = [
   { label: "Membri", href: "/", tab: "members", icon: Users, eventTypes: [] },
   { label: "Mesaje", href: "/messages", tab: null, icon: MessageCircle, eventTypes: ["new_message"] },
   { label: "Piață", href: "/market", tab: null, icon: ShoppingBag, eventTypes: ["market_post_created"] },
-  { label: "Livrări", href: "/deliveries", tab: null, icon: Package, eventTypes: [] },
+  {
+    label: "Livrări",
+    href: "/deliveries",
+    tab: null,
+    icon: Package,
+    eventTypes: [
+      "delivery_request_accepted",
+      "delivery_picked_up",
+      "delivery_delivered",
+      "delivery_completed",
+      "delivery_cancelled",
+      "delivery_review_received",
+    ],
+  },
   { label: "Portofel", href: "/wallet", tab: null, icon: Wallet, eventTypes: [] },
 ]
 

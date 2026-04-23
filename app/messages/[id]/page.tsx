@@ -193,6 +193,15 @@ export default function ConversationPage() {
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
+  // Hide global bottom nav on this page
+  useEffect(() => {
+    const nav = document.querySelector(".vivos-mobile-bottom-nav") as HTMLElement | null
+    if (nav) nav.style.display = "none"
+    return () => {
+      if (nav) nav.style.display = ""
+    }
+  }, [])
+
   useEffect(() => {
     if (typeof navigator !== "undefined") {
       const online = navigator.onLine

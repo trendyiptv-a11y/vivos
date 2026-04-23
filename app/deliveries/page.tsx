@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -54,6 +54,14 @@ type CourierProfile = {
 }
 
 const validTabs: DeliveryTab[] = ["browse", "my_requests", "my_deliveries", "courier"]
+
+function readTabFromLocation(): DeliveryTab {
+  if (typeof window === "undefined") return "browse"
+  const params = new URLSearchParams(window.location.search)
+  const tab = params.get("tab")
+  if (tab && validTabs.includes(tab as DeliveryTab)) return tab as DeliveryTab
+  return "browse"
+}
 
 function statusLabel(status: DeliveryStatus) {
   switch (status) {
@@ -178,12 +186,10 @@ function DeliveryCard({
 
 export default function DeliveriesPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState("")
-  const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
@@ -192,12 +198,11 @@ export default function DeliveriesPage() {
   const [myRequests, setMyRequests] = useState<DeliveryRequest[]>([])
   const [myDeliveries, setMyDeliveries] = useState<DeliveryRequest[]>([])
   const [courierProfile, setCourierProfile] = useState<CourierProfile | null>(null)
+  const [activeTab, setActiveTabState] = useState<DeliveryTab>("browse")
 
-  const activeTab = useMemo<DeliveryTab>(() => {
-    const tab = searchParams.get("tab")
-    if (tab && validTabs.includes(tab as DeliveryTab)) return tab as DeliveryTab
-    return "browse"
-  }, [searchParams])
+  useEffect(() => {
+    setActiveTabState(readTabFromLocation())
+  }, [])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -225,7 +230,6 @@ export default function DeliveriesPage() {
         return
       }
 
-      setUserId(session.user.id)
       setUserEmail(session.user.email ?? null)
 
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -300,16 +304,19 @@ export default function DeliveriesPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "courier_profiles" }, loadData)
       .subscribe()
 
+    const handlePopState = () => setActiveTabState(readTabFromLocation())
+    window.addEventListener("popstate", handlePopState)
+
     return () => {
       supabase.removeChannel(requestsChannel)
       supabase.removeChannel(courierChannel)
+      window.removeEventListener("popstate", handlePopState)
     }
   }, [router])
 
   const setTab = (tab: DeliveryTab) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("tab", tab)
-    router.push(`/deliveries?${params.toString()}`)
+    setActiveTabState(tab)
+    router.push(`/deliveries?tab=${tab}`)
   }
 
   const showUnreadBadge = !!userEmail && unreadCount > 0

@@ -375,6 +375,16 @@ export default function MarketPage() {
                         className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
                         onClick={() => {
                           setProfileMenuOpen(false)
+                          window.location.href = "/orders"
+                        }}
+                      >
+                        Comenzile mele
+                      </button>
+
+                      <button
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
+                        onClick={() => {
+                          setProfileMenuOpen(false)
                           window.location.href = "/downloads/manifest.html"
                         }}
                       >
@@ -462,6 +472,13 @@ export default function MarketPage() {
               onClick={() => router.push("/deliveries")}
             >
               Deschide livrări
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/15"
+              onClick={() => router.push("/orders")}
+            >
+              Comenzile mele
             </Button>
           </div>
         </div>

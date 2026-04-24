@@ -115,11 +115,7 @@ export default function OrdersPage() {
       const loadedOrders = (data ?? []) as MerchantOrder[]
       setOrders(loadedOrders)
 
-      const userIds = Array.from(
-        new Set(
-          loadedOrders.flatMap((item) => [item.buyer_user_id, item.merchant_user_id]).filter(Boolean)
-        )
-      )
+      const userIds = Array.from(new Set(loadedOrders.flatMap((item) => [item.buyer_user_id, item.merchant_user_id]).filter(Boolean)))
 
       if (!userIds.length) {
         setProfilesMap({})
@@ -155,20 +151,43 @@ export default function OrdersPage() {
     setMessage("")
 
     try {
-      const { error } = await supabase
-        .from("merchant_orders")
-        .update({ status: nextStatus, updated_at: new Date().toISOString() })
-        .eq("id", order.id)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-      if (error) {
-        setMessage(error.message)
+      if (!session?.access_token) {
+        setMessage("Sesiunea nu este validă. Reautentifică-te.")
+        setBusyOrderId(null)
+        return
+      }
+
+      const response = await fetch("/api/orders/update-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ orderId: order.id, nextStatus }),
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        setMessage(result?.error || "Statusul nu a putut fi actualizat.")
         setBusyOrderId(null)
         return
       }
 
       setOrders((prev) =>
         prev.map((item) =>
-          item.id === order.id ? { ...item, status: nextStatus, updated_at: new Date().toISOString() } : item
+          item.id === order.id
+            ? {
+                ...item,
+                status: (result?.status as MerchantOrder["status"]) || nextStatus,
+                payment_status: (result?.paymentStatus as MerchantOrder["payment_status"]) || item.payment_status,
+                updated_at: new Date().toISOString(),
+              }
+            : item
         )
       )
 
@@ -203,26 +222,13 @@ export default function OrdersPage() {
 
   return (
     <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
-      <header
-        className="sticky top-0 z-10 border-b backdrop-blur-xl"
-        style={{
-          background: vivosTheme.styles.bottomNav.background,
-          borderColor: vivosTheme.styles.bottomNav.borderColor,
-          boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
-        }}
-      >
+      <header className="sticky top-0 z-10 border-b backdrop-blur-xl" style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}>
         <div className="mx-auto flex min-h-[84px] max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>
-              Comerț comunitar
-            </p>
-            <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>
-              Comenzile mele
-            </h1>
+            <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>Comerț comunitar</p>
+            <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>Comenzile mele</h1>
           </div>
-          <Button variant="outline" className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/market")}>
-            Înapoi în piață
-          </Button>
+          <Button variant="outline" className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/market")}>Înapoi în piață</Button>
         </div>
       </header>
 
@@ -234,20 +240,12 @@ export default function OrdersPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant={filter === "all" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("all")}>
-                Toate
-              </Button>
-              <Button type="button" variant={filter === "buying" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("buying")}>
-                Cumpăr
-              </Button>
-              <Button type="button" variant={filter === "selling" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("selling")}>
-                Vând
-              </Button>
+              <Button type="button" variant={filter === "all" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("all")}>Toate</Button>
+              <Button type="button" variant={filter === "buying" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("buying")}>Cumpăr</Button>
+              <Button type="button" variant={filter === "selling" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("selling")}>Vând</Button>
             </div>
 
-            {message ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">{message}</div>
-            ) : null}
+            {message ? <div className="rounded-2xl border p-4 text-sm text-slate-600">{message}</div> : null}
 
             {loading ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă comenzile...</div>
@@ -265,16 +263,8 @@ export default function OrdersPage() {
                     <div className="mb-3 flex flex-wrap items-center gap-2">
                       <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">{orderStatusLabel(order.status)}</Badge>
                       <Badge variant="outline" className="rounded-xl">Plată: {paymentStatusLabel(order.payment_status)}</Badge>
-                      {order.delivery_needed ? (
-                        <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Cu livrare</Badge>
-                      ) : (
-                        <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Fără livrare</Badge>
-                      )}
-                      {isBuyer ? (
-                        <Badge variant="outline" className="rounded-xl">Cumpărător</Badge>
-                      ) : (
-                        <Badge variant="outline" className="rounded-xl">Merchant</Badge>
-                      )}
+                      {order.delivery_needed ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Cu livrare</Badge> : <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Fără livrare</Badge>}
+                      {isBuyer ? <Badge variant="outline" className="rounded-xl">Cumpărător</Badge> : <Badge variant="outline" className="rounded-xl">Merchant</Badge>}
                     </div>
 
                     <p className="text-lg font-semibold">{order.title}</p>
@@ -286,12 +276,8 @@ export default function OrdersPage() {
                     </div>
 
                     <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                      <p>
-                        {isBuyer ? "Merchant" : "Cumpărător"}: <span className="font-medium text-slate-900">{displayProfile(otherParty, "Membru")}</span>
-                      </p>
-                      <p className="mt-1">
-                        Detalii: <span className="font-medium text-slate-900">{order.notes?.trim() || "Fără detalii suplimentare"}</span>
-                      </p>
+                      <p>{isBuyer ? "Merchant" : "Cumpărător"}: <span className="font-medium text-slate-900">{displayProfile(otherParty, "Membru")}</span></p>
+                      <p className="mt-1">Detalii: <span className="font-medium text-slate-900">{order.notes?.trim() || "Fără detalii suplimentare"}</span></p>
                     </div>
 
                     {actionStatuses.length ? (
@@ -299,14 +285,7 @@ export default function OrdersPage() {
                         <p className="text-sm font-medium text-slate-900">Acțiuni disponibile</p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {actionStatuses.map((nextStatus) => (
-                            <Button
-                              key={nextStatus}
-                              type="button"
-                              variant="outline"
-                              className="rounded-2xl"
-                              disabled={busyOrderId === order.id}
-                              onClick={() => handleStatusChange(order, nextStatus)}
-                            >
+                            <Button key={nextStatus} type="button" variant="outline" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleStatusChange(order, nextStatus)}>
                               {busyOrderId === order.id ? "Se actualizează..." : orderStatusLabel(nextStatus)}
                             </Button>
                           ))}
@@ -315,14 +294,8 @@ export default function OrdersPage() {
                     ) : null}
 
                     <div className="mt-4 flex flex-wrap gap-3">
-                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/member/${otherPartyId}`)}>
-                        Vezi profilul
-                      </Button>
-                      {order.delivery_request_id ? (
-                        <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/deliveries/${order.delivery_request_id}`)}>
-                          Vezi livrarea
-                        </Button>
-                      ) : null}
+                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/member/${otherPartyId}`)}>Vezi profilul</Button>
+                      {order.delivery_request_id ? <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/deliveries/${order.delivery_request_id}`)}>Vezi livrarea</Button> : null}
                     </div>
                   </div>
                 )

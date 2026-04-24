@@ -56,6 +56,12 @@ type DeliveryReview = {
   created_at: string
 }
 
+type BasicProfile = {
+  id: string
+  name: string | null
+  alias: string | null
+}
+
 function statusLabel(status: DeliveryStatus) {
   switch (status) {
     case "accepted":
@@ -148,6 +154,14 @@ function successMessageForAction(name: string) {
   }
 }
 
+function displayProfileName(profile: BasicProfile | null, fallbackId: string | null) {
+  const alias = profile?.alias?.trim()
+  if (alias) return alias
+  const name = profile?.name?.trim()
+  if (name) return name
+  return fallbackId || "Nimeni încă"
+}
+
 export default function DeliveryDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -163,6 +177,7 @@ export default function DeliveryDetailPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewComment, setReviewComment] = useState("")
+  const [assignedCourierProfile, setAssignedCourierProfile] = useState<BasicProfile | null>(null)
 
   const requestId = Array.isArray(params?.id) ? params.id[0] : params?.id
 
@@ -205,6 +220,7 @@ export default function DeliveryDetailPage() {
         setRequest(null)
         setEvents([])
         setReviews([])
+        setAssignedCourierProfile(null)
         setLoading(false)
         return
       }
@@ -217,9 +233,23 @@ export default function DeliveryDetailPage() {
         setMessage(reviewsResult.error.message)
       }
 
-      setRequest((requestResult.data as DeliveryRequest) ?? null)
+      const requestData = (requestResult.data as DeliveryRequest) ?? null
+      setRequest(requestData)
       setEvents((eventsResult.data as DeliveryEvent[]) ?? [])
       setReviews((reviewsResult.data as DeliveryReview[]) ?? [])
+
+      if (requestData?.assigned_to) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("id, name, alias")
+          .eq("id", requestData.assigned_to)
+          .maybeSingle()
+
+        setAssignedCourierProfile((profileData as BasicProfile | null) ?? null)
+      } else {
+        setAssignedCourierProfile(null)
+      }
+
       setLoading(false)
     }
 
@@ -479,7 +509,7 @@ export default function DeliveryDetailPage() {
                   <p>Recompensă: <span className="font-medium text-slate-900">{rewardLabel(request.reward_type, request.reward_amount)}</span></p>
                   <p>Creată: <span className="font-medium text-slate-900">{formatDateTime(request.created_at)}</span></p>
                   <p>Interval: <span className="font-medium text-slate-900">{formatDateTime(request.time_window_start)} — {formatDateTime(request.time_window_end)}</span></p>
-                  <p>Curier asignat: <span className="font-medium text-slate-900">{request.assigned_to || "Nimeni încă"}</span></p>
+                  <p>Curier asignat: <span className="font-medium text-slate-900">{displayProfileName(assignedCourierProfile, request.assigned_to)}</span></p>
                 </div>
               </CardContent>
             </Card>

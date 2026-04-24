@@ -4,6 +4,7 @@ import { ReactNode } from "react"
 import ServiceWorkerRegister from "./ServiceWorkerRegister"
 import MobileBottomNav from "@/components/mobile-bottom-nav"
 import NativePushSetup from "@/components/NativePushSetup"
+import WebPushSetup from "@/components/WebPushSetup"
 import InAppPushBanner from "@/components/InAppPushBanner"
 import NativeRuntimeBridge from "@/components/NativeRuntimeBridge"
 import NativeHapticsBridge from "@/components/NativeHapticsBridge"
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <GlobalPresence />
         <NativeRuntimeBridge />
         <NativePushSetup />
+        <WebPushSetup />
         <NativeHapticsBridge />
         <InAppPushBanner />
         <DeliveryChatContextBanner />

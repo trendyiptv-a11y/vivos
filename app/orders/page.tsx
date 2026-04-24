@@ -58,6 +58,22 @@ function displayProfile(profile: ProfileLite | null, fallback: string) {
   return profile?.alias?.trim() || profile?.name?.trim() || profile?.email?.split("@")[0] || fallback
 }
 
+function nextMerchantStatuses(order: MerchantOrder): MerchantOrder["status"][] {
+  if (order.status === "new") return ["accepted", "cancelled"]
+  if (order.status === "accepted") return ["preparing", "cancelled"]
+  if (order.status === "preparing") return ["ready", "cancelled"]
+  if (order.status === "ready") return order.delivery_needed ? ["in_delivery", "cancelled"] : ["delivered", "cancelled"]
+  if (order.status === "in_delivery") return ["delivered"]
+  if (order.status === "delivered") return ["completed"]
+  return []
+}
+
+function nextBuyerStatuses(order: MerchantOrder): MerchantOrder["status"][] {
+  if (order.status === "new") return ["cancelled"]
+  if (order.status === "delivered") return ["completed"]
+  return []
+}
+
 export default function OrdersPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -66,6 +82,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<MerchantOrder[]>([])
   const [profilesMap, setProfilesMap] = useState<Record<string, ProfileLite>>({})
   const [filter, setFilter] = useState<OrderFilter>("all")
+  const [busyOrderId, setBusyOrderId] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadOrders() {
@@ -133,6 +150,48 @@ export default function OrdersPage() {
     loadOrders()
   }, [router])
 
+  async function handleStatusChange(order: MerchantOrder, nextStatus: MerchantOrder["status"]) {
+    setBusyOrderId(order.id)
+    setMessage("")
+
+    try {
+      const { error } = await supabase
+        .from("merchant_orders")
+        .update({ status: nextStatus, updated_at: new Date().toISOString() })
+        .eq("id", order.id)
+
+      if (error) {
+        setMessage(error.message)
+        setBusyOrderId(null)
+        return
+      }
+
+      setOrders((prev) =>
+        prev.map((item) =>
+          item.id === order.id ? { ...item, status: nextStatus, updated_at: new Date().toISOString() } : item
+        )
+      )
+
+      const recipientUserId = currentUserId === order.buyer_user_id ? order.merchant_user_id : order.buyer_user_id
+      const statusText = orderStatusLabel(nextStatus)
+
+      await supabase.from("notifications").insert({
+        user_id: recipientUserId,
+        event_type: "merchant_order_status_changed",
+        title: "Status comandă actualizat",
+        body: `${order.title} · ${statusText}`,
+        ref_id: order.id,
+        is_read: false,
+      })
+
+      setBusyOrderId(null)
+    } catch (error: any) {
+      console.error("Order status update error:", error)
+      setMessage(error?.message || "Statusul nu a putut fi actualizat.")
+      setBusyOrderId(null)
+    }
+  }
+
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       if (!currentUserId) return false
@@ -186,10 +245,12 @@ export default function OrdersPage() {
               </Button>
             </div>
 
+            {message ? (
+              <div className="rounded-2xl border p-4 text-sm text-slate-600">{message}</div>
+            ) : null}
+
             {loading ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă comenzile...</div>
-            ) : message ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">{message}</div>
             ) : filteredOrders.length === 0 ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu există comenzi pentru filtrul selectat.</div>
             ) : (
@@ -197,6 +258,7 @@ export default function OrdersPage() {
                 const isBuyer = currentUserId === order.buyer_user_id
                 const otherPartyId = isBuyer ? order.merchant_user_id : order.buyer_user_id
                 const otherParty = profilesMap[otherPartyId] || null
+                const actionStatuses = isBuyer ? nextBuyerStatuses(order) : nextMerchantStatuses(order)
 
                 return (
                   <div key={order.id} className="rounded-2xl border p-4">
@@ -231,6 +293,26 @@ export default function OrdersPage() {
                         Detalii: <span className="font-medium text-slate-900">{order.notes?.trim() || "Fără detalii suplimentare"}</span>
                       </p>
                     </div>
+
+                    {actionStatuses.length ? (
+                      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
+                        <p className="text-sm font-medium text-slate-900">Acțiuni disponibile</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {actionStatuses.map((nextStatus) => (
+                            <Button
+                              key={nextStatus}
+                              type="button"
+                              variant="outline"
+                              className="rounded-2xl"
+                              disabled={busyOrderId === order.id}
+                              onClick={() => handleStatusChange(order, nextStatus)}
+                            >
+                              {busyOrderId === order.id ? "Se actualizează..." : orderStatusLabel(nextStatus)}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
 
                     <div className="mt-4 flex flex-wrap gap-3">
                       <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/member/${otherPartyId}`)}>

@@ -322,6 +322,34 @@ export default function DeliveryDetailPage() {
       ref_id: requestId,
       is_read: false,
     })
+
+    window.dispatchEvent(new CustomEvent("vivos:notifications-updated"))
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) return
+
+      await fetch("/api/notifications/send-delivery-push", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          targetUserId,
+          title,
+          body: body || "",
+          url: `/deliveries/${requestId}`,
+          eventType,
+          refId: requestId,
+        }),
+      })
+    } catch (pushError) {
+      console.error("Delivery push send error:", pushError)
+    }
   }
 
   async function openDirectConversation(otherMemberId: string) {

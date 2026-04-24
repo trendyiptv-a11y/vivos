@@ -20,6 +20,19 @@ type NotificationCountRow = {
   user_id: string | null
 }
 
+type DeliveryRequestBadgeRow = {
+  id: string
+  created_by: string
+  assigned_to: string | null
+  status: "open" | "accepted" | "picked_up" | "delivered" | "completed" | "cancelled"
+}
+
+type DeliveryReviewBadgeRow = {
+  delivery_request_id: string
+  reviewer_id: string
+  reviewed_user_id: string
+}
+
 const items = [
   { label: "Acasă", href: "/", tab: null, icon: Home, eventTypes: ["user_registered"] },
   { label: "Membri", href: "/", tab: "members", icon: Users, eventTypes: [] },
@@ -73,6 +86,7 @@ function MobileBottomNavInner() {
   const currentTab = searchParams.get("tab")
 
   const [badges, setBadges] = useState<Record<string, number>>({})
+  const [deliveryNeedsActionCount, setDeliveryNeedsActionCount] = useState(0)
 
   useEffect(() => {
     async function loadCounts() {
@@ -82,30 +96,102 @@ function MobileBottomNavInner() {
 
       if (!session?.user) {
         setBadges({})
+        setDeliveryNeedsActionCount(0)
         return
       }
 
       const userId = session.user.id
 
-      const { data, error } = await supabase
+      const { data: notificationData, error: notificationError } = await supabase
         .from("notifications")
         .select("event_type, is_read, user_id")
         .or(`user_id.eq.${userId},user_id.is.null`)
         .eq("is_read", false)
 
-      if (error) {
+      if (notificationError) {
         setBadges({})
+      } else {
+        const rows = (notificationData ?? []) as NotificationCountRow[]
+        const counts: Record<string, number> = {}
+
+        rows.forEach((row) => {
+          counts[row.event_type] = (counts[row.event_type] ?? 0) + 1
+        })
+
+        setBadges(counts)
+      }
+
+      const { data: deliveryData, error: deliveryError } = await supabase
+        .from("delivery_requests")
+        .select("id, created_by, assigned_to, status")
+        .or(`created_by.eq.${userId},assigned_to.eq.${userId}`)
+        .in("status", ["accepted", "picked_up", "delivered", "completed"])
+
+      if (deliveryError) {
+        setDeliveryNeedsActionCount(0)
         return
       }
 
-      const rows = (data ?? []) as NotificationCountRow[]
-      const counts: Record<string, number> = {}
+      const deliveryRows = (deliveryData ?? []) as DeliveryRequestBadgeRow[]
+      const actionKeys = new Set<string>()
 
-      rows.forEach((row) => {
-        counts[row.event_type] = (counts[row.event_type] ?? 0) + 1
+      deliveryRows.forEach((row) => {
+        if (row.assigned_to === userId && row.status === "accepted") {
+          actionKeys.add(`pickup:${row.id}`)
+        }
+
+        if (row.assigned_to === userId && row.status === "picked_up") {
+          actionKeys.add(`delivered:${row.id}`)
+        }
+
+        if (row.created_by === userId && row.status === "delivered") {
+          actionKeys.add(`confirm:${row.id}`)
+        }
       })
 
-      setBadges(counts)
+      const completedRows = deliveryRows.filter((row) => row.status === "completed")
+      const completedIds = completedRows.map((row) => row.id)
+
+      if (!completedIds.length) {
+        setDeliveryNeedsActionCount(actionKeys.size)
+        return
+      }
+
+      const { data: reviewData, error: reviewError } = await supabase
+        .from("delivery_reviews")
+        .select("delivery_request_id, reviewer_id, reviewed_user_id")
+        .eq("reviewer_id", userId)
+        .in("delivery_request_id", completedIds)
+
+      const reviewRows = reviewError ? [] : ((reviewData ?? []) as DeliveryReviewBadgeRow[])
+
+      completedRows.forEach((row) => {
+        if (row.created_by === userId && row.assigned_to) {
+          const alreadyReviewedCourier = reviewRows.some(
+            (review) =>
+              review.delivery_request_id === row.id &&
+              review.reviewed_user_id === row.assigned_to
+          )
+
+          if (!alreadyReviewedCourier) {
+            actionKeys.add(`review:${row.id}:creator`)
+          }
+        }
+
+        if (row.assigned_to === userId) {
+          const alreadyReviewedCreator = reviewRows.some(
+            (review) =>
+              review.delivery_request_id === row.id &&
+              review.reviewed_user_id === row.created_by
+          )
+
+          if (!alreadyReviewedCreator) {
+            actionKeys.add(`review:${row.id}:courier`)
+          }
+        }
+      })
+
+      setDeliveryNeedsActionCount(actionKeys.size)
     }
 
     const handleLocalNotificationChange = () => {
@@ -114,25 +200,42 @@ function MobileBottomNavInner() {
 
     loadCounts()
 
-    const channel = supabase
-      .channel("nav-badge-counts")
+    const notificationChannel = supabase
+      .channel("nav-badge-notifications")
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, loadCounts)
+      .subscribe()
+
+    const deliveryRequestsChannel = supabase
+      .channel("nav-badge-delivery-requests")
+      .on("postgres_changes", { event: "*", schema: "public", table: "delivery_requests" }, loadCounts)
+      .subscribe()
+
+    const deliveryReviewsChannel = supabase
+      .channel("nav-badge-delivery-reviews")
+      .on("postgres_changes", { event: "*", schema: "public", table: "delivery_reviews" }, loadCounts)
       .subscribe()
 
     window.addEventListener("vivos:notifications-updated", handleLocalNotificationChange)
 
     return () => {
       window.removeEventListener("vivos:notifications-updated", handleLocalNotificationChange)
-      supabase.removeChannel(channel)
+      supabase.removeChannel(notificationChannel)
+      supabase.removeChannel(deliveryRequestsChannel)
+      supabase.removeChannel(deliveryReviewsChannel)
     }
   }, [])
 
   const itemsWithBadges = useMemo(() => {
-    return items.map((item) => ({
-      ...item,
-      badge: item.eventTypes.reduce((sum, et) => sum + (badges[et] ?? 0), 0),
-    }))
-  }, [badges])
+    return items.map((item) => {
+      const notificationBadge = item.eventTypes.reduce((sum, et) => sum + (badges[et] ?? 0), 0)
+      const deliveryActionBadge = item.href === "/deliveries" ? deliveryNeedsActionCount : 0
+
+      return {
+        ...item,
+        badge: notificationBadge + deliveryActionBadge,
+      }
+    })
+  }, [badges, deliveryNeedsActionCount])
 
   return (
     <nav

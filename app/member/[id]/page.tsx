@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -20,6 +20,41 @@ type MemberRow = {
   created_at: string | null
 }
 
+type MemberRoleRow = {
+  role: "member" | "merchant" | "courier"
+  is_active: boolean
+}
+
+type MerchantProfileRow = {
+  display_name: string | null
+  business_name: string | null
+  merchant_category: "local_shop" | "artisan" | "food" | "auto_parts" | "services" | "other"
+  description: string | null
+  pickup_address: string | null
+  pickup_area: string | null
+  phone: string | null
+  email_public: string | null
+  opening_hours: string | null
+  delivery_available: boolean
+  pickup_available: boolean
+  is_active: boolean
+}
+
+function merchantCategoryLabel(category: MerchantProfileRow["merchant_category"]) {
+  if (category === "local_shop") return "Magazin local"
+  if (category === "artisan") return "Artizan"
+  if (category === "food") return "Food"
+  if (category === "auto_parts") return "Piese auto"
+  if (category === "services") return "Servicii"
+  return "Altceva"
+}
+
+function roleLabel(role: MemberRoleRow["role"]) {
+  if (role === "merchant") return "Comerciant"
+  if (role === "courier") return "Curier"
+  return "Membru"
+}
+
 export default function MemberPage() {
   const params = useParams()
   const router = useRouter()
@@ -28,6 +63,8 @@ export default function MemberPage() {
   const [loading, setLoading] = useState(true)
   const [member, setMember] = useState<MemberRow | null>(null)
   const [message, setMessage] = useState("")
+  const [memberRoles, setMemberRoles] = useState<MemberRoleRow[]>([])
+  const [merchantProfile, setMerchantProfile] = useState<MerchantProfileRow | null>(null)
 
   useEffect(() => {
     async function loadMember() {
@@ -43,19 +80,46 @@ export default function MemberPage() {
         return
       }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, email, name, alias, role, skills, offers_summary, needs_summary, created_at")
-        .eq("id", memberId)
-        .maybeSingle()
+      const [profileResult, rolesResult, merchantResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, email, name, alias, role, skills, offers_summary, needs_summary, created_at")
+          .eq("id", memberId)
+          .maybeSingle(),
+        supabase
+          .from("member_roles")
+          .select("role, is_active")
+          .eq("user_id", memberId)
+          .eq("is_active", true),
+        supabase
+          .from("merchant_profiles")
+          .select("display_name, business_name, merchant_category, description, pickup_address, pickup_area, phone, email_public, opening_hours, delivery_available, pickup_available, is_active")
+          .eq("user_id", memberId)
+          .eq("is_active", true)
+          .maybeSingle(),
+      ])
 
-      if (error || !data) {
+      if (profileResult.error || !profileResult.data) {
         setMessage("Membrul nu a fost găsit.")
         setLoading(false)
         return
       }
 
-      setMember(data as MemberRow)
+      if (rolesResult.error) {
+        setMessage(rolesResult.error.message)
+        setLoading(false)
+        return
+      }
+
+      if (merchantResult.error) {
+        setMessage(merchantResult.error.message)
+        setLoading(false)
+        return
+      }
+
+      setMember(profileResult.data as MemberRow)
+      setMemberRoles((rolesResult.data ?? []) as MemberRoleRow[])
+      setMerchantProfile((merchantResult.data as MerchantProfileRow | null) ?? null)
       setLoading(false)
     }
 
@@ -63,6 +127,14 @@ export default function MemberPage() {
       loadMember()
     }
   }, [memberId, router])
+
+  const activeRoleLabels = useMemo(() => {
+    if (memberRoles.length) {
+      return memberRoles.map((item) => roleLabel(item.role))
+    }
+
+    return [member?.role?.trim() || "Membru"]
+  }, [member, memberRoles])
 
   if (loading) {
     return (
@@ -110,6 +182,8 @@ export default function MemberPage() {
   const skillsList = member.skills
     ? member.skills.split(",").map((s: string) => s.trim()).filter((s: string) => s.length > 0)
     : []
+
+  const merchantName = merchantProfile?.display_name?.trim() || merchantProfile?.business_name?.trim() || null
 
   return (
     <main
@@ -164,6 +238,17 @@ export default function MemberPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
+                <p className="mb-2 text-sm font-medium">Roluri active</p>
+                <div className="flex flex-wrap gap-2">
+                  {activeRoleLabels.map((item) => (
+                    <Badge key={item} variant="outline" className="rounded-xl">
+                      {item}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div>
                 <p className="mb-2 text-sm font-medium">Competențe</p>
                 <div className="flex flex-wrap gap-2">
                   {(skillsList.length ? skillsList : ["fără competențe completate"]).map((skill, idx) => (
@@ -173,6 +258,41 @@ export default function MemberPage() {
                   ))}
                 </div>
               </div>
+
+              {merchantProfile ? (
+                <div>
+                  <p className="mb-2 text-sm font-medium">Profil comerciant</p>
+                  <div className="space-y-3 rounded-2xl border bg-white p-4 text-sm text-slate-700">
+                    <p>
+                      Nume comercial: <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span>
+                    </p>
+                    <p>
+                      Categorie: <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category)}</span>
+                    </p>
+                    <p>
+                      Descriere: <span className="font-medium text-slate-900">{merchantProfile.description?.trim() || "Necompletat"}</span>
+                    </p>
+                    <p>
+                      Zonă pickup: <span className="font-medium text-slate-900">{merchantProfile.pickup_area?.trim() || "Necompletat"}</span>
+                    </p>
+                    <p>
+                      Program: <span className="font-medium text-slate-900">{merchantProfile.opening_hours?.trim() || "Necompletat"}</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {merchantProfile.delivery_available ? (
+                        <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+                          Livrare disponibilă
+                        </Badge>
+                      ) : null}
+                      {merchantProfile.pickup_available ? (
+                        <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">
+                          Ridicare disponibilă
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               <div>
                 <p className="mb-2 text-sm font-medium">Ce oferă</p>
@@ -196,7 +316,7 @@ export default function MemberPage() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-slate-600">
               <div className="rounded-2xl border p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Rol</p>
+                <p className="text-xs uppercase tracking-wide text-slate-500">Rol principal</p>
                 <p className="mt-1 font-medium text-slate-900">{member.role || "member"}</p>
               </div>
 

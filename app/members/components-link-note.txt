@@ -1,0 +1,1 @@
+Members registry is now available at /members and ready to be linked from the home Members tab in a later patch.

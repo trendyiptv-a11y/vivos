@@ -131,6 +131,23 @@ function ratingLabel(rating: number) {
   return "★".repeat(rating) + "☆".repeat(5 - rating)
 }
 
+function successMessageForAction(name: string) {
+  switch (name) {
+    case "accept_delivery_request":
+      return "Livrarea a fost acceptată."
+    case "mark_delivery_picked_up":
+      return "Livrarea a fost marcată ca ridicată."
+    case "mark_delivery_delivered":
+      return "Livrarea a fost marcată ca predată."
+    case "complete_delivery_request":
+      return "Livrarea a fost confirmată ca finalizată."
+    case "cancel_delivery_request":
+      return "Cererea de livrare a fost anulată."
+    default:
+      return "Acțiunea a fost realizată cu succes."
+  }
+}
+
 export default function DeliveryDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -153,7 +170,6 @@ export default function DeliveryDetailPage() {
     async function loadData() {
       if (!requestId) return
       setLoading(true)
-      setMessage("")
 
       const {
         data: { session },
@@ -313,6 +329,8 @@ export default function DeliveryDetailPage() {
       return
     }
 
+    setMessage(successMessageForAction(name))
+
     if (name === "accept_delivery_request") {
       await sendNotification(
         request?.created_by || null,
@@ -323,7 +341,10 @@ export default function DeliveryDetailPage() {
 
       if (request?.created_by && currentUserId) {
         const opened = await openDirectConversation(request.created_by)
-        if (opened) return
+        if (opened) {
+          setBusy(false)
+          return
+        }
       }
     }
 
@@ -377,7 +398,10 @@ export default function DeliveryDetailPage() {
       console.error("Delivery start chat error:", error)
       setMessage("Nu am putut porni conversația.")
       setChatBusy(false)
+      return
     }
+
+    setChatBusy(false)
   }
 
   async function handleSubmitReview() {
@@ -407,6 +431,7 @@ export default function DeliveryDetailPage() {
       `A fost adăugată o evaluare pentru livrarea: ${request?.title || "Livrare"}`
     )
 
+    setMessage("Evaluarea a fost trimisă cu succes.")
     setReviewComment("")
     setReviewRating(5)
     setReviewBusy(false)
@@ -428,7 +453,7 @@ export default function DeliveryDetailPage() {
         ) : request ? (
           <>
             {message ? (
-              <Card className="rounded-3xl border-0 shadow-sm"><CardContent className="p-4 text-sm text-slate-600">{message}</CardContent></Card>
+              <Card className="rounded-3xl border-0 shadow-sm"><CardContent className="p-4 text-sm font-medium text-slate-700">{message}</CardContent></Card>
             ) : null}
 
             <Card className="rounded-3xl border-0 shadow-sm">

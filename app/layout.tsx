@@ -1,6 +1,6 @@
 import "./globals.css"
 import type { Metadata, Viewport } from "next"
-import { ReactNode } from "react"
+import { ReactNode, Suspense } from "react"
 import ServiceWorkerRegister from "./ServiceWorkerRegister"
 import MobileBottomNav from "@/components/mobile-bottom-nav"
 import NativePushSetup from "@/components/NativePushSetup"
@@ -49,7 +49,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <NativeRuntimeBridge />
         <NativePushSetup />
         <WebPushSetup />
-        <HomeMembersTabRedirect />
+        <Suspense fallback={null}>
+          <HomeMembersTabRedirect />
+        </Suspense>
         <NativeHapticsBridge />
         <InAppPushBanner />
         <DeliveryChatContextBanner />

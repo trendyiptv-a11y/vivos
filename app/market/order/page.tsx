@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,7 @@ function parseInitialPrice(value: string | null) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-export default function MarketOrderPage() {
+function MarketOrderPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -239,5 +239,13 @@ export default function MarketOrderPage() {
         </Card>
       </div>
     </main>
+  )
+}
+
+export default function MarketOrderPage() {
+  return (
+    <Suspense fallback={null}>
+      <MarketOrderPageInner />
+    </Suspense>
   )
 }

@@ -19,6 +19,13 @@ type NotificationRow = {
   is_read: boolean
 }
 
+type WebPushStatus = {
+  supported: boolean
+  permission: string
+  subscribed: boolean
+  error?: string
+}
+
 function eventBadge(eventType: string) {
   if (eventType === "user_registered") return "Membru nou"
   if (eventType === "market_post_created") return "Piață"
@@ -58,12 +65,22 @@ function getStaticNotificationHref(item: NotificationRow) {
   return null
 }
 
+function webPushLabel(status: WebPushStatus | null) {
+  if (!status) return "Se verifică..."
+  if (!status.supported) return "Browserul nu suportă web notifications"
+  if (status.permission === "denied") return "Permisiune blocată în browser"
+  if (status.subscribed) return "Notificări web active"
+  if (status.permission === "granted") return "Permisiune acordată, dar fără subscription activă"
+  return "Notificări web inactive"
+}
+
 export default function NotificationsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<NotificationRow[]>([])
   const [message, setMessage] = useState("")
   const [userId, setUserId] = useState<string | null>(null)
+  const [webPushStatus, setWebPushStatus] = useState<WebPushStatus | null>(null)
 
   useEffect(() => {
     async function loadNotifications() {
@@ -99,6 +116,11 @@ export default function NotificationsPage() {
       setLoading(false)
     }
 
+    function handleWebPushStatus(event: Event) {
+      const customEvent = event as CustomEvent<WebPushStatus>
+      setWebPushStatus(customEvent.detail)
+    }
+
     loadNotifications()
 
     const channel = supabase
@@ -123,8 +145,11 @@ export default function NotificationsPage() {
       )
       .subscribe()
 
+    window.addEventListener("vivos:web-push-status", handleWebPushStatus as EventListener)
+
     return () => {
       supabase.removeChannel(channel)
+      window.removeEventListener("vivos:web-push-status", handleWebPushStatus as EventListener)
     }
   }, [router])
 
@@ -148,6 +173,7 @@ export default function NotificationsPage() {
           allUnreadIds.includes(x.id) ? { ...x, is_read: true } : x
         )
       )
+      window.dispatchEvent(new CustomEvent("vivos:notifications-updated"))
     }
   }
 
@@ -187,10 +213,19 @@ export default function NotificationsPage() {
         setItems((prev) =>
           prev.map((x) => (x.id === item.id ? { ...x, is_read: true } : x))
         )
+        window.dispatchEvent(new CustomEvent("vivos:notifications-updated"))
       }
     }
 
     router.push(href)
+  }
+
+  function enableWebNotifications() {
+    window.dispatchEvent(new CustomEvent("vivos:web-push-subscribe-request"))
+  }
+
+  function disableWebNotifications() {
+    window.dispatchEvent(new CustomEvent("vivos:web-push-unsubscribe-request"))
   }
 
   return (
@@ -246,6 +281,26 @@ export default function NotificationsPage() {
       </header>
 
       <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
+        <Card className="mb-6 rounded-3xl border-0 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-xl">Notificări web</CardTitle>
+            <Badge variant="outline" className="rounded-xl">browser</Badge>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-2xl border p-4 text-sm text-slate-700">
+              {webPushLabel(webPushStatus)}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button className="rounded-2xl" onClick={enableWebNotifications}>
+                Activează notificările web
+              </Button>
+              <Button variant="outline" className="rounded-2xl" onClick={disableWebNotifications}>
+                Dezactivează
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="mb-24 rounded-3xl border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-2xl">Ultimele evenimente</CardTitle>

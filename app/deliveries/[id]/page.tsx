@@ -332,7 +332,7 @@ export default function DeliveryDetailPage() {
 
       if (!session?.access_token) return
 
-      await fetch("/api/notifications/send-delivery-push", {
+      await fetch("/api/notifications/send-web-push", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -348,7 +348,7 @@ export default function DeliveryDetailPage() {
         }),
       })
     } catch (pushError) {
-      console.error("Delivery push send error:", pushError)
+      console.error("Delivery web push send error:", pushError)
     }
   }
 

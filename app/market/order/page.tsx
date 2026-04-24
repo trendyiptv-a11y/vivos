@@ -79,29 +79,33 @@ function MarketOrderPageInner() {
 
       const buyerUserId = session.user.id
 
-      const { data: orderData, error: orderError } = await supabase
-        .from("merchant_orders")
-        .insert({
-          market_post_id: marketPostId,
-          merchant_user_id: merchantUserId,
-          buyer_user_id: buyerUserId,
+      const createOrderResponse = await fetch("/api/orders/create-with-hold", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          marketPostId,
+          merchantUserId,
           title: titleFromQuery,
           quantity,
-          unit_price_talanti: unitPrice,
-          total_talanti: total,
-          notes: notes.trim() || null,
-          delivery_needed: deliveryNeeded,
-          status: "new",
-          payment_status: "unpaid",
-        })
-        .select("id")
-        .single()
+          unitPriceTalanti: unitPrice,
+          totalTalanti: total,
+          notes,
+          deliveryNeeded,
+        }),
+      })
 
-      if (orderError || !orderData) {
-        setMessage(orderError?.message || "Comanda nu a putut fi creată.")
+      const createOrderResult = await createOrderResponse.json().catch(() => null)
+
+      if (!createOrderResponse.ok || !createOrderResult?.orderId) {
+        setMessage(createOrderResult?.error || "Comanda nu a putut fi creată.")
         setLoading(false)
         return
       }
+
+      const orderId = createOrderResult.orderId as string
 
       const { data: conversationId, error: conversationError } = await supabase.rpc("find_or_create_direct_conversation", {
         other_member_id: merchantUserId,
@@ -113,9 +117,10 @@ function MarketOrderPageInner() {
           `Cantitate: ${quantity}`,
           `Preț unitar: ${unitPrice} talanți`,
           `Total: ${total} talanți`,
+          `Plată rezervată: da`,
           `Livrare necesară: ${deliveryNeeded ? "da" : "nu"}`,
           notes.trim() ? `Detalii: ${notes.trim()}` : null,
-          `Order ID: ${orderData.id}`,
+          `Order ID: ${orderId}`,
         ].filter(Boolean)
 
         await supabase.from("messages").insert({
@@ -135,7 +140,7 @@ function MarketOrderPageInner() {
           event_type: "merchant_order_created",
           title: "Ai primit o comandă nouă",
           body: `${titleFromQuery} · ${quantity} buc. · ${total} talanți`,
-          ref_id: orderData.id,
+          ref_id: orderId,
           is_read: false,
         })
 
@@ -143,7 +148,7 @@ function MarketOrderPageInner() {
         return
       }
 
-      setMessage("Comanda a fost creată, dar conversația nu a putut fi pornită automat.")
+      setMessage("Comanda a fost creată cu hold, dar conversația nu a putut fi pornită automat.")
       setLoading(false)
     } catch (error: any) {
       console.error("Create merchant order error:", error)
@@ -222,6 +227,7 @@ function MarketOrderPageInner() {
               <div className="rounded-2xl border bg-slate-50 p-4">
                 <p className="text-sm text-slate-500">Total estimat</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-900">{total.toFixed(2)} talanți</p>
+                <p className="mt-2 text-sm text-slate-600">La creare se rezervă suma în wallet sub formă de hold.</p>
               </div>
 
               {message ? <div className="rounded-2xl border p-3 text-sm text-slate-600">{message}</div> : null}

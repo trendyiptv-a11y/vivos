@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { supabase } from "@/lib/supabase/client"
 
 const STATUS_EVENT = "vivos:web-push-status"
 const SUBSCRIBE_REQUEST_EVENT = "vivos:web-push-subscribe-request"
@@ -21,6 +22,21 @@ function urlBase64ToUint8Array(base64String: string) {
 
 function emitStatus(detail: Record<string, unknown>) {
   window.dispatchEvent(new CustomEvent(STATUS_EVENT, { detail }))
+}
+
+async function getAuthHeaders() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session?.access_token) {
+    return null
+  }
+
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session.access_token}`,
+  }
 }
 
 export default function WebPushSetup() {
@@ -50,9 +66,12 @@ export default function WebPushSetup() {
       if (!subscription || Notification.permission !== "granted") return
 
       try {
+        const headers = await getAuthHeaders()
+        if (!headers) return
+
         const response = await fetch("/api/notifications/register-web-push-subscription", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ subscription: subscription.toJSON() }),
         })
 
@@ -94,9 +113,15 @@ export default function WebPushSetup() {
             applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
           }))
 
+        const headers = await getAuthHeaders()
+        if (!headers) {
+          emitStatus({ supported: true, permission, subscribed: true, error: "missing_session" })
+          return
+        }
+
         const response = await fetch("/api/notifications/register-web-push-subscription", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ subscription: subscription.toJSON() }),
         })
 
@@ -125,11 +150,14 @@ export default function WebPushSetup() {
         const subscription = await registration.pushManager.getSubscription()
 
         if (subscription) {
-          await fetch("/api/notifications/unregister-web-push-subscription", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ endpoint: subscription.endpoint }),
-          })
+          const headers = await getAuthHeaders()
+          if (headers) {
+            await fetch("/api/notifications/unregister-web-push-subscription", {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ endpoint: subscription.endpoint }),
+            })
+          }
           await subscription.unsubscribe()
         }
 

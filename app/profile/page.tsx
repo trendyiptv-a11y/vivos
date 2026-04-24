@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
 
@@ -17,6 +18,28 @@ type ProfileRow = {
   skills: string | null
   offers_summary: string | null
   needs_summary: string | null
+}
+
+type MemberRoleRow = {
+  role: "member" | "merchant" | "courier"
+  is_active: boolean
+}
+
+type MerchantProfileRow = {
+  id: string
+  user_id: string
+  display_name: string | null
+  business_name: string | null
+  merchant_category: "local_shop" | "artisan" | "food" | "auto_parts" | "services" | "other"
+  description: string | null
+  pickup_address: string | null
+  pickup_area: string | null
+  phone: string | null
+  email_public: string | null
+  opening_hours: string | null
+  delivery_available: boolean
+  pickup_available: boolean
+  is_active: boolean
 }
 
 export default function ProfilePage() {
@@ -33,6 +56,23 @@ export default function ProfilePage() {
   const [skills, setSkills] = useState("")
   const [offersSummary, setOffersSummary] = useState("")
   const [needsSummary, setNeedsSummary] = useState("")
+
+  const [memberRoles, setMemberRoles] = useState<string[]>(["member"])
+  const [merchantEnabled, setMerchantEnabled] = useState(false)
+  const [courierEnabled, setCourierEnabled] = useState(false)
+
+  const [merchantDisplayName, setMerchantDisplayName] = useState("")
+  const [merchantBusinessName, setMerchantBusinessName] = useState("")
+  const [merchantCategory, setMerchantCategory] = useState<MerchantProfileRow["merchant_category"]>("other")
+  const [merchantDescription, setMerchantDescription] = useState("")
+  const [merchantPickupAddress, setMerchantPickupAddress] = useState("")
+  const [merchantPickupArea, setMerchantPickupArea] = useState("")
+  const [merchantPhone, setMerchantPhone] = useState("")
+  const [merchantEmailPublic, setMerchantEmailPublic] = useState("")
+  const [merchantOpeningHours, setMerchantOpeningHours] = useState("")
+  const [merchantDeliveryAvailable, setMerchantDeliveryAvailable] = useState(false)
+  const [merchantPickupAvailable, setMerchantPickupAvailable] = useState(true)
+  const [merchantActive, setMerchantActive] = useState(true)
 
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -59,19 +99,44 @@ export default function ProfilePage() {
       setUserId(session.user.id)
       setEmail(session.user.email ?? "")
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, email, name, alias, role, skills, offers_summary, needs_summary")
-        .eq("id", session.user.id)
-        .maybeSingle()
+      const [profileResult, rolesResult, merchantResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, email, name, alias, role, skills, offers_summary, needs_summary")
+          .eq("id", session.user.id)
+          .maybeSingle(),
+        supabase
+          .from("member_roles")
+          .select("role, is_active")
+          .eq("user_id", session.user.id),
+        supabase
+          .from("merchant_profiles")
+          .select("id, user_id, display_name, business_name, merchant_category, description, pickup_address, pickup_area, phone, email_public, opening_hours, delivery_available, pickup_available, is_active")
+          .eq("user_id", session.user.id)
+          .maybeSingle(),
+      ])
 
-      if (error) {
-        setMessage(error.message)
+      if (profileResult.error) {
+        setMessage(profileResult.error.message)
         setLoading(false)
         return
       }
 
-      const profile = data as ProfileRow | null
+      if (rolesResult.error) {
+        setMessage(rolesResult.error.message)
+        setLoading(false)
+        return
+      }
+
+      if (merchantResult.error) {
+        setMessage(merchantResult.error.message)
+        setLoading(false)
+        return
+      }
+
+      const profile = profileResult.data as ProfileRow | null
+      const roles = (rolesResult.data ?? []) as MemberRoleRow[]
+      const merchantProfile = merchantResult.data as MerchantProfileRow | null
 
       if (profile) {
         setName(profile.name ?? "")
@@ -80,6 +145,26 @@ export default function ProfilePage() {
         setSkills(profile.skills ?? "")
         setOffersSummary(profile.offers_summary ?? "")
         setNeedsSummary(profile.needs_summary ?? "")
+      }
+
+      const activeRoles = roles.filter((item) => item.is_active).map((item) => item.role)
+      setMemberRoles(activeRoles.length ? activeRoles : ["member"])
+      setMerchantEnabled(activeRoles.includes("merchant"))
+      setCourierEnabled(activeRoles.includes("courier"))
+
+      if (merchantProfile) {
+        setMerchantDisplayName(merchantProfile.display_name ?? "")
+        setMerchantBusinessName(merchantProfile.business_name ?? "")
+        setMerchantCategory(merchantProfile.merchant_category ?? "other")
+        setMerchantDescription(merchantProfile.description ?? "")
+        setMerchantPickupAddress(merchantProfile.pickup_address ?? "")
+        setMerchantPickupArea(merchantProfile.pickup_area ?? "")
+        setMerchantPhone(merchantProfile.phone ?? "")
+        setMerchantEmailPublic(merchantProfile.email_public ?? "")
+        setMerchantOpeningHours(merchantProfile.opening_hours ?? "")
+        setMerchantDeliveryAvailable(merchantProfile.delivery_available ?? false)
+        setMerchantPickupAvailable(merchantProfile.pickup_available ?? true)
+        setMerchantActive(merchantProfile.is_active ?? true)
       }
 
       setLoading(false)
@@ -96,7 +181,7 @@ export default function ProfilePage() {
     setSaving(true)
     setMessage("")
 
-    const { error } = await supabase.from("profiles").upsert({
+    const { error: profileError } = await supabase.from("profiles").upsert({
       id: userId,
       email,
       name,
@@ -107,13 +192,63 @@ export default function ProfilePage() {
       needs_summary: needsSummary,
     })
 
-    if (error) {
-      setMessage(error.message)
+    if (profileError) {
+      setMessage(profileError.message)
       setSaving(false)
       return
     }
 
-    setMessage("Profil salvat.")
+    const roleUpserts = [
+      { user_id: userId, role: "member", is_active: true },
+      { user_id: userId, role: "merchant", is_active: merchantEnabled },
+      { user_id: userId, role: "courier", is_active: courierEnabled },
+    ]
+
+    const { error: rolesError } = await supabase.from("member_roles").upsert(roleUpserts, {
+      onConflict: "user_id,role",
+    })
+
+    if (rolesError) {
+      setMessage(rolesError.message)
+      setSaving(false)
+      return
+    }
+
+    if (merchantEnabled) {
+      const { error: merchantError } = await supabase.from("merchant_profiles").upsert(
+        {
+          user_id: userId,
+          display_name: merchantDisplayName || null,
+          business_name: merchantBusinessName || null,
+          merchant_category: merchantCategory,
+          description: merchantDescription || null,
+          pickup_address: merchantPickupAddress || null,
+          pickup_area: merchantPickupArea || null,
+          phone: merchantPhone || null,
+          email_public: merchantEmailPublic || null,
+          opening_hours: merchantOpeningHours || null,
+          delivery_available: merchantDeliveryAvailable,
+          pickup_available: merchantPickupAvailable,
+          is_active: merchantActive,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      )
+
+      if (merchantError) {
+        setMessage(merchantError.message)
+        setSaving(false)
+        return
+      }
+    }
+
+    const refreshedRoles = [
+      "member",
+      ...(merchantEnabled ? ["merchant"] : []),
+      ...(courierEnabled ? ["courier"] : []),
+    ]
+    setMemberRoles(refreshedRoles)
+    setMessage("Profilul și rolurile au fost salvate.")
     setSaving(false)
   }
 
@@ -263,7 +398,15 @@ export default function ProfilePage() {
             <CardTitle className="text-2xl">Actualizează profilul</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-6">
+              <div className="flex flex-wrap gap-2">
+                {memberRoles.map((item) => (
+                  <Badge key={item} variant="outline" className="rounded-xl">
+                    {item === "member" ? "Membru" : item === "merchant" ? "Comerciant" : "Curier"}
+                  </Badge>
+                ))}
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Email</label>
@@ -271,7 +414,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Rol</label>
+                  <label className="text-sm font-medium">Rol principal</label>
                   <Input
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
@@ -332,6 +475,125 @@ export default function ProfilePage() {
                   placeholder="Sprijin, colaborări, resurse, nevoi curente"
                 />
               </div>
+
+              <div className="rounded-2xl border p-4">
+                <p className="text-base font-semibold text-slate-900">Roluri comunitare</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Activează capabilitățile suplimentare pe același cont VIVOS.
+                </p>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <label className="flex items-start gap-3 rounded-2xl border p-4">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4"
+                      checked={merchantEnabled}
+                      onChange={(e) => setMerchantEnabled(e.target.checked)}
+                    />
+                    <div>
+                      <p className="font-medium text-slate-900">Comerciant</p>
+                      <p className="text-sm text-slate-600">Poți avea profil comercial, prezență în Market și comenzi cu livrare.</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 rounded-2xl border p-4">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4"
+                      checked={courierEnabled}
+                      onChange={(e) => setCourierEnabled(e.target.checked)}
+                    />
+                    <div>
+                      <p className="font-medium text-slate-900">Curier</p>
+                      <p className="text-sm text-slate-600">Poți accepta livrări și apărea ca membru disponibil pentru transport local.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {merchantEnabled ? (
+                <div className="rounded-2xl border p-4">
+                  <div className="mb-4">
+                    <p className="text-base font-semibold text-slate-900">Profil comerciant</p>
+                    <p className="mt-1 text-sm text-slate-600">Aceste date vor fi baza pentru profilul tău Merchant în comunitate.</p>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Nume afișat</label>
+                      <Input value={merchantDisplayName} onChange={(e) => setMerchantDisplayName(e.target.value)} className="rounded-2xl" placeholder="ex: AutoRapid Aarhus" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Nume comercial</label>
+                      <Input value={merchantBusinessName} onChange={(e) => setMerchantBusinessName(e.target.value)} className="rounded-2xl" placeholder="Numele firmei sau atelierului" />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Categorie</label>
+                      <select className="h-10 w-full rounded-2xl border border-slate-200 px-3 text-sm" value={merchantCategory} onChange={(e) => setMerchantCategory(e.target.value as MerchantProfileRow["merchant_category"])}>
+                        <option value="local_shop">Magazin local</option>
+                        <option value="artisan">Artizan</option>
+                        <option value="food">Food</option>
+                        <option value="auto_parts">Piese auto</option>
+                        <option value="services">Servicii</option>
+                        <option value="other">Altceva</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Zonă de pickup</label>
+                      <Input value={merchantPickupArea} onChange={(e) => setMerchantPickupArea(e.target.value)} className="rounded-2xl" placeholder="ex: Aarhus C" />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    <label className="text-sm font-medium">Descriere</label>
+                    <textarea
+                      value={merchantDescription}
+                      onChange={(e) => setMerchantDescription(e.target.value)}
+                      className="min-h-24 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                      placeholder="Ce vinzi sau ce tip de activitate ai"
+                    />
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    <label className="text-sm font-medium">Adresă pickup</label>
+                    <Input value={merchantPickupAddress} onChange={(e) => setMerchantPickupAddress(e.target.value)} className="rounded-2xl" placeholder="Adresă completă sau punct de ridicare" />
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Telefon</label>
+                      <Input value={merchantPhone} onChange={(e) => setMerchantPhone(e.target.value)} className="rounded-2xl" placeholder="Telefon contact" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Email public</label>
+                      <Input value={merchantEmailPublic} onChange={(e) => setMerchantEmailPublic(e.target.value)} className="rounded-2xl" placeholder="Email vizibil public" />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    <label className="text-sm font-medium">Program</label>
+                    <Input value={merchantOpeningHours} onChange={(e) => setMerchantOpeningHours(e.target.value)} className="rounded-2xl" placeholder="ex: L-V 09:00-17:00" />
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <label className="flex items-center gap-3 rounded-2xl border p-3">
+                      <input type="checkbox" checked={merchantDeliveryAvailable} onChange={(e) => setMerchantDeliveryAvailable(e.target.checked)} />
+                      <span className="text-sm text-slate-700">Livrare disponibilă</span>
+                    </label>
+                    <label className="flex items-center gap-3 rounded-2xl border p-3">
+                      <input type="checkbox" checked={merchantPickupAvailable} onChange={(e) => setMerchantPickupAvailable(e.target.checked)} />
+                      <span className="text-sm text-slate-700">Ridicare disponibilă</span>
+                    </label>
+                    <label className="flex items-center gap-3 rounded-2xl border p-3">
+                      <input type="checkbox" checked={merchantActive} onChange={(e) => setMerchantActive(e.target.checked)} />
+                      <span className="text-sm text-slate-700">Profil activ</span>
+                    </label>
+                  </div>
+                </div>
+              ) : null}
 
               {message && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">

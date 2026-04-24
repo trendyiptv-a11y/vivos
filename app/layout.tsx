@@ -10,6 +10,7 @@ import NativeRuntimeBridge from "@/components/NativeRuntimeBridge"
 import NativeHapticsBridge from "@/components/NativeHapticsBridge"
 import GlobalPresence from "@/components/GlobalPresence"
 import DeliveryChatContextBanner from "@/components/DeliveryChatContextBanner"
+import HomeMembersTabRedirect from "@/components/HomeMembersTabRedirect"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 export const metadata: Metadata = {
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <NativeRuntimeBridge />
         <NativePushSetup />
         <WebPushSetup />
+        <HomeMembersTabRedirect />
         <NativeHapticsBridge />
         <InAppPushBanner />
         <DeliveryChatContextBanner />

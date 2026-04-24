@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,16 @@ type MarketPost = {
   created_at: string
 }
 
+type MerchantProfile = {
+  user_id: string
+  display_name: string | null
+  business_name: string | null
+  merchant_category: "local_shop" | "artisan" | "food" | "auto_parts" | "services" | "other"
+  delivery_available: boolean
+  pickup_available: boolean
+  is_active: boolean
+}
+
 function statusLabel(status: MarketPost["status"]) {
   if (status === "in_progress") return "În lucru"
   if (status === "closed") return "Închis"
@@ -31,6 +41,15 @@ function statusLabel(status: MarketPost["status"]) {
 
 function typeLabel(type: MarketPost["post_type"]) {
   return type === "offer" ? "Ofertă" : "Cerere"
+}
+
+function merchantCategoryLabel(category: MerchantProfile["merchant_category"]) {
+  if (category === "local_shop") return "Magazin local"
+  if (category === "artisan") return "Artizan"
+  if (category === "food") return "Food"
+  if (category === "auto_parts") return "Piese auto"
+  if (category === "services") return "Servicii"
+  return "Altceva"
 }
 
 export default function MarketPage() {
@@ -43,6 +62,7 @@ export default function MarketPage() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const [merchantProfiles, setMerchantProfiles] = useState<Record<string, MerchantProfile>>({})
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -193,7 +213,35 @@ export default function MarketPage() {
         return
       }
 
-      setPosts((data ?? []) as MarketPost[])
+      const loadedPosts = (data ?? []) as MarketPost[]
+      setPosts(loadedPosts)
+
+      const authorIds = Array.from(new Set(loadedPosts.map((post) => post.author_id).filter(Boolean)))
+      if (!authorIds.length) {
+        setMerchantProfiles({})
+        setLoading(false)
+        return
+      }
+
+      const { data: merchantData, error: merchantError } = await supabase
+        .from("merchant_profiles")
+        .select("user_id, display_name, business_name, merchant_category, delivery_available, pickup_available, is_active")
+        .in("user_id", authorIds)
+        .eq("is_active", true)
+
+      if (merchantError) {
+        setMessage((prev) => prev || merchantError.message)
+        setMerchantProfiles({})
+        setLoading(false)
+        return
+      }
+
+      const merchantMap = ((merchantData ?? []) as MerchantProfile[]).reduce<Record<string, MerchantProfile>>((acc, item) => {
+        acc[item.user_id] = item
+        return acc
+      }, {})
+
+      setMerchantProfiles(merchantMap)
       setLoading(false)
     }
 
@@ -444,61 +492,89 @@ export default function MarketPage() {
                 </div>
               </div>
             ) : (
-              posts.map((post) => (
-                <div key={post.id} className="rounded-2xl border p-4">
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="rounded-xl">
-                      {typeLabel(post.post_type)}
-                    </Badge>
-                    <Badge variant="outline" className="rounded-xl">
-                      {post.category || "General"}
-                    </Badge>
-                    <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
-                      {statusLabel(post.status)}
-                    </Badge>
+              posts.map((post) => {
+                const merchantProfile = merchantProfiles[post.author_id] || null
+                const merchantName = merchantProfile?.display_name?.trim() || merchantProfile?.business_name?.trim() || null
+
+                return (
+                  <div key={post.id} className="rounded-2xl border p-4">
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary" className="rounded-xl">
+                        {typeLabel(post.post_type)}
+                      </Badge>
+                      <Badge variant="outline" className="rounded-xl">
+                        {post.category || "General"}
+                      </Badge>
+                      <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
+                        {statusLabel(post.status)}
+                      </Badge>
+                      {merchantProfile ? (
+                        <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">
+                          Comerciant
+                        </Badge>
+                      ) : null}
+                      {merchantProfile?.delivery_available ? (
+                        <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+                          Livrare disponibilă
+                        </Badge>
+                      ) : null}
+                    </div>
+
+                    <p className="text-lg font-semibold">{post.title}</p>
+
+                    <p className="mt-2 text-sm text-slate-600">
+                      {post.description?.trim() || "Fără descriere"}
+                    </p>
+
+                    {merchantProfile ? (
+                      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                        <p>
+                          Autor comercial:{" "}
+                          <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span>
+                        </p>
+                        <p className="mt-1">
+                          Categorie merchant:{" "}
+                          <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category)}</span>
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-3 grid gap-2 text-sm text-slate-500 sm:grid-cols-3">
+                      <p>Locație: {post.location?.trim() || "Necompletat"}</p>
+                      <p>Valoare: {post.value_text?.trim() || "Necompletat"}</p>
+                      <p>Creat la: {new Date(post.created_at).toLocaleString("ro-RO")}</p>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Button
+                        variant="outline"
+                        className="rounded-2xl"
+                        onClick={() => router.push(`/member/${post.author_id}`)}
+                      >
+                        Vezi profil
+                      </Button>
+
+                      <Button
+                        className="rounded-2xl"
+                        onClick={() => handleStartChat(post.author_id)}
+                        disabled={busyAuthorId === post.author_id}
+                      >
+                        {busyAuthorId === post.author_id ? "Se deschide..." : merchantProfile ? "Contactează comerciantul" : "Contactează autorul"}
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        className="rounded-2xl"
+                        onClick={() =>
+                          router.push(`/deliveries/create?market_post_id=${post.id}&title=${encodeURIComponent(post.title)}`)
+                        }
+                      >
+                        Solicită livrare
+                      </Button>
+                    </div>
                   </div>
-
-                  <p className="text-lg font-semibold">{post.title}</p>
-
-                  <p className="mt-2 text-sm text-slate-600">
-                    {post.description?.trim() || "Fără descriere"}
-                  </p>
-
-                  <div className="mt-3 grid gap-2 text-sm text-slate-500 sm:grid-cols-3">
-                    <p>Locație: {post.location?.trim() || "Necompletat"}</p>
-                    <p>Valoare: {post.value_text?.trim() || "Necompletat"}</p>
-                    <p>Creat la: {new Date(post.created_at).toLocaleString("ro-RO")}</p>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <Button
-                      variant="outline"
-                      className="rounded-2xl"
-                      onClick={() => router.push(`/member/${post.author_id}`)}
-                    >
-                      Vezi profil
-                    </Button>
-
-                    <Button
-                      className="rounded-2xl"
-                      onClick={() => handleStartChat(post.author_id)}
-                      disabled={busyAuthorId === post.author_id}
-                    >
-                      {busyAuthorId === post.author_id ? "Se deschide..." : "Contactează autorul"}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      className="rounded-2xl"
-                      onClick={() =>
-                        router.push(`/deliveries/create?market_post_id=${post.id}&title=${encodeURIComponent(post.title)}`)
-                      }
-                    >
-                      Solicită livrare
-                    </Button>
-                  </div>
-                </div>
-              ))
+                )
+              })
             )}
           </CardContent>
         </Card>

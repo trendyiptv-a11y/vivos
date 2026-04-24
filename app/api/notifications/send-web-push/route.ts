@@ -40,12 +40,12 @@ function getBearerToken(request: Request) {
 }
 
 function ensureWebPushConfig() {
-  const subject = process.env.WEB_PUSH_SUBJECT
+  const subject = process.env.WEB_PUSH_SUBJECT || process.env.VAPID_SUBJECT
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const privateKey = process.env.VAPID_PRIVATE_KEY
 
   if (!subject || !publicKey || !privateKey) {
-    throw new Error("Lipsesc WEB_PUSH_SUBJECT, NEXT_PUBLIC_VAPID_PUBLIC_KEY sau VAPID_PRIVATE_KEY.")
+    throw new Error("Lipsesc WEB_PUSH_SUBJECT/VAPID_SUBJECT, NEXT_PUBLIC_VAPID_PUBLIC_KEY sau VAPID_PRIVATE_KEY.")
   }
 
   webpush.setVapidDetails(subject, publicKey, privateKey)

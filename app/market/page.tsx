@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -495,6 +495,7 @@ export default function MarketPage() {
               posts.map((post) => {
                 const merchantProfile = merchantProfiles[post.author_id] || null
                 const merchantName = merchantProfile?.display_name?.trim() || merchantProfile?.business_name?.trim() || null
+                const canOrder = !!merchantProfile && post.post_type === "offer"
 
                 return (
                   <div key={post.id} className="rounded-2xl border p-4">
@@ -561,6 +562,19 @@ export default function MarketPage() {
                       >
                         {busyAuthorId === post.author_id ? "Se deschide..." : merchantProfile ? "Contactează comerciantul" : "Contactează autorul"}
                       </Button>
+
+                      {canOrder ? (
+                        <Button
+                          className="rounded-2xl"
+                          onClick={() =>
+                            router.push(
+                              `/market/order?market_post_id=${post.id}&merchant_user_id=${post.author_id}&title=${encodeURIComponent(post.title)}&value_text=${encodeURIComponent(post.value_text || "")}&delivery_available=${merchantProfile?.delivery_available ? "true" : "false"}`
+                            )
+                          }
+                        >
+                          Comandă
+                        </Button>
+                      ) : null}
 
                       <Button
                         variant="outline"

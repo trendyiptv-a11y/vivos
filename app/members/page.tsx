@@ -59,6 +59,15 @@ export default function MembersPage() {
   const [filter, setFilter] = useState<MemberFilter>("all")
 
   useEffect(() => {
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    const query = params.get("query")?.trim() || ""
+    if (query) {
+      setSearch(query)
+    }
+  }, [])
+
+  useEffect(() => {
     async function loadMembers() {
       setLoading(true)
       setMessage("")

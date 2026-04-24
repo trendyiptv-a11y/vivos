@@ -11,6 +11,7 @@ import NativeHapticsBridge from "@/components/NativeHapticsBridge"
 import GlobalPresence from "@/components/GlobalPresence"
 import DeliveryChatContextBanner from "@/components/DeliveryChatContextBanner"
 import HomeMembersTabRedirect from "@/components/HomeMembersTabRedirect"
+import MainPageSearchBridge from "@/components/MainPageSearchBridge"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 export const metadata: Metadata = {
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <WebPushSetup />
         <Suspense fallback={null}>
           <HomeMembersTabRedirect />
+          <MainPageSearchBridge />
         </Suspense>
         <NativeHapticsBridge />
         <InAppPushBanner />

@@ -248,7 +248,7 @@ export default function MarketPage() {
           delete next[post.id]
           return next
         })
-        setMessage("Postarea avea deja referințe active și a fost închisă în loc să fie ștearsă.")
+        setMessage("Postarea avea deja referințe active și a fost scoasă din lista publică prin închidere.")
         return
       }
 
@@ -279,7 +279,7 @@ export default function MarketPage() {
       }
 
       setPosts((prev) => prev.map((item) => (item.id === post.id ? { ...item, status: nextStatus } : item)))
-      setMessage(nextStatus === "closed" ? "Postarea a fost închisă." : "Postarea a fost reactivată.")
+      setMessage(nextStatus === "closed" ? "Postarea a fost închisă și scoasă din piață." : "Postarea a fost reactivată.")
     } catch (error: any) {
       console.error("Toggle market post status error:", error)
       setMessage(error?.message || "Statusul postării nu a putut fi schimbat.")
@@ -307,6 +307,7 @@ export default function MarketPage() {
       const { data, error } = await supabase
         .from("market_posts")
         .select("id, author_id, post_type, title, category, description, value_text, location, status, created_at")
+        .neq("status", "closed")
         .order("created_at", { ascending: false })
 
       if (error) {

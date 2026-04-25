@@ -25,6 +25,8 @@ type SelectedOrderItem = {
   quantity: number
 }
 
+type ProductListFilter = "all" | "in_stock"
+
 function parseInitialPrice(value: string | null) {
   if (!value) return 0
   const normalized = value.replace(/,/g, ".")
@@ -53,6 +55,8 @@ function MarketOrderPageInner() {
   const [linkedItems, setLinkedItems] = useState<LinkedCatalogItem[]>([])
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({})
   const [linkedItemsLoading, setLinkedItemsLoading] = useState(true)
+  const [productSearchTerm, setProductSearchTerm] = useState("")
+  const [productListFilter, setProductListFilter] = useState<ProductListFilter>("all")
 
   const hasLinkedItems = linkedItems.length > 0
 
@@ -61,6 +65,18 @@ function MarketOrderPageInner() {
       .filter(([, selectedQuantity]) => Number(selectedQuantity) > 0)
       .map(([catalogItemId, selectedQuantity]) => ({ catalogItemId, quantity: Number(selectedQuantity) }))
   }, [selectedQuantities])
+
+  const filteredLinkedItems = useMemo(() => {
+    const query = productSearchTerm.trim().toLowerCase()
+    return linkedItems.filter((item) => {
+      if (productListFilter === "in_stock" && item.stock_quantity !== null && item.stock_quantity <= 0) return false
+      if (!query) return true
+      return [item.title, item.description || "", item.category || "", item.unit_label || ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    })
+  }, [linkedItems, productListFilter, productSearchTerm])
 
   const total = useMemo(() => {
     if (hasLinkedItems) {
@@ -222,11 +238,7 @@ function MarketOrderPageInner() {
           body: summaryLines.join("\n"),
         })
 
-        await supabase
-          .from("conversation_hidden_for_users")
-          .delete()
-          .eq("conversation_id", conversationId)
-          .eq("user_id", buyerUserId)
+        await supabase.from("conversation_hidden_for_users").delete().eq("conversation_id", conversationId).eq("user_id", buyerUserId)
 
         await supabase.from("notifications").insert({
           user_id: merchantUserId,
@@ -295,34 +307,41 @@ function MarketOrderPageInner() {
                 <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă produsele din anunț...</div>
               ) : hasLinkedItems ? (
                 <div className="rounded-2xl border p-4">
-                  <p className="text-sm font-medium text-slate-900">Selectează produsele dorite</p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm font-medium text-slate-900">Selectează produsele dorite</p>
+                    <div className="text-sm text-slate-500">{filteredLinkedItems.length} / {linkedItems.length} produse afișate</div>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <Input value={productSearchTerm} onChange={(e) => setProductSearchTerm(e.target.value)} className="rounded-2xl" placeholder="Caută produs în acest anunț" />
+                    <div className="flex gap-2">
+                      <Button type="button" variant={productListFilter === "all" ? "default" : "outline"} className="rounded-2xl" onClick={() => setProductListFilter("all")}>Toate</Button>
+                      <Button type="button" variant={productListFilter === "in_stock" ? "default" : "outline"} className="rounded-2xl" onClick={() => setProductListFilter("in_stock")}>În stoc</Button>
+                    </div>
+                  </div>
                   <div className="mt-4 space-y-3">
-                    {linkedItems.map((item) => (
-                      <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-2 flex flex-wrap gap-2">
-                              <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
-                              <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
+                    {filteredLinkedItems.length === 0 ? (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Nu există produse pentru căutarea sau filtrul curent.</div>
+                    ) : (
+                      filteredLinkedItems.map((item) => (
+                        <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="mb-2 flex flex-wrap gap-2">
+                                <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
+                                <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
+                              </div>
+                              <p className="font-semibold text-slate-900">{item.title}</p>
+                              <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
+                              <p className="mt-2 text-xs text-slate-500">Stoc: {item.stock_quantity ?? "nelimitat"}</p>
                             </div>
-                            <p className="font-semibold text-slate-900">{item.title}</p>
-                            <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
-                            <p className="mt-2 text-xs text-slate-500">Stoc: {item.stock_quantity ?? "nelimitat"}</p>
-                          </div>
-                          <div className="w-28 space-y-2">
-                            <label className="text-sm font-medium">Cantitate</label>
-                            <Input
-                              type="number"
-                              min={0}
-                              step="1"
-                              value={selectedQuantities[item.id] ?? 0}
-                              onChange={(e) => handleItemQuantityChange(item.id, Number(e.target.value || 0))}
-                              className="rounded-2xl"
-                            />
+                            <div className="w-28 space-y-2">
+                              <label className="text-sm font-medium">Cantitate</label>
+                              <Input type="number" min={0} step="1" value={selectedQuantities[item.id] ?? 0} onChange={(e) => handleItemQuantityChange(item.id, Number(e.target.value || 0))} className="rounded-2xl" />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               ) : (
@@ -340,12 +359,7 @@ function MarketOrderPageInner() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Detalii comandă</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                  placeholder="Ex: culoare, variantă, preferințe, interval orar"
-                />
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300" placeholder="Ex: culoare, variantă, preferințe, interval orar" />
               </div>
 
               <label className="flex items-center gap-3 rounded-2xl border p-4">

@@ -340,10 +340,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main
-        className="flex min-h-screen items-center justify-center p-6"
-        style={{ background: vivosTheme.gradients.appBackground }}
-      >
+      <main className="flex min-h-screen items-center justify-center p-6" style={{ background: vivosTheme.gradients.appBackground }}>
         <Card className="w-full max-w-2xl rounded-3xl border-0 shadow-sm">
           <CardContent className="p-6">
             <p className="text-sm text-slate-600">Se încarcă profilul...</p>
@@ -354,41 +351,15 @@ export default function ProfilePage() {
   }
 
   return (
-    <main
-      className="min-h-screen"
-      style={{ background: vivosTheme.gradients.appBackground }}
-    >
-      <header
-        className="sticky top-0 z-10 border-b backdrop-blur-xl"
-        style={{
-          background: vivosTheme.styles.bottomNav.background,
-          borderColor: vivosTheme.styles.bottomNav.borderColor,
-          boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
-        }}
-      >
+    <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
+      <header className="sticky top-0 z-10 border-b backdrop-blur-xl" style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}>
         <div className="mx-auto flex min-h-[84px] max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p
-              className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
-              style={{ color: "rgba(255,255,255,0.68)" }}
-            >
-              Membru autentificat
-            </p>
-            <h1
-              className="truncate text-lg font-semibold sm:text-2xl"
-              style={{ color: vivosTheme.colors.white }}
-            >
-              Profil VIVOS
-            </h1>
+            <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>Membru autentificat</p>
+            <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>Profil VIVOS</h1>
           </div>
 
-          <Button
-            variant="outline"
-            className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15"
-            onClick={() => router.push("/")}
-          >
-            Înapoi
-          </Button>
+          <Button variant="outline" className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/")}>Înapoi</Button>
         </div>
       </header>
 
@@ -415,81 +386,44 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Rol principal</label>
-                  <Input
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="member"
-                  />
+                  <Input value={role} onChange={(e) => setRole(e.target.value)} className="rounded-2xl" placeholder="member" />
                 </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Nume</label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="Numele tău"
-                  />
+                  <Input value={name} onChange={(e) => setName(e.target.value)} className="rounded-2xl" placeholder="Numele tău" />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Alias</label>
-                  <Input
-                    value={alias}
-                    onChange={(e) => setAlias(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="Alias comunitar"
-                  />
+                  <Input value={alias} onChange={(e) => setAlias(e.target.value)} className="rounded-2xl" placeholder="Alias comunitar" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Competențe</label>
-                <textarea
-                  value={skills}
-                  onChange={(e) => setSkills(e.target.value)}
-                  className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                  placeholder="ex: electrician, logistică, design, traduceri"
-                />
+                <textarea value={skills} onChange={(e) => setSkills(e.target.value)} className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300" placeholder="ex: electrician, logistică, design, traduceri" />
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Ce oferi</label>
-                <textarea
-                  value={offersSummary}
-                  onChange={(e) => setOffersSummary(e.target.value)}
-                  className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                  placeholder="Servicii, bunuri, timp, ajutor pe care îl poți oferi"
-                />
+                <textarea value={offersSummary} onChange={(e) => setOffersSummary(e.target.value)} className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300" placeholder="Servicii, bunuri, timp, ajutor pe care îl poți oferi" />
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Ce cauți</label>
-                <textarea
-                  value={needsSummary}
-                  onChange={(e) => setNeedsSummary(e.target.value)}
-                  className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                  placeholder="Sprijin, colaborări, resurse, nevoi curente"
-                />
+                <textarea value={needsSummary} onChange={(e) => setNeedsSummary(e.target.value)} className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300" placeholder="Sprijin, colaborări, resurse, nevoi curente" />
               </div>
 
               <div className="rounded-2xl border p-4">
                 <p className="text-base font-semibold text-slate-900">Roluri comunitare</p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Activează capabilitățile suplimentare pe același cont VIVOS.
-                </p>
+                <p className="mt-1 text-sm text-slate-600">Activează capabilitățile suplimentare pe același cont VIVOS.</p>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <label className="flex items-start gap-3 rounded-2xl border p-4">
-                    <input
-                      type="checkbox"
-                      className="mt-1 h-4 w-4"
-                      checked={merchantEnabled}
-                      onChange={(e) => setMerchantEnabled(e.target.checked)}
-                    />
+                    <input type="checkbox" className="mt-1 h-4 w-4" checked={merchantEnabled} onChange={(e) => setMerchantEnabled(e.target.checked)} />
                     <div>
                       <p className="font-medium text-slate-900">Comerciant</p>
                       <p className="text-sm text-slate-600">Poți avea profil comercial, prezență în Market și comenzi cu livrare.</p>
@@ -497,12 +431,7 @@ export default function ProfilePage() {
                   </label>
 
                   <label className="flex items-start gap-3 rounded-2xl border p-4">
-                    <input
-                      type="checkbox"
-                      className="mt-1 h-4 w-4"
-                      checked={courierEnabled}
-                      onChange={(e) => setCourierEnabled(e.target.checked)}
-                    />
+                    <input type="checkbox" className="mt-1 h-4 w-4" checked={courierEnabled} onChange={(e) => setCourierEnabled(e.target.checked)} />
                     <div>
                       <p className="font-medium text-slate-900">Curier</p>
                       <p className="text-sm text-slate-600">Poți accepta livrări și apărea ca membru disponibil pentru transport local.</p>
@@ -513,9 +442,12 @@ export default function ProfilePage() {
 
               {merchantEnabled ? (
                 <div className="rounded-2xl border p-4">
-                  <div className="mb-4">
-                    <p className="text-base font-semibold text-slate-900">Profil comerciant</p>
-                    <p className="mt-1 text-sm text-slate-600">Aceste date vor fi baza pentru profilul tău Merchant în comunitate.</p>
+                  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">Profil comerciant</p>
+                      <p className="mt-1 text-sm text-slate-600">Aceste date vor fi baza pentru profilul tău Merchant în comunitate.</p>
+                    </div>
+                    <Button type="button" variant="outline" className="rounded-2xl" onClick={() => router.push("/merchant/catalog")}>Deschide catalogul</Button>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
@@ -549,12 +481,7 @@ export default function ProfilePage() {
 
                   <div className="mt-4 space-y-2">
                     <label className="text-sm font-medium">Descriere</label>
-                    <textarea
-                      value={merchantDescription}
-                      onChange={(e) => setMerchantDescription(e.target.value)}
-                      className="min-h-24 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                      placeholder="Ce vinzi sau ce tip de activitate ai"
-                    />
+                    <textarea value={merchantDescription} onChange={(e) => setMerchantDescription(e.target.value)} className="min-h-24 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300" placeholder="Ce vinzi sau ce tip de activitate ai" />
                   </div>
 
                   <div className="mt-4 space-y-2">
@@ -595,103 +522,50 @@ export default function ProfilePage() {
                 </div>
               ) : null}
 
-              {message && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-                  {message}
-                </div>
-              )}
+              {message && <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">{message}</div>}
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button type="submit" className="rounded-2xl" disabled={saving}>
-                  {saving ? "Se salvează..." : "Salvează profilul"}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-2xl"
-                  onClick={() => router.push("/")}
-                >
-                  Anulează
-                </Button>
+                <Button type="submit" className="rounded-2xl" disabled={saving}>{saving ? "Se salvează..." : "Salvează profilul"}</Button>
+                <Button type="button" variant="outline" className="rounded-2xl" onClick={() => router.push("/")}>Anulează</Button>
               </div>
             </form>
           </CardContent>
         </Card>
 
         <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl">Schimbă parola</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-2xl">Schimbă parola</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Parolă nouă</label>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="Introdu parola nouă"
-                    required
-                  />
+                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="rounded-2xl" placeholder="Introdu parola nouă" required />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Confirmă parola</label>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="Reintrodu parola"
-                    required
-                  />
+                  <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="rounded-2xl" placeholder="Reintrodu parola" required />
                 </div>
               </div>
 
-              {passwordMessage && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-                  {passwordMessage}
-                </div>
-              )}
+              {passwordMessage && <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">{passwordMessage}</div>}
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button type="submit" className="rounded-2xl" disabled={passwordSaving}>
-                  {passwordSaving ? "Se actualizează..." : "Actualizează parola"}
-                </Button>
+                <Button type="submit" className="rounded-2xl" disabled={passwordSaving}>{passwordSaving ? "Se actualizează..." : "Actualizează parola"}</Button>
               </div>
             </form>
           </CardContent>
         </Card>
 
         <Card className="rounded-3xl border border-red-200 bg-red-50 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl text-red-700">Ștergere cont</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-2xl text-red-700">Ștergere cont</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-red-700">
-              Această acțiune este permanentă. Contul tău, profilul și datele asociate vor fi
-              șterse definitiv din platformă.
-            </p>
+            <p className="text-sm text-red-700">Această acțiune este permanentă. Contul tău, profilul și datele asociate vor fi șterse definitiv din platformă.</p>
 
-            {deleteMessage && (
-              <div className="rounded-2xl border border-red-200 bg-white p-3 text-sm text-red-700">
-                {deleteMessage}
-              </div>
-            )}
+            {deleteMessage && <div className="rounded-2xl border border-red-200 bg-white p-3 text-sm text-red-700">{deleteMessage}</div>}
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-2xl border-red-300 text-red-700 hover:bg-red-100"
-                onClick={handleDeleteAccount}
-                disabled={deletingAccount}
-              >
-                {deletingAccount ? "Se șterge contul..." : "Șterge contul meu"}
-              </Button>
+              <Button type="button" variant="outline" className="rounded-2xl border-red-300 text-red-700 hover:bg-red-100" onClick={handleDeleteAccount} disabled={deletingAccount}>{deletingAccount ? "Se șterge contul..." : "Șterge contul meu"}</Button>
             </div>
           </CardContent>
         </Card>

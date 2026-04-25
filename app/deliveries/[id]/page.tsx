@@ -302,11 +302,7 @@ export default function DeliveryDetailPage() {
 
   const existingMyReview = useMemo(() => {
     if (!currentUserId || !reviewTargetUserId) return null
-    return (
-      reviews.find(
-        (item) => item.reviewer_id === currentUserId && item.reviewed_user_id === reviewTargetUserId
-      ) || null
-    )
+    return reviews.find((item) => item.reviewer_id === currentUserId && item.reviewed_user_id === reviewTargetUserId) || null
   }, [currentUserId, reviewTargetUserId, reviews])
 
   const canReview = !!reviewTargetUserId && !existingMyReview
@@ -364,11 +360,7 @@ export default function DeliveryDetailPage() {
       return false
     }
 
-    await supabase
-      .from("conversation_hidden_for_users")
-      .delete()
-      .eq("conversation_id", data)
-      .eq("user_id", currentUserId)
+    await supabase.from("conversation_hidden_for_users").delete().eq("conversation_id", data).eq("user_id", currentUserId)
 
     router.push(`/messages/${data}?delivery=${requestId || ""}`)
     return true
@@ -390,12 +382,7 @@ export default function DeliveryDetailPage() {
     setMessage(successMessageForAction(name))
 
     if (name === "accept_delivery_request") {
-      await sendNotification(
-        request?.created_by || null,
-        "delivery_request_accepted",
-        "Livrarea ta a fost acceptată",
-        `Un membru a acceptat cererea: ${request?.title || "Livrare"}`
-      )
+      await sendNotification(request?.created_by || null, "delivery_request_accepted", "Livrarea ta a fost acceptată", `Un membru a acceptat cererea: ${request?.title || "Livrare"}`)
 
       if (request?.created_by && currentUserId) {
         const opened = await openDirectConversation(request.created_by)
@@ -407,39 +394,19 @@ export default function DeliveryDetailPage() {
     }
 
     if (name === "mark_delivery_picked_up") {
-      await sendNotification(
-        request?.created_by || null,
-        "delivery_picked_up",
-        "Livrarea a fost ridicată",
-        `Curierul a ridicat cererea: ${request?.title || "Livrare"}`
-      )
+      await sendNotification(request?.created_by || null, "delivery_picked_up", "Livrarea a fost ridicată", `Curierul a ridicat cererea: ${request?.title || "Livrare"}`)
     }
 
     if (name === "mark_delivery_delivered") {
-      await sendNotification(
-        request?.created_by || null,
-        "delivery_delivered",
-        "Livrarea a fost predată",
-        `Curierul a marcat ca predată cererea: ${request?.title || "Livrare"}`
-      )
+      await sendNotification(request?.created_by || null, "delivery_delivered", "Livrarea a fost predată", `Curierul a marcat ca predată cererea: ${request?.title || "Livrare"}`)
     }
 
     if (name === "complete_delivery_request") {
-      await sendNotification(
-        request?.assigned_to || null,
-        "delivery_completed",
-        "Livrarea a fost confirmată",
-        `Creatorul a confirmat finalizarea pentru: ${request?.title || "Livrare"}`
-      )
+      await sendNotification(request?.assigned_to || null, "delivery_completed", "Livrarea a fost confirmată", `Creatorul a confirmat finalizarea pentru: ${request?.title || "Livrare"}`)
     }
 
     if (name === "cancel_delivery_request") {
-      await sendNotification(
-        request?.assigned_to || null,
-        "delivery_cancelled",
-        "Livrarea a fost anulată",
-        `Cererea a fost anulată: ${request?.title || "Livrare"}`
-      )
+      await sendNotification(request?.assigned_to || null, "delivery_cancelled", "Livrarea a fost anulată", `Cererea a fost anulată: ${request?.title || "Livrare"}`)
     }
 
     setBusy(false)
@@ -468,6 +435,26 @@ export default function DeliveryDetailPage() {
     setReviewBusy(true)
     setMessage("")
 
+    const { data: existingReview, error: existingReviewError } = await supabase
+      .from("delivery_reviews")
+      .select("id")
+      .eq("delivery_request_id", requestId)
+      .eq("reviewer_id", currentUserId)
+      .eq("reviewed_user_id", reviewTargetUserId)
+      .maybeSingle()
+
+    if (existingReviewError) {
+      setMessage(existingReviewError.message)
+      setReviewBusy(false)
+      return
+    }
+
+    if (existingReview) {
+      setMessage("Ai trimis deja evaluarea ta pentru această livrare.")
+      setReviewBusy(false)
+      return
+    }
+
     const { error } = await supabase.from("delivery_reviews").insert({
       delivery_request_id: requestId,
       reviewer_id: currentUserId,
@@ -477,17 +464,19 @@ export default function DeliveryDetailPage() {
     })
 
     if (error) {
+      const duplicateReview = error.message?.includes("uq_delivery_review_once") || error.message?.toLowerCase().includes("duplicate key value")
+      if (duplicateReview) {
+        setMessage("Evaluarea a fost deja trimisă pentru această livrare.")
+        setReviewBusy(false)
+        return
+      }
+
       setMessage(error.message)
       setReviewBusy(false)
       return
     }
 
-    await sendNotification(
-      reviewTargetUserId,
-      "delivery_review_received",
-      "Ai primit o evaluare",
-      `A fost adăugată o evaluare pentru livrarea: ${request?.title || "Livrare"}`
-    )
+    await sendNotification(reviewTargetUserId, "delivery_review_received", "Ai primit o evaluare", `A fost adăugată o evaluare pentru livrarea: ${request?.title || "Livrare"}`)
 
     setMessage("Evaluarea a fost trimisă cu succes.")
     setReviewComment("")
@@ -499,7 +488,7 @@ export default function DeliveryDetailPage() {
     <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
       <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6">
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/deliveries") }>
+          <Button variant="outline" className="rounded-2xl" onClick={() => router.push("/deliveries")}>
             Înapoi la livrări
           </Button>
         </div>
@@ -554,31 +543,31 @@ export default function DeliveryDetailPage() {
                 ) : null}
 
                 {canAccept ? (
-                  <Button className="rounded-2xl" disabled={busy} onClick={() => runRpc("accept_delivery_request") }>
+                  <Button className="rounded-2xl" disabled={busy} onClick={() => runRpc("accept_delivery_request")}>
                     {busy ? "Se procesează..." : "Accept livrarea"}
                   </Button>
                 ) : null}
 
                 {canPickUp ? (
-                  <Button className="rounded-2xl" disabled={busy} onClick={() => runRpc("mark_delivery_picked_up") }>
+                  <Button className="rounded-2xl" disabled={busy} onClick={() => runRpc("mark_delivery_picked_up")}>
                     {busy ? "Se procesează..." : "Marchează ridicată"}
                   </Button>
                 ) : null}
 
                 {canMarkDelivered ? (
-                  <Button className="rounded-2xl" disabled={busy} onClick={() => runRpc("mark_delivery_delivered") }>
+                  <Button className="rounded-2xl" disabled={busy} onClick={() => runRpc("mark_delivery_delivered")}>
                     {busy ? "Se procesează..." : "Marchează predată"}
                   </Button>
                 ) : null}
 
                 {canComplete ? (
-                  <Button className="rounded-2xl" disabled={busy} onClick={() => runRpc("complete_delivery_request") }>
+                  <Button className="rounded-2xl" disabled={busy} onClick={() => runRpc("complete_delivery_request")}>
                     {busy ? "Se procesează..." : "Confirmă finalizarea"}
                   </Button>
                 ) : null}
 
                 {canCancel ? (
-                  <Button variant="outline" className="rounded-2xl" disabled={busy} onClick={() => runRpc("cancel_delivery_request") }>
+                  <Button variant="outline" className="rounded-2xl" disabled={busy} onClick={() => runRpc("cancel_delivery_request")}>
                     {busy ? "Se procesează..." : "Anulează cererea"}
                   </Button>
                 ) : null}
@@ -596,11 +585,7 @@ export default function DeliveryDetailPage() {
                     <div className="mt-3 grid gap-4 sm:grid-cols-[140px_1fr]">
                       <div className="space-y-2">
                         <label className="text-sm text-slate-600">Rating</label>
-                        <select
-                          className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
-                          value={reviewRating}
-                          onChange={(e) => setReviewRating(Number(e.target.value))}
-                        >
+                        <select className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm" value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))}>
                           <option value={5}>5</option>
                           <option value={4}>4</option>
                           <option value={3}>3</option>
@@ -620,13 +605,9 @@ export default function DeliveryDetailPage() {
                     </div>
                   </div>
                 ) : existingMyReview ? (
-                  <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                    Ai trimis deja evaluarea ta pentru această livrare.
-                  </div>
+                  <div className="rounded-2xl border p-4 text-sm text-slate-600">Ai trimis deja evaluarea ta pentru această livrare.</div>
                 ) : (
-                  <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                    Evaluările devin disponibile după finalizarea livrării.
-                  </div>
+                  <div className="rounded-2xl border p-4 text-sm text-slate-600">Evaluările devin disponibile după finalizarea livrării.</div>
                 )}
 
                 {reviews.length === 0 ? (

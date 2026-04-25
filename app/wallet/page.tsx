@@ -34,6 +34,12 @@ type WalletTransaction = {
   created_at: string
 }
 
+type WalletOrderHold = {
+  id: string
+  amount_talanti: number
+  status: "active" | "released" | "captured" | "cancelled"
+}
+
 function formatTalents(value: number | string | null | undefined) {
   return Number(value || 0).toLocaleString("ro-RO", {
     minimumFractionDigits: 2,
@@ -66,6 +72,7 @@ export default function WalletPage() {
   const [account, setAccount] = useState<WalletAccount | null>(null)
   const [members, setMembers] = useState<ProfileOption[]>([])
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
+  const [activeHolds, setActiveHolds] = useState<WalletOrderHold[]>([])
 
   const [receiverId, setReceiverId] = useState("")
   const [amount, setAmount] = useState("")
@@ -161,7 +168,7 @@ export default function WalletPage() {
       setUserId(currentUserId)
       setUserEmail(session.user.email ?? null)
 
-      const [accountResult, membersResult, txResult] = await Promise.all([
+      const [accountResult, membersResult, txResult, holdsResult] = await Promise.all([
         supabase.from("wallet_accounts").select("user_id, balance_talanti").eq("user_id", currentUserId).maybeSingle(),
         supabase.from("profiles").select("id, email, name, alias").neq("id", currentUserId).order("created_at", { ascending: false }),
         supabase
@@ -170,6 +177,11 @@ export default function WalletPage() {
           .eq("user_id", currentUserId)
           .order("created_at", { ascending: false })
           .limit(30),
+        supabase
+          .from("wallet_order_holds")
+          .select("id, amount_talanti, status")
+          .eq("buyer_user_id", currentUserId)
+          .eq("status", "active"),
       ])
 
       if (accountResult.error) {
@@ -178,10 +190,14 @@ export default function WalletPage() {
       if (txResult.error && !accountResult.error) {
         setMessage(txResult.error.message)
       }
+      if (holdsResult.error && !accountResult.error && !txResult.error) {
+        setMessage(holdsResult.error.message)
+      }
 
       setAccount((accountResult.data as WalletAccount | null) ?? { user_id: currentUserId, balance_talanti: 0 })
       setMembers((membersResult.data as ProfileOption[]) ?? [])
       setTransactions((txResult.data as WalletTransaction[]) ?? [])
+      setActiveHolds((holdsResult.data as WalletOrderHold[]) ?? [])
       setLoading(false)
     }
 
@@ -210,18 +226,38 @@ export default function WalletPage() {
     }
   }, [])
 
+  const reservedTalanti = useMemo(
+    () => activeHolds.reduce((sum, hold) => sum + Number(hold.amount_talanti || 0), 0),
+    [activeHolds]
+  )
+
+  const availableBalance = useMemo(
+    () => Math.max(0, Number(account?.balance_talanti || 0) - reservedTalanti),
+    [account, reservedTalanti]
+  )
+
   const totalReceived = useMemo(
-    () => transactions.filter((tx) => tx.direction === "credit" && tx.status === "posted").reduce((sum, tx) => sum + Number(tx.amount_talanti), 0),
+    () =>
+      transactions
+        .filter((tx) => tx.status === "posted")
+        .filter((tx) => tx.direction === "credit")
+        .filter((tx) => ["topup", "payment", "refund", "adjustment"].includes(tx.transaction_type))
+        .reduce((sum, tx) => sum + Number(tx.amount_talanti), 0),
     [transactions]
   )
 
   const totalSent = useMemo(
-    () => transactions.filter((tx) => tx.direction === "debit" && tx.status === "posted").reduce((sum, tx) => sum + Number(tx.amount_talanti), 0),
+    () =>
+      transactions
+        .filter((tx) => tx.status === "posted")
+        .filter((tx) => tx.direction === "debit")
+        .filter((tx) => tx.transaction_type === "payment")
+        .reduce((sum, tx) => sum + Number(tx.amount_talanti), 0),
     [transactions]
   )
 
   async function reloadWalletSnapshot(currentUserId: string) {
-    const [accountResult, txResult] = await Promise.all([
+    const [accountResult, txResult, holdsResult] = await Promise.all([
       supabase.from("wallet_accounts").select("user_id, balance_talanti").eq("user_id", currentUserId).maybeSingle(),
       supabase
         .from("wallet_transactions")
@@ -229,10 +265,16 @@ export default function WalletPage() {
         .eq("user_id", currentUserId)
         .order("created_at", { ascending: false })
         .limit(30),
+      supabase
+        .from("wallet_order_holds")
+        .select("id, amount_talanti, status")
+        .eq("buyer_user_id", currentUserId)
+        .eq("status", "active"),
     ])
 
     setAccount((accountResult.data as WalletAccount | null) ?? { user_id: currentUserId, balance_talanti: 0 })
     setTransactions((txResult.data as WalletTransaction[]) ?? [])
+    setActiveHolds((holdsResult.data as WalletOrderHold[]) ?? [])
   }
 
   async function handleTransfer(e: React.FormEvent) {
@@ -352,11 +394,19 @@ export default function WalletPage() {
       </header>
 
       <div className="mx-auto max-w-5xl space-y-6 px-4 py-4 sm:px-6 sm:py-6">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Sold curent</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Sold disponibil</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-3xl font-semibold">{formatTalents(account?.balance_talanti)}</p>
+              <p className="text-3xl font-semibold">{formatTalents(availableBalance)}</p>
+              <p className="mt-2 text-sm text-slate-500">talanți</p>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader><CardTitle className="text-base">Rezervat</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-3xl font-semibold">{formatTalents(reservedTalanti)}</p>
               <p className="mt-2 text-sm text-slate-500">talanți</p>
             </CardContent>
           </Card>
@@ -370,7 +420,7 @@ export default function WalletPage() {
           </Card>
 
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Total trimis</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Total plătit</CardTitle></CardHeader>
             <CardContent>
               <p className="text-3xl font-semibold">{formatTalents(totalSent)}</p>
               <p className="mt-2 text-sm text-slate-500">talanți</p>

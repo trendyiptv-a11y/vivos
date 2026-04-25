@@ -64,6 +64,11 @@ function merchantCategoryLabel(category: MerchantProfile["merchant_category"]) {
   return "Altceva"
 }
 
+function isReferenceConstraintError(message: string | undefined) {
+  const text = (message || "").toLowerCase()
+  return text.includes("foreign key") || text.includes("violates foreign key") || text.includes("is still referenced") || text.includes("constraint")
+}
+
 export default function MarketPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -198,21 +203,56 @@ export default function MarketPage() {
       setBusyDeletePostId(post.id)
       setMessage("")
 
-      const { error } = await supabase.from("market_posts").delete().eq("id", post.id).eq("author_id", post.author_id)
+      const { error: linkDeleteError } = await supabase
+        .from("market_post_item_links")
+        .delete()
+        .eq("market_post_id", post.id)
 
-      if (error) {
-        setMessage(error.message)
-        setBusyDeletePostId(null)
+      if (linkDeleteError) {
+        setMessage(linkDeleteError.message)
         return
       }
 
-      setPosts((prev) => prev.filter((item) => item.id !== post.id))
-      setLinkedItemsByPost((prev) => {
-        const next = { ...prev }
-        delete next[post.id]
-        return next
-      })
-      setMessage("Postarea a fost scoasă din Piață.")
+      const { error: deleteError } = await supabase
+        .from("market_posts")
+        .delete()
+        .eq("id", post.id)
+        .eq("author_id", post.author_id)
+
+      if (!deleteError) {
+        setPosts((prev) => prev.filter((item) => item.id !== post.id))
+        setLinkedItemsByPost((prev) => {
+          const next = { ...prev }
+          delete next[post.id]
+          return next
+        })
+        setMessage("Postarea a fost scoasă din Piață.")
+        return
+      }
+
+      if (isReferenceConstraintError(deleteError.message)) {
+        const { error: closeError } = await supabase
+          .from("market_posts")
+          .update({ status: "closed" })
+          .eq("id", post.id)
+          .eq("author_id", post.author_id)
+
+        if (closeError) {
+          setMessage(closeError.message)
+          return
+        }
+
+        setPosts((prev) => prev.map((item) => (item.id === post.id ? { ...item, status: "closed" } : item)))
+        setLinkedItemsByPost((prev) => {
+          const next = { ...prev }
+          delete next[post.id]
+          return next
+        })
+        setMessage("Postarea avea deja referințe active și a fost închisă în loc să fie ștearsă.")
+        return
+      }
+
+      setMessage(deleteError.message)
     } catch (error: any) {
       console.error("Delete market post error:", error)
       setMessage(error?.message || "Postarea nu a putut fi ștearsă.")

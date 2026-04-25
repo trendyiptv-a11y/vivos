@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Bell } from "lucide-react"
+import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
 
@@ -78,6 +79,7 @@ export default function MarketPage() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [merchantProfiles, setMerchantProfiles] = useState<Record<string, MerchantProfile>>({})
   const [linkedItemsByPost, setLinkedItemsByPost] = useState<Record<string, LinkedCatalogItem[]>>({})
+  const [searchTerm, setSearchTerm] = useState("")
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -228,11 +230,7 @@ export default function MarketPage() {
       setBusyStatusPostId(post.id)
       setMessage("")
 
-      const { error } = await supabase
-        .from("market_posts")
-        .update({ status: nextStatus })
-        .eq("id", post.id)
-        .eq("author_id", post.author_id)
+      const { error } = await supabase.from("market_posts").update({ status: nextStatus }).eq("id", post.id).eq("author_id", post.author_id)
 
       if (error) {
         setMessage(error.message)
@@ -333,6 +331,35 @@ export default function MarketPage() {
     loadPosts()
   }, [router])
 
+  const filteredPosts = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase()
+    if (!query) return posts
+
+    return posts.filter((post) => {
+      const linkedItems = linkedItemsByPost[post.id] || []
+      const merchantProfile = merchantProfiles[post.author_id]
+      const linkedText = linkedItems
+        .map((item) => [item.title, item.description || "", item.category || "", item.unit_label || ""].join(" "))
+        .join(" ")
+      const merchantText = merchantProfile
+        ? [merchantProfile.display_name || "", merchantProfile.business_name || "", merchantCategoryLabel(merchantProfile.merchant_category)].join(" ")
+        : ""
+
+      return [
+        post.title,
+        post.description || "",
+        post.category || "",
+        post.value_text || "",
+        post.location || "",
+        linkedText,
+        merchantText,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    })
+  }, [linkedItemsByPost, merchantProfiles, posts, searchTerm])
+
   const showUnreadBadge = !!userEmail && unreadCount > 0
   const showPublicBadge = !userEmail && publicPulseCount > 0
 
@@ -404,9 +431,12 @@ export default function MarketPage() {
         </div>
 
         <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-2xl">Listă postări</CardTitle>
-            <div className="text-sm text-slate-500">{posts.length} postări</div>
+          <CardHeader className="space-y-4">
+            <div className="flex flex-row items-center justify-between">
+              <CardTitle className="text-2xl">Listă postări</CardTitle>
+              <div className="text-sm text-slate-500">{filteredPosts.length} / {posts.length} postări</div>
+            </div>
+            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="rounded-2xl" placeholder="Caută postări sau produse din piață" />
           </CardHeader>
 
           <CardContent className="space-y-4 pb-24">
@@ -414,16 +444,13 @@ export default function MarketPage() {
               <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă postările...</div>
             ) : message ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">{message}</div>
-            ) : posts.length === 0 ? (
+            ) : filteredPosts.length === 0 ? (
               <div className="rounded-2xl border p-6">
-                <h3 className="text-lg font-semibold">Încă nu există postări</h3>
-                <p className="mt-2 text-sm text-slate-600">Fii primul care publică o ofertă sau o cerere în comunitate.</p>
-                <div className="mt-4">
-                  <Button className="rounded-2xl" onClick={() => router.push("/market/new")}>Creează prima postare</Button>
-                </div>
+                <h3 className="text-lg font-semibold">Nu există rezultate</h3>
+                <p className="mt-2 text-sm text-slate-600">Nu am găsit postări sau produse pentru căutarea curentă.</p>
               </div>
             ) : (
-              posts.map((post) => {
+              filteredPosts.map((post) => {
                 const merchantProfile = merchantProfiles[post.author_id] || null
                 const merchantName = merchantProfile?.display_name?.trim() || merchantProfile?.business_name?.trim() || null
                 const linkedItems = linkedItemsByPost[post.id] || []
@@ -500,12 +527,7 @@ export default function MarketPage() {
                       ) : null}
 
                       {isOwner ? (
-                        <Button
-                          variant="outline"
-                          className="rounded-2xl"
-                          disabled={ownerActionBusy}
-                          onClick={() => handleTogglePostStatus(post, post.status === "closed" ? "active" : "closed")}
-                        >
+                        <Button variant="outline" className="rounded-2xl" disabled={ownerActionBusy} onClick={() => handleTogglePostStatus(post, post.status === "closed" ? "active" : "closed")}>
                           {ownerActionBusy ? "Se actualizează..." : post.status === "closed" ? "Reactivează" : "Închide"}
                         </Button>
                       ) : null}

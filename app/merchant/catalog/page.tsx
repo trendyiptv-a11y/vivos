@@ -49,18 +49,21 @@ function parseCsv(text: string): CsvDraftItem[] {
   const headers = lines[0].split(",").map((item) => item.trim())
   const idx = (name: string) => headers.indexOf(name)
 
-  return lines.slice(1).map((line) => {
-    const cols = line.split(",").map((item) => item.trim())
-    return {
-      title: cols[idx("title")] || "",
-      description: cols[idx("description")] || null,
-      category: cols[idx("category")] || null,
-      price_talanti: Number(cols[idx("price_talanti")] || 0),
-      stock_quantity: cols[idx("stock_quantity")] ? Number(cols[idx("stock_quantity")]) : null,
-      unit_label: cols[idx("unit_label")] || "buc",
-      is_active: parseBoolean(cols[idx("is_active")]),
-    }
-  }).filter((item) => item.title.trim().length > 0)
+  return lines
+    .slice(1)
+    .map((line) => {
+      const cols = line.split(",").map((item) => item.trim())
+      return {
+        title: cols[idx("title")] || "",
+        description: cols[idx("description")] || null,
+        category: cols[idx("category")] || null,
+        price_talanti: Number(cols[idx("price_talanti")] || 0),
+        stock_quantity: cols[idx("stock_quantity")] ? Number(cols[idx("stock_quantity")]) : null,
+        unit_label: cols[idx("unit_label")] || "buc",
+        is_active: parseBoolean(cols[idx("is_active")]),
+      }
+    })
+    .filter((item) => item.title.trim().length > 0)
 }
 
 function templateCsv() {
@@ -79,6 +82,8 @@ export default function MerchantCatalogPage() {
   const [message, setMessage] = useState("")
   const [userId, setUserId] = useState<string | null>(null)
   const [items, setItems] = useState<CatalogItem[]>([])
+  const [busyDeleteItemId, setBusyDeleteItemId] = useState<string | null>(null)
+  const [clearingCatalog, setClearingCatalog] = useState(false)
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -112,7 +117,11 @@ export default function MerchantCatalogPage() {
 
     const [rolesResult, catalogResult] = await Promise.all([
       supabase.from("member_roles").select("role, is_active").eq("user_id", session.user.id).eq("role", "merchant").eq("is_active", true),
-      supabase.from("merchant_catalog_items").select("id, merchant_user_id, title, description, category, price_talanti, stock_quantity, unit_label, is_active, created_at, updated_at").eq("merchant_user_id", session.user.id).order("created_at", { ascending: false }),
+      supabase
+        .from("merchant_catalog_items")
+        .select("id, merchant_user_id, title, description, category, price_talanti, stock_quantity, unit_label, is_active, created_at, updated_at")
+        .eq("merchant_user_id", session.user.id)
+        .order("created_at", { ascending: false }),
     ])
 
     if (rolesResult.error) {
@@ -243,6 +252,60 @@ export default function MerchantCatalogPage() {
     setItems((prev) => prev.map((row) => (row.id === item.id ? { ...row, is_active: !row.is_active } : row)))
   }
 
+  async function handleDeleteItem(item: CatalogItem) {
+    const confirmed = window.confirm(`Sigur vrei să ștergi produsul „${item.title}” din catalog?`)
+    if (!confirmed) return
+
+    try {
+      setBusyDeleteItemId(item.id)
+      setMessage("")
+
+      const { error } = await supabase.from("merchant_catalog_items").delete().eq("id", item.id)
+
+      if (error) {
+        setMessage(error.message)
+        return
+      }
+
+      setItems((prev) => prev.filter((row) => row.id !== item.id))
+      setMessage("Produsul a fost șters din catalog.")
+    } catch (error: any) {
+      setMessage(error?.message || "Produsul nu a putut fi șters.")
+    } finally {
+      setBusyDeleteItemId(null)
+    }
+  }
+
+  async function handleClearCatalog() {
+    if (!userId || !items.length) return
+
+    const confirmed = window.confirm("Sigur vrei să golești tot catalogul? Acțiunea va șterge toate produsele tale din catalog.")
+    if (!confirmed) return
+
+    const confirmedAgain = window.confirm("Confirmi definitiv golirea completă a catalogului?")
+    if (!confirmedAgain) return
+
+    try {
+      setClearingCatalog(true)
+      setMessage("")
+
+      const { error } = await supabase.from("merchant_catalog_items").delete().eq("merchant_user_id", userId)
+
+      if (error) {
+        setMessage(error.message)
+        setClearingCatalog(false)
+        return
+      }
+
+      setItems([])
+      setMessage("Catalogul a fost golit.")
+    } catch (error: any) {
+      setMessage(error?.message || "Catalogul nu a putut fi golit.")
+    } finally {
+      setClearingCatalog(false)
+    }
+  }
+
   const activeCount = useMemo(() => items.filter((item) => item.is_active).length, [items])
 
   return (
@@ -338,7 +401,12 @@ export default function MerchantCatalogPage() {
             </Card>
 
             <Card className="rounded-3xl border-0 shadow-sm">
-              <CardHeader><CardTitle className="text-xl">Produsele mele</CardTitle></CardHeader>
+              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="text-xl">Produsele mele</CardTitle>
+                <Button type="button" variant="outline" className="rounded-2xl border-red-200 text-red-700 hover:bg-red-50" disabled={!items.length || clearingCatalog} onClick={handleClearCatalog}>
+                  {clearingCatalog ? "Se golește..." : "Golește catalogul"}
+                </Button>
+              </CardHeader>
               <CardContent className="space-y-3">
                 {loading ? (
                   <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă produsele...</div>
@@ -347,7 +415,7 @@ export default function MerchantCatalogPage() {
                 ) : (
                   items.map((item) => (
                     <div key={item.id} className="rounded-2xl border p-4">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
                         <Badge className={`rounded-xl ${item.is_active ? "bg-emerald-100 text-emerald-900 hover:bg-emerald-100" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>{item.is_active ? "Activ" : "Inactiv"}</Badge>
                       </div>
@@ -361,6 +429,9 @@ export default function MerchantCatalogPage() {
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Button type="button" variant="outline" className="rounded-2xl" onClick={() => toggleItemActive(item)}>
                           {item.is_active ? "Dezactivează" : "Activează"}
+                        </Button>
+                        <Button type="button" variant="outline" className="rounded-2xl border-red-200 text-red-700 hover:bg-red-50" disabled={busyDeleteItemId === item.id} onClick={() => handleDeleteItem(item)}>
+                          {busyDeleteItemId === item.id ? "Se șterge..." : "Șterge"}
                         </Button>
                       </div>
                     </div>

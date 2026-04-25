@@ -1442,6 +1442,7 @@ export default function Page() {
         .select(
           "id, author_id, post_type, title, category, description, value_text, location, status, created_at"
         )
+        .neq("status", "closed")
         .order("created_at", { ascending: false })
         .limit(20)
 

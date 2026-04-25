@@ -9,6 +9,22 @@ import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
 
+type LinkedCatalogItem = {
+  id: string
+  title: string
+  description: string | null
+  category: string | null
+  price_talanti: number
+  stock_quantity: number | null
+  unit_label: string | null
+  is_active: boolean
+}
+
+type SelectedOrderItem = {
+  catalogItemId: string
+  quantity: number
+}
+
 function parseInitialPrice(value: string | null) {
   if (!value) return 0
   const normalized = value.replace(/,/g, ".")
@@ -34,17 +50,75 @@ function MarketOrderPageInner() {
   const [unitPrice, setUnitPrice] = useState(parseInitialPrice(valueTextFromQuery))
   const [notes, setNotes] = useState("")
   const [deliveryNeeded, setDeliveryNeeded] = useState(deliveryAvailable)
+  const [linkedItems, setLinkedItems] = useState<LinkedCatalogItem[]>([])
+  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({})
+  const [linkedItemsLoading, setLinkedItemsLoading] = useState(true)
+
+  const hasLinkedItems = linkedItems.length > 0
+
+  const selectedItems = useMemo<SelectedOrderItem[]>(() => {
+    return Object.entries(selectedQuantities)
+      .filter(([, selectedQuantity]) => Number(selectedQuantity) > 0)
+      .map(([catalogItemId, selectedQuantity]) => ({ catalogItemId, quantity: Number(selectedQuantity) }))
+  }, [selectedQuantities])
 
   const total = useMemo(() => {
+    if (hasLinkedItems) {
+      return selectedItems.reduce((sum, selectedItem) => {
+        const item = linkedItems.find((row) => row.id === selectedItem.catalogItemId)
+        if (!item) return sum
+        return sum + Number(item.price_talanti) * selectedItem.quantity
+      }, 0)
+    }
+
     const computed = Number(quantity || 0) * Number(unitPrice || 0)
     return Number.isFinite(computed) ? computed : 0
-  }, [quantity, unitPrice])
+  }, [hasLinkedItems, linkedItems, quantity, selectedItems, unitPrice])
 
   useEffect(() => {
     if (!marketPostId || !merchantUserId) {
       setMessage("Lipsesc datele postării merchant.")
     }
   }, [marketPostId, merchantUserId])
+
+  useEffect(() => {
+    async function loadLinkedItems() {
+      if (!marketPostId) {
+        setLinkedItems([])
+        setLinkedItemsLoading(false)
+        return
+      }
+
+      setLinkedItemsLoading(true)
+      const { data, error } = await supabase
+        .from("market_post_item_links")
+        .select("merchant_catalog_items(id, title, description, category, price_talanti, stock_quantity, unit_label, is_active)")
+        .eq("market_post_id", marketPostId)
+
+      if (error) {
+        setLinkedItems([])
+        setLinkedItemsLoading(false)
+        return
+      }
+
+      const items = ((data ?? []) as any[])
+        .map((row) => row.merchant_catalog_items as LinkedCatalogItem | null)
+        .filter(Boolean)
+        .filter((item) => item?.is_active)
+
+      setLinkedItems(items as LinkedCatalogItem[])
+      setLinkedItemsLoading(false)
+    }
+
+    loadLinkedItems()
+  }, [marketPostId])
+
+  function handleItemQuantityChange(itemId: string, nextQuantity: number) {
+    setSelectedQuantities((prev) => ({
+      ...prev,
+      [itemId]: Math.max(0, Number.isFinite(nextQuantity) ? nextQuantity : 0),
+    }))
+  }
 
   async function handleCreateOrder(e: React.FormEvent) {
     e.preventDefault()
@@ -54,14 +128,21 @@ function MarketOrderPageInner() {
       return
     }
 
-    if (quantity <= 0) {
-      setMessage("Cantitatea trebuie să fie mai mare decât zero.")
-      return
-    }
+    if (hasLinkedItems) {
+      if (!selectedItems.length) {
+        setMessage("Selectează cel puțin un produs din anunț.")
+        return
+      }
+    } else {
+      if (quantity <= 0) {
+        setMessage("Cantitatea trebuie să fie mai mare decât zero.")
+        return
+      }
 
-    if (unitPrice < 0) {
-      setMessage("Prețul în talanți nu poate fi negativ.")
-      return
+      if (unitPrice < 0) {
+        setMessage("Prețul în talanți nu poate fi negativ.")
+        return
+      }
     }
 
     setLoading(true)
@@ -94,6 +175,7 @@ function MarketOrderPageInner() {
           totalTalanti: total,
           notes,
           deliveryNeeded,
+          items: hasLinkedItems ? selectedItems : [],
         }),
       })
 
@@ -112,11 +194,22 @@ function MarketOrderPageInner() {
       })
 
       if (!conversationError && conversationId) {
+        const selectedSummary = hasLinkedItems
+          ? selectedItems
+              .map((selectedItem) => {
+                const item = linkedItems.find((row) => row.id === selectedItem.catalogItemId)
+                if (!item) return null
+                return `- ${item.title} × ${selectedItem.quantity} = ${(Number(item.price_talanti) * selectedItem.quantity).toFixed(2)} talanți`
+              })
+              .filter(Boolean)
+          : []
+
         const summaryLines = [
           `Comandă nouă: ${titleFromQuery}`,
-          `Cantitate: ${quantity}`,
-          `Preț unitar: ${unitPrice} talanți`,
-          `Total: ${total} talanți`,
+          hasLinkedItems ? "Produse selectate:" : `Cantitate: ${quantity}`,
+          ...selectedSummary,
+          !hasLinkedItems ? `Preț unitar: ${unitPrice} talanți` : null,
+          `Total: ${total.toFixed(2)} talanți`,
           `Plată rezervată: da`,
           `Livrare necesară: ${deliveryNeeded ? "da" : "nu"}`,
           notes.trim() ? `Detalii: ${notes.trim()}` : null,
@@ -139,7 +232,7 @@ function MarketOrderPageInner() {
           user_id: merchantUserId,
           event_type: "merchant_order_created",
           title: "Ai primit o comandă nouă",
-          body: `${titleFromQuery} · ${quantity} buc. · ${total} talanți`,
+          body: `${titleFromQuery} · ${hasLinkedItems ? `${selectedItems.length} produse` : `${quantity} buc.`} · ${total.toFixed(2)} talanți`,
           ref_id: orderId,
           is_read: false,
         })
@@ -198,16 +291,52 @@ function MarketOrderPageInner() {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Cantitate</label>
-                  <Input type="number" min={1} value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value || 1)))} className="rounded-2xl" />
+              {linkedItemsLoading ? (
+                <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă produsele din anunț...</div>
+              ) : hasLinkedItems ? (
+                <div className="rounded-2xl border p-4">
+                  <p className="text-sm font-medium text-slate-900">Selectează produsele dorite</p>
+                  <div className="mt-4 space-y-3">
+                    {linkedItems.map((item) => (
+                      <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-2 flex flex-wrap gap-2">
+                              <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
+                              <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
+                            </div>
+                            <p className="font-semibold text-slate-900">{item.title}</p>
+                            <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
+                            <p className="mt-2 text-xs text-slate-500">Stoc: {item.stock_quantity ?? "nelimitat"}</p>
+                          </div>
+                          <div className="w-28 space-y-2">
+                            <label className="text-sm font-medium">Cantitate</label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="1"
+                              value={selectedQuantities[item.id] ?? 0}
+                              onChange={(e) => handleItemQuantityChange(item.id, Number(e.target.value || 0))}
+                              className="rounded-2xl"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Preț unitar în talanți</label>
-                  <Input type="number" min={0} step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(Math.max(0, Number(e.target.value || 0)))} className="rounded-2xl" />
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Cantitate</label>
+                    <Input type="number" min={1} value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value || 1)))} className="rounded-2xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Preț unitar în talanți</label>
+                    <Input type="number" min={0} step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(Math.max(0, Number(e.target.value || 0)))} className="rounded-2xl" />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Detalii comandă</label>
@@ -233,7 +362,7 @@ function MarketOrderPageInner() {
               {message ? <div className="rounded-2xl border p-3 text-sm text-slate-600">{message}</div> : null}
 
               <div className="flex flex-wrap gap-3">
-                <Button type="submit" className="rounded-2xl" disabled={loading}>
+                <Button type="submit" className="rounded-2xl" disabled={loading || linkedItemsLoading}>
                   {loading ? "Se creează..." : "Creează comanda"}
                 </Button>
                 <Button type="button" variant="outline" className="rounded-2xl" onClick={() => router.push("/market")}>

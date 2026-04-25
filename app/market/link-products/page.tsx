@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -36,7 +36,7 @@ type LinkRow = {
   sort_order: number
 }
 
-export default function MarketLinkProductsPage() {
+function MarketLinkProductsPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const marketPostId = searchParams.get("market_post_id") || ""
@@ -54,7 +54,9 @@ export default function MarketLinkProductsPage() {
     setLoading(true)
     setMessage("")
 
-    const { data: { session } } = await supabase.auth.getSession()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
     if (!session?.user) {
       router.push("/login")
       return
@@ -102,7 +104,7 @@ export default function MarketLinkProductsPage() {
       return
     }
 
-    const loadedPost = (postResult.data as MarketPost | null)
+    const loadedPost = postResult.data as MarketPost | null
     if (!loadedPost) {
       setMessage("Postarea nu a fost găsită.")
       setLoading(false)
@@ -128,7 +130,7 @@ export default function MarketLinkProductsPage() {
   }, [router, marketPostId])
 
   function toggleItem(itemId: string) {
-    setSelectedIds((prev) => prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId])
+    setSelectedIds((prev) => (prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]))
   }
 
   async function handleSaveLinks() {
@@ -176,7 +178,10 @@ export default function MarketLinkProductsPage() {
 
   return (
     <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
-      <header className="sticky top-0 z-10 border-b backdrop-blur-xl" style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}>
+      <header
+        className="sticky top-0 z-10 border-b backdrop-blur-xl"
+        style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}
+      >
         <div className="mx-auto flex min-h-[84px] max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>Market composer</p>
@@ -218,9 +223,7 @@ export default function MarketLinkProductsPage() {
             {loading ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă produsele...</div>
             ) : catalogItems.length === 0 ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Nu ai încă produse în catalog. Adaugă produse mai întâi din Merchant Catalog.
-              </div>
+              <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu ai încă produse în catalog. Adaugă produse mai întâi din Merchant Catalog.</div>
             ) : (
               catalogItems.map((item) => {
                 const isSelected = selectedIds.includes(item.id)
@@ -246,14 +249,20 @@ export default function MarketLinkProductsPage() {
             )}
 
             <div className="flex flex-wrap gap-3 pt-2">
-              <Button type="button" className="rounded-2xl" disabled={saving || loading} onClick={handleSaveLinks}>
-                {saving ? "Se salvează..." : "Salvează legăturile"}
-              </Button>
+              <Button type="button" className="rounded-2xl" disabled={saving || loading} onClick={handleSaveLinks}>{saving ? "Se salvează..." : "Salvează legăturile"}</Button>
               <Button type="button" variant="outline" className="rounded-2xl" onClick={() => router.push("/merchant/catalog")}>Deschide catalogul</Button>
             </div>
           </CardContent>
         </Card>
       </div>
     </main>
+  )
+}
+
+export default function MarketLinkProductsPage() {
+  return (
+    <Suspense fallback={null}>
+      <MarketLinkProductsPageInner />
+    </Suspense>
   )
 }

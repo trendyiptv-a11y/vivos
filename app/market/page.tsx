@@ -69,6 +69,7 @@ export default function MarketPage() {
   const [posts, setPosts] = useState<MarketPost[]>([])
   const [message, setMessage] = useState("")
   const [busyAuthorId, setBusyAuthorId] = useState<string | null>(null)
+  const [busyDeletePostId, setBusyDeletePostId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -196,6 +197,37 @@ export default function MarketPage() {
       alert("Nu am putut porni conversația.")
     } finally {
       setBusyAuthorId(null)
+    }
+  }
+
+  async function handleDeletePost(post: MarketPost) {
+    const confirmed = window.confirm(`Sigur vrei să scoți postarea „${post.title}” din Piață?`)
+    if (!confirmed) return
+
+    try {
+      setBusyDeletePostId(post.id)
+      setMessage("")
+
+      const { error } = await supabase.from("market_posts").delete().eq("id", post.id).eq("author_id", post.author_id)
+
+      if (error) {
+        setMessage(error.message)
+        setBusyDeletePostId(null)
+        return
+      }
+
+      setPosts((prev) => prev.filter((item) => item.id !== post.id))
+      setLinkedItemsByPost((prev) => {
+        const next = { ...prev }
+        delete next[post.id]
+        return next
+      })
+      setMessage("Postarea a fost scoasă din Piață.")
+    } catch (error: any) {
+      console.error("Delete market post error:", error)
+      setMessage(error?.message || "Postarea nu a putut fi ștearsă.")
+    } finally {
+      setBusyDeletePostId(null)
     }
   }
 
@@ -439,12 +471,7 @@ export default function MarketPage() {
                       </Button>
 
                       {canOrder ? (
-                        <Button
-                          className="rounded-2xl"
-                          onClick={() =>
-                            router.push(`/market/order?market_post_id=${post.id}&merchant_user_id=${post.author_id}&title=${encodeURIComponent(post.title)}&value_text=${encodeURIComponent(post.value_text || "")}&delivery_available=${merchantProfile?.delivery_available ? "true" : "false"}`)
-                          }
-                        >
+                        <Button className="rounded-2xl" onClick={() => router.push(`/market/order?market_post_id=${post.id}&merchant_user_id=${post.author_id}&title=${encodeURIComponent(post.title)}&value_text=${encodeURIComponent(post.value_text || "")}&delivery_available=${merchantProfile?.delivery_available ? "true" : "false"}`)}>
                           Comandă
                         </Button>
                       ) : null}
@@ -452,6 +479,12 @@ export default function MarketPage() {
                       {isOwner && merchantProfile && post.post_type === "offer" ? (
                         <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/market/link-products?market_post_id=${post.id}`)}>
                           Leagă produse
+                        </Button>
+                      ) : null}
+
+                      {isOwner ? (
+                        <Button variant="outline" className="rounded-2xl border-red-200 text-red-700 hover:bg-red-50" disabled={busyDeletePostId === post.id} onClick={() => handleDeletePost(post)}>
+                          {busyDeletePostId === post.id ? "Se scoate..." : "Scoate postarea"}
                         </Button>
                       ) : null}
 

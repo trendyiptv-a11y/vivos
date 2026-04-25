@@ -33,6 +33,8 @@ type CsvDraftItem = {
   is_active: boolean
 }
 
+type CatalogFilter = "all" | "active" | "inactive"
+
 function parseBoolean(value: string | null | undefined) {
   const normalized = (value || "").trim().toLowerCase()
   return normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "da"
@@ -84,6 +86,9 @@ export default function MerchantCatalogPage() {
   const [items, setItems] = useState<CatalogItem[]>([])
   const [busyDeleteItemId, setBusyDeleteItemId] = useState<string | null>(null)
   const [clearingCatalog, setClearingCatalog] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [catalogFilter, setCatalogFilter] = useState<CatalogFilter>("all")
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -150,7 +155,18 @@ export default function MerchantCatalogPage() {
     loadCatalog()
   }, [router])
 
-  async function handleAddItem(e: React.FormEvent) {
+  function resetForm() {
+    setEditingItemId(null)
+    setTitle("")
+    setDescription("")
+    setCategory("")
+    setPriceTalanti("")
+    setStockQuantity("")
+    setUnitLabel("buc")
+    setIsActive(true)
+  }
+
+  async function handleSaveItem(e: React.FormEvent) {
     e.preventDefault()
     if (!userId) return
 
@@ -175,7 +191,7 @@ export default function MerchantCatalogPage() {
     setSaving(true)
     setMessage("")
 
-    const { error } = await supabase.from("merchant_catalog_items").insert({
+    const payload = {
       merchant_user_id: userId,
       title: title.trim(),
       description: description.trim() || null,
@@ -184,7 +200,26 @@ export default function MerchantCatalogPage() {
       stock_quantity: numericStock,
       unit_label: unitLabel.trim() || "buc",
       is_active: isActive,
-    })
+      updated_at: new Date().toISOString(),
+    }
+
+    if (editingItemId) {
+      const { error } = await supabase.from("merchant_catalog_items").update(payload).eq("id", editingItemId)
+
+      if (error) {
+        setMessage(error.message)
+        setSaving(false)
+        return
+      }
+
+      await loadCatalog()
+      setMessage("Produsul a fost actualizat.")
+      resetForm()
+      setSaving(false)
+      return
+    }
+
+    const { error } = await supabase.from("merchant_catalog_items").insert(payload)
 
     if (error) {
       setMessage(error.message)
@@ -192,15 +227,9 @@ export default function MerchantCatalogPage() {
       return
     }
 
-    setTitle("")
-    setDescription("")
-    setCategory("")
-    setPriceTalanti("")
-    setStockQuantity("")
-    setUnitLabel("buc")
-    setIsActive(true)
     await loadCatalog()
     setMessage("Produsul a fost adăugat în catalog.")
+    resetForm()
     setSaving(false)
   }
 
@@ -252,6 +281,18 @@ export default function MerchantCatalogPage() {
     setItems((prev) => prev.map((row) => (row.id === item.id ? { ...row, is_active: !row.is_active } : row)))
   }
 
+  function handleEditItem(item: CatalogItem) {
+    setEditingItemId(item.id)
+    setTitle(item.title)
+    setDescription(item.description || "")
+    setCategory(item.category || "")
+    setPriceTalanti(String(Number(item.price_talanti)))
+    setStockQuantity(item.stock_quantity === null ? "" : String(item.stock_quantity))
+    setUnitLabel(item.unit_label || "buc")
+    setIsActive(item.is_active)
+    setMessage(`Editezi produsul „${item.title}”.`)
+  }
+
   async function handleDeleteItem(item: CatalogItem) {
     const confirmed = window.confirm(`Sigur vrei să ștergi produsul „${item.title}” din catalog?`)
     if (!confirmed) return
@@ -268,6 +309,7 @@ export default function MerchantCatalogPage() {
       }
 
       setItems((prev) => prev.filter((row) => row.id !== item.id))
+      if (editingItemId === item.id) resetForm()
       setMessage("Produsul a fost șters din catalog.")
     } catch (error: any) {
       setMessage(error?.message || "Produsul nu a putut fi șters.")
@@ -298,6 +340,7 @@ export default function MerchantCatalogPage() {
       }
 
       setItems([])
+      resetForm()
       setMessage("Catalogul a fost golit.")
     } catch (error: any) {
       setMessage(error?.message || "Catalogul nu a putut fi golit.")
@@ -307,6 +350,19 @@ export default function MerchantCatalogPage() {
   }
 
   const activeCount = useMemo(() => items.filter((item) => item.is_active).length, [items])
+
+  const filteredItems = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase()
+    return items.filter((item) => {
+      if (catalogFilter === "active" && !item.is_active) return false
+      if (catalogFilter === "inactive" && item.is_active) return false
+      if (!query) return true
+      return [item.title, item.description || "", item.category || "", item.unit_label || ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    })
+  }, [catalogFilter, items, searchTerm])
 
   return (
     <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
@@ -343,9 +399,12 @@ export default function MerchantCatalogPage() {
 
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] pb-24">
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-xl">Adaugă produs</CardTitle></CardHeader>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-xl">{editingItemId ? "Editează produs" : "Adaugă produs"}</CardTitle>
+              {editingItemId ? <Button type="button" variant="outline" className="rounded-2xl" onClick={resetForm}>Anulează editarea</Button> : null}
+            </CardHeader>
             <CardContent>
-              <form onSubmit={handleAddItem} className="space-y-4">
+              <form onSubmit={handleSaveItem} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Titlu</label>
                   <Input value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-2xl" placeholder="Ex: Filtru ulei" />
@@ -378,7 +437,7 @@ export default function MerchantCatalogPage() {
                   <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
                   <span className="text-sm text-slate-700">Produs activ</span>
                 </label>
-                <Button type="submit" className="rounded-2xl" disabled={saving || loading}>{saving ? "Se salvează..." : "Adaugă produs"}</Button>
+                <Button type="submit" className="rounded-2xl" disabled={saving || loading}>{saving ? (editingItemId ? "Se actualizează..." : "Se salvează...") : (editingItemId ? "Salvează modificările" : "Adaugă produs")}</Button>
               </form>
             </CardContent>
           </Card>
@@ -401,19 +460,29 @@ export default function MerchantCatalogPage() {
             </Card>
 
             <Card className="rounded-3xl border-0 shadow-sm">
-              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="text-xl">Produsele mele</CardTitle>
-                <Button type="button" variant="outline" className="rounded-2xl border-red-200 text-red-700 hover:bg-red-50" disabled={!items.length || clearingCatalog} onClick={handleClearCatalog}>
-                  {clearingCatalog ? "Se golește..." : "Golește catalogul"}
-                </Button>
+              <CardHeader className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <CardTitle className="text-xl">Produsele mele</CardTitle>
+                  <Button type="button" variant="outline" className="rounded-2xl border-red-200 text-red-700 hover:bg-red-50" disabled={!items.length || clearingCatalog} onClick={handleClearCatalog}>
+                    {clearingCatalog ? "Se golește..." : "Golește catalogul"}
+                  </Button>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="rounded-2xl" placeholder="Caută produs după titlu, categorie sau descriere" />
+                  <div className="flex gap-2">
+                    <Button type="button" variant={catalogFilter === "all" ? "default" : "outline"} className="rounded-2xl" onClick={() => setCatalogFilter("all")}>Toate</Button>
+                    <Button type="button" variant={catalogFilter === "active" ? "default" : "outline"} className="rounded-2xl" onClick={() => setCatalogFilter("active")}>Active</Button>
+                    <Button type="button" variant={catalogFilter === "inactive" ? "default" : "outline"} className="rounded-2xl" onClick={() => setCatalogFilter("inactive")}>Inactive</Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {loading ? (
                   <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă produsele...</div>
-                ) : items.length === 0 ? (
-                  <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu ai încă produse în catalog.</div>
+                ) : filteredItems.length === 0 ? (
+                  <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu există produse pentru filtrul sau căutarea curentă.</div>
                 ) : (
-                  items.map((item) => (
+                  filteredItems.map((item) => (
                     <div key={item.id} className="rounded-2xl border p-4">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
@@ -427,9 +496,8 @@ export default function MerchantCatalogPage() {
                         <p>Unitate: <span className="font-medium text-slate-900">{item.unit_label || "buc"}</span></p>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <Button type="button" variant="outline" className="rounded-2xl" onClick={() => toggleItemActive(item)}>
-                          {item.is_active ? "Dezactivează" : "Activează"}
-                        </Button>
+                        <Button type="button" variant="outline" className="rounded-2xl" onClick={() => handleEditItem(item)}>Editează</Button>
+                        <Button type="button" variant="outline" className="rounded-2xl" onClick={() => toggleItemActive(item)}>{item.is_active ? "Dezactivează" : "Activează"}</Button>
                         <Button type="button" variant="outline" className="rounded-2xl border-red-200 text-red-700 hover:bg-red-50" disabled={busyDeleteItemId === item.id} onClick={() => handleDeleteItem(item)}>
                           {busyDeleteItemId === item.id ? "Se șterge..." : "Șterge"}
                         </Button>

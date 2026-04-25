@@ -70,6 +70,7 @@ export default function MarketPage() {
   const [message, setMessage] = useState("")
   const [busyAuthorId, setBusyAuthorId] = useState<string | null>(null)
   const [busyDeletePostId, setBusyDeletePostId] = useState<string | null>(null)
+  const [busyStatusPostId, setBusyStatusPostId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -110,18 +111,10 @@ export default function MarketPage() {
 
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-      const [{ count: unread, error: unreadError }, { count: pulse, error: pulseError }] =
-        await Promise.all([
-          supabase
-            .from("notifications")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", session.user.id)
-            .eq("is_read", false),
-          supabase
-            .from("public_activity_feed")
-            .select("*", { count: "exact", head: true })
-            .gte("created_at", since),
-        ])
+      const [{ count: unread, error: unreadError }, { count: pulse, error: pulseError }] = await Promise.all([
+        supabase.from("notifications").select("*", { count: "exact", head: true }).eq("user_id", session.user.id).eq("is_read", false),
+        supabase.from("public_activity_feed").select("*", { count: "exact", head: true }).gte("created_at", since),
+      ])
 
       if (!unreadError) setUnreadCount(unread || 0)
       if (!pulseError) setPublicPulseCount(pulse || 0)
@@ -185,12 +178,7 @@ export default function MarketPage() {
         return
       }
 
-      await supabase
-        .from("conversation_hidden_for_users")
-        .delete()
-        .eq("conversation_id", data)
-        .eq("user_id", currentUserId)
-
+      await supabase.from("conversation_hidden_for_users").delete().eq("conversation_id", data).eq("user_id", currentUserId)
       router.push(`/messages/${data}`)
     } catch (error) {
       console.error("Start chat error:", error)
@@ -228,6 +216,37 @@ export default function MarketPage() {
       setMessage(error?.message || "Postarea nu a putut fi ștearsă.")
     } finally {
       setBusyDeletePostId(null)
+    }
+  }
+
+  async function handleTogglePostStatus(post: MarketPost, nextStatus: MarketPost["status"]) {
+    const actionText = nextStatus === "closed" ? "închizi" : "reactivezi"
+    const confirmed = window.confirm(`Sigur vrei să ${actionText} postarea „${post.title}”?`)
+    if (!confirmed) return
+
+    try {
+      setBusyStatusPostId(post.id)
+      setMessage("")
+
+      const { error } = await supabase
+        .from("market_posts")
+        .update({ status: nextStatus })
+        .eq("id", post.id)
+        .eq("author_id", post.author_id)
+
+      if (error) {
+        setMessage(error.message)
+        setBusyStatusPostId(null)
+        return
+      }
+
+      setPosts((prev) => prev.map((item) => (item.id === post.id ? { ...item, status: nextStatus } : item)))
+      setMessage(nextStatus === "closed" ? "Postarea a fost închisă." : "Postarea a fost reactivată.")
+    } catch (error: any) {
+      console.error("Toggle market post status error:", error)
+      setMessage(error?.message || "Statusul postării nu a putut fi schimbat.")
+    } finally {
+      setBusyStatusPostId(null)
     }
   }
 
@@ -319,10 +338,7 @@ export default function MarketPage() {
 
   return (
     <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
-      <header
-        className="sticky top-0 z-10 border-b backdrop-blur-xl"
-        style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}
-      >
+      <header className="sticky top-0 z-10 border-b backdrop-blur-xl" style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}>
         <div className="flex min-h-[84px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>Platforma comunitară</p>
@@ -411,8 +427,9 @@ export default function MarketPage() {
                 const merchantProfile = merchantProfiles[post.author_id] || null
                 const merchantName = merchantProfile?.display_name?.trim() || merchantProfile?.business_name?.trim() || null
                 const linkedItems = linkedItemsByPost[post.id] || []
-                const canOrder = !!merchantProfile && post.post_type === "offer"
+                const canOrder = !!merchantProfile && post.post_type === "offer" && post.status === "active"
                 const isOwner = currentUserId === post.author_id
+                const ownerActionBusy = busyStatusPostId === post.id
 
                 return (
                   <div key={post.id} className="rounded-2xl border p-4">
@@ -479,6 +496,17 @@ export default function MarketPage() {
                       {isOwner && merchantProfile && post.post_type === "offer" ? (
                         <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/market/link-products?market_post_id=${post.id}`)}>
                           Leagă produse
+                        </Button>
+                      ) : null}
+
+                      {isOwner ? (
+                        <Button
+                          variant="outline"
+                          className="rounded-2xl"
+                          disabled={ownerActionBusy}
+                          onClick={() => handleTogglePostStatus(post, post.status === "closed" ? "active" : "closed")}
+                        >
+                          {ownerActionBusy ? "Se actualizează..." : post.status === "closed" ? "Reactivează" : "Închide"}
                         </Button>
                       ) : null}
 

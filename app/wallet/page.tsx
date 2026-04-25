@@ -26,7 +26,7 @@ type WalletTransaction = {
   id: string
   user_id: string
   order_id: string | null
-  transaction_type: "topup" | "hold" | "release" | "payment" | "refund" | "adjustment"
+  transaction_type: "topup" | "hold" | "release" | "payment" | "refund" | "adjustment" | "transfer"
   amount_talanti: number
   direction: "credit" | "debit"
   status: "pending" | "posted" | "cancelled"
@@ -52,6 +52,7 @@ function transactionTypeLabel(tx: WalletTransaction) {
   if (tx.transaction_type === "hold") return "Rezervare comandă"
   if (tx.transaction_type === "release") return "Eliberare hold"
   if (tx.transaction_type === "payment") return tx.direction === "credit" ? "Încasare comandă" : "Plată comandă"
+  if (tx.transaction_type === "transfer") return tx.direction === "credit" ? "Transfer primit" : "Transfer trimis"
   if (tx.transaction_type === "refund") return "Rambursare"
   return "Ajustare"
 }
@@ -62,7 +63,6 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState("")
-  const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
@@ -165,7 +165,6 @@ export default function WalletPage() {
       }
 
       const currentUserId = session.user.id
-      setUserId(currentUserId)
       setUserEmail(session.user.email ?? null)
 
       const [accountResult, membersResult, txResult, holdsResult] = await Promise.all([
@@ -184,15 +183,9 @@ export default function WalletPage() {
           .eq("status", "active"),
       ])
 
-      if (accountResult.error) {
-        setMessage(accountResult.error.message)
-      }
-      if (txResult.error && !accountResult.error) {
-        setMessage(txResult.error.message)
-      }
-      if (holdsResult.error && !accountResult.error && !txResult.error) {
-        setMessage(holdsResult.error.message)
-      }
+      if (accountResult.error) setMessage(accountResult.error.message)
+      if (txResult.error && !accountResult.error) setMessage(txResult.error.message)
+      if (holdsResult.error && !accountResult.error && !txResult.error) setMessage(holdsResult.error.message)
 
       setAccount((accountResult.data as WalletAccount | null) ?? { user_id: currentUserId, balance_talanti: 0 })
       setMembers((membersResult.data as ProfileOption[]) ?? [])
@@ -226,33 +219,26 @@ export default function WalletPage() {
     }
   }, [])
 
-  const reservedTalanti = useMemo(
-    () => activeHolds.reduce((sum, hold) => sum + Number(hold.amount_talanti || 0), 0),
-    [activeHolds]
-  )
+  const reservedTalanti = useMemo(() => activeHolds.reduce((sum, hold) => sum + Number(hold.amount_talanti || 0), 0), [activeHolds])
+  const availableBalance = useMemo(() => Math.max(0, Number(account?.balance_talanti || 0) - reservedTalanti), [account, reservedTalanti])
 
-  const availableBalance = useMemo(
-    () => Math.max(0, Number(account?.balance_talanti || 0) - reservedTalanti),
-    [account, reservedTalanti]
-  )
-
-  const totalReceived = useMemo(
-    () =>
-      transactions
-        .filter((tx) => tx.status === "posted")
-        .filter((tx) => tx.direction === "credit")
-        .filter((tx) => ["topup", "payment", "refund", "adjustment"].includes(tx.transaction_type))
-        .reduce((sum, tx) => sum + Number(tx.amount_talanti), 0),
+  const totalCommandReceived = useMemo(
+    () => transactions.filter((tx) => tx.status === "posted" && tx.direction === "credit" && tx.transaction_type === "payment").reduce((sum, tx) => sum + Number(tx.amount_talanti), 0),
     [transactions]
   )
 
-  const totalSent = useMemo(
-    () =>
-      transactions
-        .filter((tx) => tx.status === "posted")
-        .filter((tx) => tx.direction === "debit")
-        .filter((tx) => tx.transaction_type === "payment")
-        .reduce((sum, tx) => sum + Number(tx.amount_talanti), 0),
+  const totalCommandPaid = useMemo(
+    () => transactions.filter((tx) => tx.status === "posted" && tx.direction === "debit" && tx.transaction_type === "payment").reduce((sum, tx) => sum + Number(tx.amount_talanti), 0),
+    [transactions]
+  )
+
+  const totalTransferredIn = useMemo(
+    () => transactions.filter((tx) => tx.status === "posted" && tx.direction === "credit" && tx.transaction_type === "transfer").reduce((sum, tx) => sum + Number(tx.amount_talanti), 0),
+    [transactions]
+  )
+
+  const totalTransferredOut = useMemo(
+    () => transactions.filter((tx) => tx.status === "posted" && tx.direction === "debit" && tx.transaction_type === "transfer").reduce((sum, tx) => sum + Number(tx.amount_talanti), 0),
     [transactions]
   )
 
@@ -393,38 +379,36 @@ export default function WalletPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-4 sm:px-6 sm:py-6">
-        <div className="grid gap-4 md:grid-cols-4">
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-4 sm:px-6 sm:py-6">
+        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader><CardTitle className="text-base">Sold disponibil</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold">{formatTalents(availableBalance)}</p>
-              <p className="mt-2 text-sm text-slate-500">talanți</p>
-            </CardContent>
+            <CardContent><p className="text-3xl font-semibold">{formatTalents(availableBalance)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
           </Card>
 
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardHeader><CardTitle className="text-base">Rezervat</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold">{formatTalents(reservedTalanti)}</p>
-              <p className="mt-2 text-sm text-slate-500">talanți</p>
-            </CardContent>
+            <CardContent><p className="text-3xl font-semibold">{formatTalents(reservedTalanti)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
           </Card>
 
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Total primit</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold">{formatTalents(totalReceived)}</p>
-              <p className="mt-2 text-sm text-slate-500">talanți</p>
-            </CardContent>
+            <CardHeader><CardTitle className="text-base">Încasări comenzi</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-semibold">{formatTalents(totalCommandReceived)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
           </Card>
 
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Total plătit</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold">{formatTalents(totalSent)}</p>
-              <p className="mt-2 text-sm text-slate-500">talanți</p>
-            </CardContent>
+            <CardHeader><CardTitle className="text-base">Plăți comenzi</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-semibold">{formatTalents(totalCommandPaid)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
+          </Card>
+
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader><CardTitle className="text-base">Transferuri primite</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-semibold">{formatTalents(totalTransferredIn)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
+          </Card>
+
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader><CardTitle className="text-base">Transferuri trimise</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-semibold">{formatTalents(totalTransferredOut)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
           </Card>
         </div>
 

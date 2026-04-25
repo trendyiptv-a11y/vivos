@@ -33,6 +33,17 @@ type MerchantProfile = {
   is_active: boolean
 }
 
+type LinkedCatalogItem = {
+  id: string
+  title: string
+  description: string | null
+  category: string | null
+  price_talanti: number
+  stock_quantity: number | null
+  unit_label: string | null
+  is_active: boolean
+}
+
 function statusLabel(status: MarketPost["status"]) {
   if (status === "in_progress") return "În lucru"
   if (status === "closed") return "Închis"
@@ -59,10 +70,12 @@ export default function MarketPage() {
   const [message, setMessage] = useState("")
   const [busyAuthorId, setBusyAuthorId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
   const [publicPulseCount, setPublicPulseCount] = useState(0)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [merchantProfiles, setMerchantProfiles] = useState<Record<string, MerchantProfile>>({})
+  const [linkedItemsByPost, setLinkedItemsByPost] = useState<Record<string, LinkedCatalogItem[]>>({})
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -86,6 +99,7 @@ export default function MarketPage() {
       } = await supabase.auth.getSession()
 
       setUserEmail(session?.user?.email ?? null)
+      setCurrentUserId(session?.user?.id ?? null)
 
       if (!session?.user) {
         setUnreadCount(0)
@@ -199,11 +213,11 @@ export default function MarketPage() {
         return
       }
 
+      setCurrentUserId(session.user.id)
+
       const { data, error } = await supabase
         .from("market_posts")
-        .select(
-          "id, author_id, post_type, title, category, description, value_text, location, status, created_at"
-        )
+        .select("id, author_id, post_type, title, category, description, value_text, location, status, created_at")
         .order("created_at", { ascending: false })
 
       if (error) {
@@ -217,31 +231,51 @@ export default function MarketPage() {
       setPosts(loadedPosts)
 
       const authorIds = Array.from(new Set(loadedPosts.map((post) => post.author_id).filter(Boolean)))
-      if (!authorIds.length) {
+      const postIds = loadedPosts.map((post) => post.id)
+
+      if (authorIds.length) {
+        const { data: merchantData, error: merchantError } = await supabase
+          .from("merchant_profiles")
+          .select("user_id, display_name, business_name, merchant_category, delivery_available, pickup_available, is_active")
+          .in("user_id", authorIds)
+          .eq("is_active", true)
+
+        if (merchantError) {
+          setMessage((prev) => prev || merchantError.message)
+        } else {
+          const merchantMap = ((merchantData ?? []) as MerchantProfile[]).reduce<Record<string, MerchantProfile>>((acc, item) => {
+            acc[item.user_id] = item
+            return acc
+          }, {})
+          setMerchantProfiles(merchantMap)
+        }
+      } else {
         setMerchantProfiles({})
-        setLoading(false)
-        return
       }
 
-      const { data: merchantData, error: merchantError } = await supabase
-        .from("merchant_profiles")
-        .select("user_id, display_name, business_name, merchant_category, delivery_available, pickup_available, is_active")
-        .in("user_id", authorIds)
-        .eq("is_active", true)
+      if (postIds.length) {
+        const { data: linksData, error: linksError } = await supabase
+          .from("market_post_item_links")
+          .select("market_post_id, merchant_catalog_items(id, title, description, category, price_talanti, stock_quantity, unit_label, is_active)")
+          .in("market_post_id", postIds)
 
-      if (merchantError) {
-        setMessage((prev) => prev || merchantError.message)
-        setMerchantProfiles({})
-        setLoading(false)
-        return
+        if (linksError) {
+          setMessage((prev) => prev || linksError.message)
+          setLinkedItemsByPost({})
+        } else {
+          const grouped = ((linksData ?? []) as any[]).reduce<Record<string, LinkedCatalogItem[]>>((acc, row) => {
+            const item = row.merchant_catalog_items as LinkedCatalogItem | null
+            if (!item) return acc
+            if (!acc[row.market_post_id]) acc[row.market_post_id] = []
+            acc[row.market_post_id].push(item)
+            return acc
+          }, {})
+          setLinkedItemsByPost(grouped)
+        }
+      } else {
+        setLinkedItemsByPost({})
       }
 
-      const merchantMap = ((merchantData ?? []) as MerchantProfile[]).reduce<Record<string, MerchantProfile>>((acc, item) => {
-        acc[item.user_id] = item
-        return acc
-      }, {})
-
-      setMerchantProfiles(merchantMap)
       setLoading(false)
     }
 
@@ -252,193 +286,51 @@ export default function MarketPage() {
   const showPublicBadge = !userEmail && publicPulseCount > 0
 
   return (
-    <main
-      className="min-h-screen"
-      style={{ background: vivosTheme.gradients.appBackground }}
-    >
+    <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
       <header
         className="sticky top-0 z-10 border-b backdrop-blur-xl"
-        style={{
-          background: vivosTheme.styles.bottomNav.background,
-          borderColor: vivosTheme.styles.bottomNav.borderColor,
-          boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
-        }}
+        style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}
       >
         <div className="flex min-h-[84px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p
-              className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
-              style={{ color: "rgba(255,255,255,0.68)" }}
-            >
-              Platforma comunitară
-            </p>
-            <h1
-              className="truncate text-lg font-semibold sm:text-2xl"
-              style={{ color: vivosTheme.colors.white }}
-            >
-              Piață
-            </h1>
+            <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>Platforma comunitară</p>
+            <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>Piață</h1>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative">
-              <button
-                type="button"
-                className="flex h-12 w-12 items-center justify-center rounded-2xl border transition"
-                style={{
-                  borderColor: "rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.10)",
-                  color: vivosTheme.colors.white,
-                }}
-                onClick={() => {
-                  window.location.href = "/notifications"
-                }}
-              >
+              <button type="button" className="flex h-12 w-12 items-center justify-center rounded-2xl border transition" style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.10)", color: vivosTheme.colors.white }} onClick={() => { window.location.href = "/notifications" }}>
                 <Bell className="h-5 w-5" />
               </button>
 
-              {showUnreadBadge && (
-                <div
-                  className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white"
-                  style={{
-                    background: vivosTheme.colors.purple,
-                    boxShadow: vivosTheme.shadows.soft,
-                  }}
-                >
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </div>
-              )}
-
-              {showPublicBadge && (
-                <div
-                  className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white"
-                  style={{
-                    background: vivosTheme.colors.teal,
-                    boxShadow: vivosTheme.shadows.soft,
-                  }}
-                >
-                  {publicPulseCount > 99 ? "99+" : publicPulseCount}
-                </div>
-              )}
+              {showUnreadBadge && <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white" style={{ background: vivosTheme.colors.purple, boxShadow: vivosTheme.shadows.soft }}>{unreadCount > 99 ? "99+" : unreadCount}</div>}
+              {showPublicBadge && <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white" style={{ background: vivosTheme.colors.teal, boxShadow: vivosTheme.shadows.soft }}>{publicPulseCount > 99 ? "99+" : publicPulseCount}</div>}
             </div>
 
             {userEmail ? (
               <>
-                <div
-                  className="hidden max-w-[180px] truncate rounded-2xl border px-3 py-2 text-sm sm:block"
-                  style={{
-                    borderColor: "rgba(255,255,255,0.10)",
-                    background: "rgba(255,255,255,0.08)",
-                    color: "rgba(255,255,255,0.78)",
-                  }}
-                >
-                  {userEmail}
-                </div>
-
+                <div className="hidden max-w-[180px] truncate rounded-2xl border px-3 py-2 text-sm sm:block" style={{ borderColor: "rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.78)" }}>{userEmail}</div>
                 <div className="relative" ref={profileMenuRef}>
-                  <button
-                    className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                    onClick={() => setProfileMenuOpen((prev) => !prev)}
-                  >
+                  <button className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30" onClick={() => setProfileMenuOpen((prev) => !prev)}>
                     <Avatar className="h-10 w-10 rounded-2xl border border-white/15 shadow-sm">
-                      <AvatarFallback
-                        className="rounded-2xl text-white"
-                        style={{
-                          background: getVivosAvatarGradient(userEmail),
-                        }}
-                      >
-                        {userEmail.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
+                      <AvatarFallback className="rounded-2xl text-white" style={{ background: getVivosAvatarGradient(userEmail) }}>{userEmail.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </button>
 
                   {profileMenuOpen && (
-                    <div
-                      className="absolute right-0 top-12 z-50 w-48 rounded-2xl border p-2 shadow-lg"
-                      style={{
-                        background: "rgba(18,46,84,0.98)",
-                        borderColor: "rgba(255,255,255,0.10)",
-                        boxShadow: vivosTheme.shadows.modal,
-                      }}
-                    >
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          window.location.href = "/profile"
-                        }}
-                      >
-                        Profil
-                      </button>
-
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          window.location.href = "/orders"
-                        }}
-                      >
-                        Comenzile mele
-                      </button>
-
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          window.location.href = "/downloads/manifest.html"
-                        }}
-                      >
-                        Manifest VIVOS
-                      </button>
-
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          window.location.href = "/?tab=settings"
-                        }}
-                      >
-                        Setări
-                      </button>
-
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10"
-                        onClick={() => {
-                          setProfileMenuOpen(false)
-                          window.location.href = "/?tab=about"
-                        }}
-                      >
-                        Despre
-                      </button>
-
-                      <button
-                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 transition hover:bg-white/10"
-                        onClick={async () => {
-                          setProfileMenuOpen(false)
-                          await supabase.auth.signOut()
-                          window.location.href = "/"
-                        }}
-                      >
-                        Logout
-                      </button>
+                    <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border p-2 shadow-lg" style={{ background: "rgba(18,46,84,0.98)", borderColor: "rgba(255,255,255,0.10)", boxShadow: vivosTheme.shadows.modal }}>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/profile" }}>Profil</button>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/orders" }}>Comenzile mele</button>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/downloads/manifest.html" }}>Manifest VIVOS</button>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=settings" }}>Setări</button>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=about" }}>Despre</button>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 transition hover:bg-white/10" onClick={async () => { setProfileMenuOpen(false); await supabase.auth.signOut(); window.location.href = "/" }}>Logout</button>
                     </div>
                   )}
                 </div>
               </>
             ) : (
-              <Button
-                className="rounded-2xl border-0"
-                style={{
-                  background: vivosTheme.gradients.activeIcon,
-                  color: vivosTheme.colors.white,
-                  boxShadow: vivosTheme.shadows.bubble,
-                }}
-                onClick={() => {
-                  window.location.href = "/login"
-                }}
-              >
-                Login
-              </Button>
+              <Button className="rounded-2xl border-0" style={{ background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white, boxShadow: vivosTheme.shadows.bubble }} onClick={() => { window.location.href = "/login" }}>Login</Button>
             )}
           </div>
         </div>
@@ -450,36 +342,16 @@ export default function MarketPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
               <span className="text-xl font-semibold">P</span>
             </div>
-
             <div className="min-w-0">
               <h2 className="text-2xl font-semibold sm:text-3xl">Piața comunitară</h2>
-              <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">
-                Oferte, cereri, barter și colaborări directe între membrii comunității.
-              </p>
+              <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">Oferte, cereri, barter și colaborări directe între membrii comunității.</p>
             </div>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            <Button
-              className="rounded-2xl bg-white text-[#173F74] hover:bg-white"
-              onClick={() => router.push("/market/new")}
-            >
-              Publică
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/15"
-              onClick={() => router.push("/deliveries")}
-            >
-              Deschide livrări
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/15"
-              onClick={() => router.push("/orders")}
-            >
-              Comenzile mele
-            </Button>
+            <Button className="rounded-2xl bg-white text-[#173F74] hover:bg-white" onClick={() => router.push("/market/new")}>Publică</Button>
+            <Button variant="outline" className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/deliveries")}>Deschide livrări</Button>
+            <Button variant="outline" className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/orders")}>Comenzile mele</Button>
           </div>
         </div>
 
@@ -491,69 +363,65 @@ export default function MarketPage() {
 
           <CardContent className="space-y-4 pb-24">
             {loading ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Se încarcă postările...
-              </div>
+              <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă postările...</div>
             ) : message ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">{message}</div>
             ) : posts.length === 0 ? (
               <div className="rounded-2xl border p-6">
                 <h3 className="text-lg font-semibold">Încă nu există postări</h3>
-                <p className="mt-2 text-sm text-slate-600">
-                  Fii primul care publică o ofertă sau o cerere în comunitate.
-                </p>
+                <p className="mt-2 text-sm text-slate-600">Fii primul care publică o ofertă sau o cerere în comunitate.</p>
                 <div className="mt-4">
-                  <Button className="rounded-2xl" onClick={() => router.push("/market/new")}>
-                    Creează prima postare
-                  </Button>
+                  <Button className="rounded-2xl" onClick={() => router.push("/market/new")}>Creează prima postare</Button>
                 </div>
               </div>
             ) : (
               posts.map((post) => {
                 const merchantProfile = merchantProfiles[post.author_id] || null
                 const merchantName = merchantProfile?.display_name?.trim() || merchantProfile?.business_name?.trim() || null
+                const linkedItems = linkedItemsByPost[post.id] || []
                 const canOrder = !!merchantProfile && post.post_type === "offer"
+                const isOwner = currentUserId === post.author_id
 
                 return (
                   <div key={post.id} className="rounded-2xl border p-4">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary" className="rounded-xl">
-                        {typeLabel(post.post_type)}
-                      </Badge>
-                      <Badge variant="outline" className="rounded-xl">
-                        {post.category || "General"}
-                      </Badge>
-                      <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
-                        {statusLabel(post.status)}
-                      </Badge>
-                      {merchantProfile ? (
-                        <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">
-                          Comerciant
-                        </Badge>
-                      ) : null}
-                      {merchantProfile?.delivery_available ? (
-                        <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
-                          Livrare disponibilă
-                        </Badge>
-                      ) : null}
+                      <Badge variant="secondary" className="rounded-xl">{typeLabel(post.post_type)}</Badge>
+                      <Badge variant="outline" className="rounded-xl">{post.category || "General"}</Badge>
+                      <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">{statusLabel(post.status)}</Badge>
+                      {merchantProfile ? <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Comerciant</Badge> : null}
+                      {merchantProfile?.delivery_available ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Livrare disponibilă</Badge> : null}
+                      {linkedItems.length ? <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{linkedItems.length} produse</Badge> : null}
                     </div>
 
                     <p className="text-lg font-semibold">{post.title}</p>
-
-                    <p className="mt-2 text-sm text-slate-600">
-                      {post.description?.trim() || "Fără descriere"}
-                    </p>
+                    <p className="mt-2 text-sm text-slate-600">{post.description?.trim() || "Fără descriere"}</p>
 
                     {merchantProfile ? (
                       <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                        <p>
-                          Autor comercial:{" "}
-                          <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span>
-                        </p>
-                        <p className="mt-1">
-                          Categorie merchant:{" "}
-                          <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category)}</span>
-                        </p>
+                        <p>Autor comercial: <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span></p>
+                        <p className="mt-1">Categorie merchant: <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category)}</span></p>
+                      </div>
+                    ) : null}
+
+                    {linkedItems.length ? (
+                      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+                        <p className="text-sm font-medium text-slate-900">Produse afișate în anunț</p>
+                        <div className="mt-3 space-y-2">
+                          {linkedItems.map((item) => (
+                            <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="font-medium text-slate-900">{item.title}</p>
+                                <Badge variant="outline" className="rounded-xl">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
+                              </div>
+                              <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
+                              <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                                <span>Categorie: {item.category || "General"}</span>
+                                <span>•</span>
+                                <span>Stoc: {item.stock_quantity ?? "nelimitat"}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ) : null}
 
@@ -564,19 +432,9 @@ export default function MarketPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-3">
-                      <Button
-                        variant="outline"
-                        className="rounded-2xl"
-                        onClick={() => router.push(`/member/${post.author_id}`)}
-                      >
-                        Vezi profil
-                      </Button>
+                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/member/${post.author_id}`)}>Vezi profil</Button>
 
-                      <Button
-                        className="rounded-2xl"
-                        onClick={() => handleStartChat(post.author_id)}
-                        disabled={busyAuthorId === post.author_id}
-                      >
+                      <Button className="rounded-2xl" onClick={() => handleStartChat(post.author_id)} disabled={busyAuthorId === post.author_id}>
                         {busyAuthorId === post.author_id ? "Se deschide..." : merchantProfile ? "Contactează comerciantul" : "Contactează autorul"}
                       </Button>
 
@@ -584,22 +442,20 @@ export default function MarketPage() {
                         <Button
                           className="rounded-2xl"
                           onClick={() =>
-                            router.push(
-                              `/market/order?market_post_id=${post.id}&merchant_user_id=${post.author_id}&title=${encodeURIComponent(post.title)}&value_text=${encodeURIComponent(post.value_text || "")}&delivery_available=${merchantProfile?.delivery_available ? "true" : "false"}`
-                            )
+                            router.push(`/market/order?market_post_id=${post.id}&merchant_user_id=${post.author_id}&title=${encodeURIComponent(post.title)}&value_text=${encodeURIComponent(post.value_text || "")}&delivery_available=${merchantProfile?.delivery_available ? "true" : "false"}`)
                           }
                         >
                           Comandă
                         </Button>
                       ) : null}
 
-                      <Button
-                        variant="outline"
-                        className="rounded-2xl"
-                        onClick={() =>
-                          router.push(`/deliveries/create?market_post_id=${post.id}&title=${encodeURIComponent(post.title)}`)
-                        }
-                      >
+                      {isOwner && merchantProfile && post.post_type === "offer" ? (
+                        <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/market/link-products?market_post_id=${post.id}`)}>
+                          Leagă produse
+                        </Button>
+                      ) : null}
+
+                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/deliveries/create?market_post_id=${post.id}&title=${encodeURIComponent(post.title)}`)}>
                         Solicită livrare
                       </Button>
                     </div>

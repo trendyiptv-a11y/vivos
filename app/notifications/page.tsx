@@ -37,6 +37,8 @@ function eventBadge(eventType: string) {
   if (eventType === "delivery_completed") return "Livrări"
   if (eventType === "delivery_cancelled") return "Livrări"
   if (eventType === "delivery_review_received") return "Evaluare"
+  if (eventType === "merchant_order_created") return "Comandă"
+  if (eventType === "merchant_order_status_changed") return "Comandă"
   return "Eveniment"
 }
 
@@ -49,6 +51,9 @@ function getStaticNotificationHref(item: NotificationRow) {
   }
   if (item.event_type === "fund_request_created") {
     return "/fund"
+  }
+  if (["merchant_order_created", "merchant_order_status_changed"].includes(item.event_type)) {
+    return "/orders"
   }
   if (
     [

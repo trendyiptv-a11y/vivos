@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as CreateOrderBody
-    const marketPostId = body.marketPostId?.trim()
+    const marketPostId = body.marketPostId?.trim() || null
     const merchantUserId = body.merchantUserId?.trim()
     const title = body.title?.trim()
     const notes = body.notes?.trim() || null
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     const buyerUserId = user.id
     const requestedItems = Array.isArray(body.items) ? body.items : []
 
-    if (!marketPostId || !merchantUserId || !title) {
+    if (!merchantUserId || !title) {
       return NextResponse.json({ error: "Lipsesc datele comenzii." }, { status: 400 })
     }
 

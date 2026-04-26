@@ -302,10 +302,7 @@ export default function MemberPage() {
 
   if (loading) {
     return (
-      <main
-        className="min-h-screen p-6"
-        style={{ background: vivosTheme.gradients.appBackground }}
-      >
+      <main className="min-h-screen p-6" style={{ background: vivosTheme.gradients.appBackground }}>
         <div className="mx-auto max-w-5xl">
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardContent className="p-6">
@@ -319,17 +316,12 @@ export default function MemberPage() {
 
   if (!member) {
     return (
-      <main
-        className="min-h-screen p-6"
-        style={{ background: vivosTheme.gradients.appBackground }}
-      >
+      <main className="min-h-screen p-6" style={{ background: vivosTheme.gradients.appBackground }}>
         <div className="mx-auto max-w-5xl">
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardContent className="space-y-4 p-6">
               <p className="text-sm text-slate-600">{message || "Membrul nu a fost găsit."}</p>
-              <Button className="rounded-2xl" onClick={() => router.push("/")}>
-                Înapoi
-              </Button>
+              <Button className="rounded-2xl" onClick={() => router.push("/")}>Înapoi</Button>
             </CardContent>
           </Card>
         </div>
@@ -337,53 +329,25 @@ export default function MemberPage() {
     )
   }
 
-  const displayName =
-    member.name?.trim() ||
-    member.alias?.trim() ||
-    member.email?.split("@")[0] ||
-    "Membru"
-
-  const skillsList = member.skills
-    ? member.skills.split(",").map((s: string) => s.trim()).filter((s: string) => s.length > 0)
-    : []
-
+  const displayName = member.name?.trim() || member.alias?.trim() || member.email?.split("@")[0] || "Membru"
+  const skillsList = member.skills ? member.skills.split(",").map((s: string) => s.trim()).filter((s: string) => s.length > 0) : []
   const merchantName = merchantProfile?.display_name?.trim() || merchantProfile?.business_name?.trim() || null
   const headerTitle = merchantName || displayName
   const headerSubtitle = merchantName ? displayName : member.email
 
   return (
-    <main
-      className="min-h-screen"
-      style={{ background: vivosTheme.gradients.appBackground }}
-    >
+    <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
       <header
         className="sticky top-0 z-10 border-b backdrop-blur-xl"
-        style={{
-          background: vivosTheme.styles.bottomNav.background,
-          borderColor: vivosTheme.styles.bottomNav.borderColor,
-          boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
-        }}
+        style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}
       >
         <div className="mx-auto flex min-h-[84px] max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p
-              className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
-              style={{ color: "rgba(255,255,255,0.68)" }}
-            >
+            <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>
               {merchantName ? "Magazin comerciant" : "Profil membru"}
             </p>
-            <h1
-              className="truncate text-lg font-semibold sm:text-2xl"
-              style={{ color: vivosTheme.colors.white }}
-            >
-              {headerTitle}
-            </h1>
-            <p
-              className="mt-1 truncate text-sm"
-              style={{ color: "rgba(255,255,255,0.72)" }}
-            >
-              {headerSubtitle}
-            </p>
+            <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>{headerTitle}</h1>
+            <p className="mt-1 truncate text-sm" style={{ color: "rgba(255,255,255,0.72)" }}>{headerSubtitle}</p>
           </div>
 
           <Button
@@ -409,9 +373,7 @@ export default function MemberPage() {
                   <p className="mb-2 text-sm font-medium">Roluri active</p>
                   <div className="flex flex-wrap gap-2">
                     {activeRoleLabels.map((item) => (
-                      <Badge key={item} variant="outline" className="rounded-xl">
-                        {item}
-                      </Badge>
+                      <Badge key={item} variant="outline" className="rounded-xl">{item}</Badge>
                     ))}
                   </div>
                 </div>
@@ -420,17 +382,29 @@ export default function MemberPage() {
                   <p className="mb-2 text-sm font-medium">Competențe</p>
                   <div className="flex flex-wrap gap-2">
                     {(skillsList.length ? skillsList : ["fără competențe completate"]).map((skill, idx) => (
-                      <Badge key={idx} variant="outline" className="rounded-xl">
-                        {skill}
-                      </Badge>
+                      <Badge key={idx} variant="outline" className="rounded-xl">{skill}</Badge>
                     ))}
                   </div>
                 </div>
 
-                {merchantProfile ? (
-                  <div>
-                    <p className="mb-2 text-sm font-medium">Profil comerciant</p>
-                    <div className="space-y-3 rounded-2xl border bg-white p-4 text-sm text-slate-700">
+                <div>
+                  <p className="mb-2 text-sm font-medium">Ce oferă</p>
+                  <div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">{member.offers_summary?.trim() || "Necompletat"}</div>
+                </div>
+
+                <div>
+                  <p className="mb-2 text-sm font-medium">Ce caută</p>
+                  <div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">{member.needs_summary?.trim() || "Necompletat"}</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {merchantProfile ? (
+              <Card className="rounded-3xl border-0 shadow-sm">
+                <CardHeader className="space-y-4">
+                  <CardTitle className="text-2xl">Magazin comerciant</CardTitle>
+                  <div className="rounded-2xl border bg-slate-50 p-4 text-sm text-slate-700">
+                    <div className="space-y-3">
                       <p>
                         Nume comercial: <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span>
                       </p>
@@ -447,47 +421,12 @@ export default function MemberPage() {
                         Program: <span className="font-medium text-slate-900">{merchantProfile.opening_hours?.trim() || "Necompletat"}</span>
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {merchantProfile.delivery_available ? (
-                          <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
-                            Livrare disponibilă
-                          </Badge>
-                        ) : null}
-                        {merchantProfile.pickup_available ? (
-                          <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">
-                            Ridicare disponibilă
-                          </Badge>
-                        ) : null}
+                        {merchantProfile.delivery_available ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Livrare disponibilă</Badge> : null}
+                        {merchantProfile.pickup_available ? <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Ridicare disponibilă</Badge> : null}
                       </div>
                     </div>
                   </div>
-                ) : null}
-
-                <div>
-                  <p className="mb-2 text-sm font-medium">Ce oferă</p>
-                  <div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">
-                    {member.offers_summary?.trim() || "Necompletat"}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium">Ce caută</p>
-                  <div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">
-                    {member.needs_summary?.trim() || "Necompletat"}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {merchantProfile ? (
-              <Card className="rounded-3xl border-0 shadow-sm">
-                <CardHeader className="space-y-4">
-                  <CardTitle className="text-2xl">Magazin comerciant</CardTitle>
-                  <Input
-                    value={catalogSearch}
-                    onChange={(e) => setCatalogSearch(e.target.value)}
-                    className="rounded-2xl"
-                    placeholder="Caută produs în magazin"
-                  />
+                  <Input value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)} className="rounded-2xl" placeholder="Caută produs în magazin" />
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {filteredCatalogItems.length === 0 ? (
@@ -541,9 +480,7 @@ export default function MemberPage() {
 
                 <div className="rounded-2xl border p-4">
                   <p className="text-xs uppercase tracking-wide text-slate-500">Creat la</p>
-                  <p className="mt-1 font-medium text-slate-900">
-                    {member.created_at ? new Date(member.created_at).toLocaleString("ro-RO") : "Necunoscut"}
-                  </p>
+                  <p className="mt-1 font-medium text-slate-900">{member.created_at ? new Date(member.created_at).toLocaleString("ro-RO") : "Necunoscut"}</p>
                 </div>
               </CardContent>
             </Card>

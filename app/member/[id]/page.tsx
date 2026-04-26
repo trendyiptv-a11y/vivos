@@ -46,6 +46,7 @@ type CatalogItemRow = {
   title: string
   description: string | null
   category: string | null
+  image_url: string | null
   price_talanti: number
   stock_quantity: number | null
   unit_label: string | null
@@ -117,7 +118,7 @@ export default function MemberPage() {
           .maybeSingle(),
         supabase
           .from("merchant_catalog_items")
-          .select("id, title, description, category, price_talanti, stock_quantity, unit_label, is_active")
+          .select("id, title, description, category, image_url, price_talanti, stock_quantity, unit_label, is_active")
           .eq("merchant_user_id", memberId)
           .eq("is_active", true)
           .order("created_at", { ascending: false }),
@@ -172,7 +173,7 @@ export default function MemberPage() {
     const query = catalogSearch.trim().toLowerCase()
     if (!query) return catalogItems
     return catalogItems.filter((item) =>
-      [item.title, item.description || "", item.category || "", item.unit_label || ""]
+      [item.title, item.description || "", item.category || "", item.unit_label || "", item.image_url || ""]
         .join(" ")
         .toLowerCase()
         .includes(query)
@@ -424,6 +425,9 @@ export default function MemberPage() {
                         <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
                         <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
                       </div>
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.title} className="mb-3 h-40 w-full rounded-2xl object-cover border" />
+                      ) : null}
                       <p className="text-lg font-semibold">{item.title}</p>
                       <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">

@@ -349,163 +349,128 @@ export default function MemberPage() {
 
       <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 sm:py-6">
         {message ? <div className="mb-6 rounded-2xl border bg-white p-4 text-sm text-slate-700">{message}</div> : null}
-        <div className="grid gap-6 pb-24 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-6">
+        <div className="space-y-6 pb-24">
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl">Profil public intern</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <p className="mb-2 text-sm font-medium">Roluri active</p>
+                <div className="flex flex-wrap gap-2">
+                  {activeRoleLabels.map((item) => (
+                    <Badge key={item} variant="outline" className="rounded-xl">{item}</Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-medium">Competențe</p>
+                <div className="flex flex-wrap gap-2">
+                  {(skillsList.length ? skillsList : ["fără competențe completate"]).map((skill, idx) => (
+                    <Badge key={idx} variant="outline" className="rounded-xl">{skill}</Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-medium">Ce oferă</p>
+                <div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">{member.offers_summary?.trim() || "Necompletat"}</div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-medium">Ce caută</p>
+                <div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">{member.needs_summary?.trim() || "Necompletat"}</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {merchantProfile ? (
             <Card className="rounded-3xl border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-2xl">Profil public intern</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <p className="mb-2 text-sm font-medium">Roluri active</p>
-                  <div className="flex flex-wrap gap-2">
-                    {activeRoleLabels.map((item) => (
-                      <Badge key={item} variant="outline" className="rounded-xl">{item}</Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium">Competențe</p>
-                  <div className="flex flex-wrap gap-2">
-                    {(skillsList.length ? skillsList : ["fără competențe completate"]).map((skill, idx) => (
-                      <Badge key={idx} variant="outline" className="rounded-xl">{skill}</Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium">Ce oferă</p>
-                  <div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">{member.offers_summary?.trim() || "Necompletat"}</div>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium">Ce caută</p>
-                  <div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">{member.needs_summary?.trim() || "Necompletat"}</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {merchantProfile ? (
-              <Card className="rounded-3xl border-0 shadow-sm">
-                <CardHeader className="space-y-4">
-                  <CardTitle className="text-2xl">Magazin comerciant</CardTitle>
-                  <div className="rounded-2xl border bg-slate-50 p-4 text-sm text-slate-700">
-                    <div className="space-y-3">
-                      <p>
-                        Nume comercial: <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span>
-                      </p>
-                      <p>
-                        Categorie: <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category)}</span>
-                      </p>
-                      <p>
-                        Descriere: <span className="font-medium text-slate-900">{merchantProfile.description?.trim() || "Necompletat"}</span>
-                      </p>
-                      <p>
-                        Zonă pickup: <span className="font-medium text-slate-900">{merchantProfile.pickup_area?.trim() || "Necompletat"}</span>
-                      </p>
-                      <p>
-                        Program: <span className="font-medium text-slate-900">{merchantProfile.opening_hours?.trim() || "Necompletat"}</span>
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {merchantProfile.delivery_available ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Livrare disponibilă</Badge> : null}
-                        {merchantProfile.pickup_available ? <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Ridicare disponibilă</Badge> : null}
-                      </div>
+              <CardHeader className="space-y-4">
+                <CardTitle className="text-2xl">Magazin comerciant</CardTitle>
+                <div className="rounded-2xl border bg-slate-50 p-4 text-sm text-slate-700">
+                  <div className="space-y-3">
+                    <p>
+                      Nume comercial: <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span>
+                    </p>
+                    <p>
+                      Categorie: <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category)}</span>
+                    </p>
+                    <p>
+                      Descriere: <span className="font-medium text-slate-900">{merchantProfile.description?.trim() || "Necompletat"}</span>
+                    </p>
+                    <p>
+                      Zonă pickup: <span className="font-medium text-slate-900">{merchantProfile.pickup_area?.trim() || "Necompletat"}</span>
+                    </p>
+                    <p>
+                      Program: <span className="font-medium text-slate-900">{merchantProfile.opening_hours?.trim() || "Necompletat"}</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {merchantProfile.delivery_available ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Livrare disponibilă</Badge> : null}
+                      {merchantProfile.pickup_available ? <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Ridicare disponibilă</Badge> : null}
                     </div>
                   </div>
-                  <Input value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)} className="rounded-2xl" placeholder="Caută produs în magazin" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {filteredCatalogItems.length === 0 ? (
-                    <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu există produse active pentru căutarea curentă.</div>
-                  ) : (
-                    filteredCatalogItems.map((item) => (
-                      <div key={item.id} className="rounded-2xl border p-4">
-                        <div className="mb-2 flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
-                          <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
-                        </div>
-                        <p className="text-lg font-semibold">{item.title}</p>
-                        <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                          <p className="text-xs text-slate-500">Stoc: {item.stock_quantity ?? "nelimitat"}</p>
-                          <div className="w-28">
-                            <Input
-                              type="number"
-                              min={0}
-                              step="1"
-                              value={selectedQuantities[item.id] ?? 0}
-                              onChange={(e) => setSelectedQuantities((prev) => ({ ...prev, [item.id]: Math.max(0, Number(e.target.value || 0)) }))}
-                              className="rounded-2xl"
-                              placeholder="0"
-                            />
-                          </div>
+                </div>
+                <Input value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)} className="rounded-2xl" placeholder="Caută produs în magazin" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {filteredCatalogItems.length === 0 ? (
+                  <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu există produse active pentru căutarea curentă.</div>
+                ) : (
+                  filteredCatalogItems.map((item) => (
+                    <div key={item.id} className="rounded-2xl border p-4">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
+                        <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
+                      </div>
+                      <p className="text-lg font-semibold">{item.title}</p>
+                      <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs text-slate-500">Stoc: {item.stock_quantity ?? "nelimitat"}</p>
+                        <div className="w-28">
+                          <Input
+                            type="number"
+                            min={0}
+                            step="1"
+                            value={selectedQuantities[item.id] ?? 0}
+                            onChange={(e) => setSelectedQuantities((prev) => ({ ...prev, [item.id]: Math.max(0, Number(e.target.value || 0)) }))}
+                            className="rounded-2xl"
+                            placeholder="0"
+                          />
                         </div>
                       </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            ) : null}
-          </div>
+                    </div>
+                  ))
+                )}
 
-          <div className="space-y-6">
-            <Card className="rounded-3xl border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl">Detalii membru</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm text-slate-600">
-                <div className="rounded-2xl border p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Rol principal</p>
-                  <p className="mt-1 font-medium text-slate-900">{member.role || "member"}</p>
+                <div className="rounded-2xl border bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Produse selectate</p>
+                  <p className="mt-1 text-2xl font-semibold text-slate-900">{selectedItems.length}</p>
+                  <p className="mt-2 text-sm text-slate-600">Total estimat: {directOrderTotal.toFixed(2)} talanți</p>
                 </div>
 
-                <div className="rounded-2xl border p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Alias</p>
-                  <p className="mt-1 font-medium text-slate-900">{member.alias?.trim() || "Necompletat"}</p>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Detalii comandă</label>
+                  <textarea
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                    placeholder="Ex: interval orar, detalii variantă, preferințe"
+                  />
                 </div>
 
-                <div className="rounded-2xl border p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Creat la</p>
-                  <p className="mt-1 font-medium text-slate-900">{member.created_at ? new Date(member.created_at).toLocaleString("ro-RO") : "Necunoscut"}</p>
-                </div>
+                <label className="flex items-center gap-3 rounded-2xl border p-4">
+                  <input type="checkbox" checked={deliveryNeeded} onChange={(e) => setDeliveryNeeded(e.target.checked)} />
+                  <span className="text-sm text-slate-700">Am nevoie și de livrare</span>
+                </label>
+
+                <Button className="w-full rounded-2xl" disabled={orderBusy || !selectedItems.length} onClick={handleCreateDirectOrder}>
+                  {orderBusy ? "Se creează comanda..." : "Cumpără din magazin"}
+                </Button>
               </CardContent>
             </Card>
-
-            {merchantProfile ? (
-              <Card className="rounded-3xl border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-xl">Cumpără direct</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="rounded-2xl border bg-slate-50 p-4">
-                    <p className="text-sm text-slate-500">Produse selectate</p>
-                    <p className="mt-1 text-2xl font-semibold text-slate-900">{selectedItems.length}</p>
-                    <p className="mt-2 text-sm text-slate-600">Total estimat: {directOrderTotal.toFixed(2)} talanți</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Detalii comandă</label>
-                    <textarea
-                      value={orderNotes}
-                      onChange={(e) => setOrderNotes(e.target.value)}
-                      className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                      placeholder="Ex: interval orar, detalii variantă, preferințe"
-                    />
-                  </div>
-
-                  <label className="flex items-center gap-3 rounded-2xl border p-4">
-                    <input type="checkbox" checked={deliveryNeeded} onChange={(e) => setDeliveryNeeded(e.target.checked)} />
-                    <span className="text-sm text-slate-700">Am nevoie și de livrare</span>
-                  </label>
-
-                  <Button className="w-full rounded-2xl" disabled={orderBusy || !selectedItems.length} onClick={handleCreateDirectOrder}>
-                    {orderBusy ? "Se creează comanda..." : "Cumpără din magazin"}
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </div>
     </main>

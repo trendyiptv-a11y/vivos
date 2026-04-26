@@ -39,6 +39,7 @@ type LinkedCatalogItem = {
   title: string
   description: string | null
   category: string | null
+  image_url: string | null
   price_talanti: number
   stock_quantity: number | null
   unit_label: string | null
@@ -203,21 +204,13 @@ export default function MarketPage() {
       setBusyDeletePostId(post.id)
       setMessage("")
 
-      const { error: linkDeleteError } = await supabase
-        .from("market_post_item_links")
-        .delete()
-        .eq("market_post_id", post.id)
-
+      const { error: linkDeleteError } = await supabase.from("market_post_item_links").delete().eq("market_post_id", post.id)
       if (linkDeleteError) {
         setMessage(linkDeleteError.message)
         return
       }
 
-      const { error: deleteError } = await supabase
-        .from("market_posts")
-        .delete()
-        .eq("id", post.id)
-        .eq("author_id", post.author_id)
+      const { error: deleteError } = await supabase.from("market_posts").delete().eq("id", post.id).eq("author_id", post.author_id)
 
       if (!deleteError) {
         setPosts((prev) => prev.filter((item) => item.id !== post.id))
@@ -231,12 +224,7 @@ export default function MarketPage() {
       }
 
       if (isReferenceConstraintError(deleteError.message)) {
-        const { error: closeError } = await supabase
-          .from("market_posts")
-          .update({ status: "closed" })
-          .eq("id", post.id)
-          .eq("author_id", post.author_id)
-
+        const { error: closeError } = await supabase.from("market_posts").update({ status: "closed" }).eq("id", post.id).eq("author_id", post.author_id)
         if (closeError) {
           setMessage(closeError.message)
           return
@@ -271,7 +259,6 @@ export default function MarketPage() {
       setMessage("")
 
       const { error } = await supabase.from("market_posts").update({ status: nextStatus }).eq("id", post.id).eq("author_id", post.author_id)
-
       if (error) {
         setMessage(error.message)
         setBusyStatusPostId(null)
@@ -346,7 +333,7 @@ export default function MarketPage() {
       if (postIds.length) {
         const { data: linksData, error: linksError } = await supabase
           .from("market_post_item_links")
-          .select("market_post_id, merchant_catalog_items(id, title, description, category, price_talanti, stock_quantity, unit_label, is_active)")
+          .select("market_post_id, merchant_catalog_items(id, title, description, category, image_url, price_talanti, stock_quantity, unit_label, is_active)")
           .in("market_post_id", postIds)
 
         if (linksError) {
@@ -380,21 +367,13 @@ export default function MarketPage() {
       const linkedItems = linkedItemsByPost[post.id] || []
       const merchantProfile = merchantProfiles[post.author_id]
       const linkedText = linkedItems
-        .map((item) => [item.title, item.description || "", item.category || "", item.unit_label || ""].join(" "))
+        .map((item) => [item.title, item.description || "", item.category || "", item.unit_label || "", item.image_url || ""].join(" "))
         .join(" ")
       const merchantText = merchantProfile
         ? [merchantProfile.display_name || "", merchantProfile.business_name || "", merchantCategoryLabel(merchantProfile.merchant_category)].join(" ")
         : ""
 
-      return [
-        post.title,
-        post.description || "",
-        post.category || "",
-        post.value_text || "",
-        post.location || "",
-        linkedText,
-        merchantText,
-      ]
+      return [post.title, post.description || "", post.category || "", post.value_text || "", post.location || "", linkedText, merchantText]
         .join(" ")
         .toLowerCase()
         .includes(query)
@@ -418,7 +397,6 @@ export default function MarketPage() {
               <button type="button" className="flex h-12 w-12 items-center justify-center rounded-2xl border transition" style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.10)", color: vivosTheme.colors.white }} onClick={() => { window.location.href = "/notifications" }}>
                 <Bell className="h-5 w-5" />
               </button>
-
               {showUnreadBadge && <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white" style={{ background: vivosTheme.colors.purple, boxShadow: vivosTheme.shadows.soft }}>{unreadCount > 99 ? "99+" : unreadCount}</div>}
               {showPublicBadge && <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white" style={{ background: vivosTheme.colors.teal, boxShadow: vivosTheme.shadows.soft }}>{publicPulseCount > 99 ? "99+" : publicPulseCount}</div>}
             </div>
@@ -428,9 +406,7 @@ export default function MarketPage() {
                 <div className="hidden max-w-[180px] truncate rounded-2xl border px-3 py-2 text-sm sm:block" style={{ borderColor: "rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.78)" }}>{userEmail}</div>
                 <div className="relative" ref={profileMenuRef}>
                   <button className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30" onClick={() => setProfileMenuOpen((prev) => !prev)}>
-                    <Avatar className="h-10 w-10 rounded-2xl border border-white/15 shadow-sm">
-                      <AvatarFallback className="rounded-2xl text-white" style={{ background: getVivosAvatarGradient(userEmail) }}>{userEmail.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
+                    <Avatar className="h-10 w-10 rounded-2xl border border-white/15 shadow-sm"><AvatarFallback className="rounded-2xl text-white" style={{ background: getVivosAvatarGradient(userEmail) }}>{userEmail.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
                   </button>
 
                   {profileMenuOpen && (
@@ -455,9 +431,7 @@ export default function MarketPage() {
       <div className="mx-auto max-w-5xl space-y-6 px-4 py-4 sm:px-6 sm:py-6">
         <div className="rounded-3xl bg-gradient-to-br from-[#173F74] via-[#204E8C] to-[#F39A3D] p-5 text-white shadow-sm sm:p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
-              <span className="text-xl font-semibold">P</span>
-            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15"><span className="text-xl font-semibold">P</span></div>
             <div className="min-w-0">
               <h2 className="text-2xl font-semibold sm:text-3xl">Piața comunitară</h2>
               <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">Oferte, cereri, barter și colaborări directe între membrii comunității.</p>
@@ -486,10 +460,7 @@ export default function MarketPage() {
             ) : message ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">{message}</div>
             ) : filteredPosts.length === 0 ? (
-              <div className="rounded-2xl border p-6">
-                <h3 className="text-lg font-semibold">Nu există rezultate</h3>
-                <p className="mt-2 text-sm text-slate-600">Nu am găsit postări sau produse pentru căutarea curentă.</p>
-              </div>
+              <div className="rounded-2xl border p-6"><h3 className="text-lg font-semibold">Nu există rezultate</h3><p className="mt-2 text-sm text-slate-600">Nu am găsit postări sau produse pentru căutarea curentă.</p></div>
             ) : (
               filteredPosts.map((post) => {
                 const merchantProfile = merchantProfiles[post.author_id] || null
@@ -526,16 +497,13 @@ export default function MarketPage() {
                         <div className="mt-3 space-y-2">
                           {linkedItems.map((item) => (
                             <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                              {item.image_url ? <img src={item.image_url} alt={item.title} className="mb-3 h-32 w-full rounded-2xl border bg-white object-contain p-2" /> : null}
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <p className="font-medium text-slate-900">{item.title}</p>
                                 <Badge variant="outline" className="rounded-xl">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
                               </div>
                               <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
-                              <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                                <span>Categorie: {item.category || "General"}</span>
-                                <span>•</span>
-                                <span>Stoc: {item.stock_quantity ?? "nelimitat"}</span>
-                              </div>
+                              <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500"><span>Categorie: {item.category || "General"}</span><span>•</span><span>Stoc: {item.stock_quantity ?? "nelimitat"}</span></div>
                             </div>
                           ))}
                         </div>
@@ -550,38 +518,12 @@ export default function MarketPage() {
 
                     <div className="mt-4 flex flex-wrap gap-3">
                       <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/member/${post.author_id}`)}>Vezi profil</Button>
-
-                      <Button className="rounded-2xl" onClick={() => handleStartChat(post.author_id)} disabled={busyAuthorId === post.author_id}>
-                        {busyAuthorId === post.author_id ? "Se deschide..." : merchantProfile ? "Contactează comerciantul" : "Contactează autorul"}
-                      </Button>
-
-                      {canOrder ? (
-                        <Button className="rounded-2xl" onClick={() => router.push(`/market/order?market_post_id=${post.id}&merchant_user_id=${post.author_id}&title=${encodeURIComponent(post.title)}&value_text=${encodeURIComponent(post.value_text || "")}&delivery_available=${merchantProfile?.delivery_available ? "true" : "false"}`)}>
-                          Comandă
-                        </Button>
-                      ) : null}
-
-                      {isOwner && merchantProfile && post.post_type === "offer" ? (
-                        <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/market/link-products?market_post_id=${post.id}`)}>
-                          Leagă produse
-                        </Button>
-                      ) : null}
-
-                      {isOwner ? (
-                        <Button variant="outline" className="rounded-2xl" disabled={ownerActionBusy} onClick={() => handleTogglePostStatus(post, post.status === "closed" ? "active" : "closed")}>
-                          {ownerActionBusy ? "Se actualizează..." : post.status === "closed" ? "Reactivează" : "Închide"}
-                        </Button>
-                      ) : null}
-
-                      {isOwner ? (
-                        <Button variant="outline" className="rounded-2xl border-red-200 text-red-700 hover:bg-red-50" disabled={busyDeletePostId === post.id} onClick={() => handleDeletePost(post)}>
-                          {busyDeletePostId === post.id ? "Se scoate..." : "Scoate postarea"}
-                        </Button>
-                      ) : null}
-
-                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/deliveries/create?market_post_id=${post.id}&title=${encodeURIComponent(post.title)}`)}>
-                        Solicită livrare
-                      </Button>
+                      <Button className="rounded-2xl" onClick={() => handleStartChat(post.author_id)} disabled={busyAuthorId === post.author_id}>{busyAuthorId === post.author_id ? "Se deschide..." : merchantProfile ? "Contactează comerciantul" : "Contactează autorul"}</Button>
+                      {canOrder ? <Button className="rounded-2xl" onClick={() => router.push(`/market/order?market_post_id=${post.id}&merchant_user_id=${post.author_id}&title=${encodeURIComponent(post.title)}&value_text=${encodeURIComponent(post.value_text || "")}&delivery_available=${merchantProfile?.delivery_available ? "true" : "false"}`)}>Comandă</Button> : null}
+                      {isOwner && merchantProfile && post.post_type === "offer" ? <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/market/link-products?market_post_id=${post.id}`)}>Leagă produse</Button> : null}
+                      {isOwner ? <Button variant="outline" className="rounded-2xl" disabled={ownerActionBusy} onClick={() => handleTogglePostStatus(post, post.status === "closed" ? "active" : "closed")}>{ownerActionBusy ? "Se actualizează..." : post.status === "closed" ? "Reactivează" : "Închide"}</Button> : null}
+                      {isOwner ? <Button variant="outline" className="rounded-2xl border-red-200 text-red-700 hover:bg-red-50" disabled={busyDeletePostId === post.id} onClick={() => handleDeletePost(post)}>{busyDeletePostId === post.id ? "Se scoate..." : "Scoate postarea"}</Button> : null}
+                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/deliveries/create?market_post_id=${post.id}&title=${encodeURIComponent(post.title)}`)}>Solicită livrare</Button>
                     </div>
                   </div>
                 )

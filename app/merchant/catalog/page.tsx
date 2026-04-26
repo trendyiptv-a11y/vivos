@@ -15,6 +15,7 @@ type CatalogItem = {
   title: string
   description: string | null
   category: string | null
+  image_url: string | null
   price_talanti: number
   stock_quantity: number | null
   unit_label: string | null
@@ -27,6 +28,7 @@ type CsvDraftItem = {
   title: string
   description: string | null
   category: string | null
+  image_url: string | null
   price_talanti: number
   stock_quantity: number | null
   unit_label: string | null
@@ -59,6 +61,7 @@ function parseCsv(text: string): CsvDraftItem[] {
         title: cols[idx("title")] || "",
         description: cols[idx("description")] || null,
         category: cols[idx("category")] || null,
+        image_url: cols[idx("image_url")] || null,
         price_talanti: Number(cols[idx("price_talanti")] || 0),
         stock_quantity: cols[idx("stock_quantity")] ? Number(cols[idx("stock_quantity")]) : null,
         unit_label: cols[idx("unit_label")] || "buc",
@@ -70,10 +73,10 @@ function parseCsv(text: string): CsvDraftItem[] {
 
 function templateCsv() {
   return [
-    "title,description,category,price_talanti,stock_quantity,unit_label,is_active",
-    "Filtru ulei,Mann pentru VW,piese auto,20,10,buc,true",
-    "Antigel rosu,G12 1L,consumabile,15,25,buc,true",
-    "Bec H7,12V 55W,electrice,5,40,buc,true",
+    "title,description,category,image_url,price_talanti,stock_quantity,unit_label,is_active",
+    "Filtru ulei,Mann pentru VW,piese auto,https://example.com/filtru-ulei.jpg,20,10,buc,true",
+    "Antigel rosu,G12 1L,consumabile,https://example.com/antigel-rosu.jpg,15,25,buc,true",
+    "Bec H7,12V 55W,electrice,https://example.com/bec-h7.jpg,5,40,buc,true",
   ].join("\n")
 }
 
@@ -93,6 +96,7 @@ export default function MerchantCatalogPage() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [category, setCategory] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
   const [priceTalanti, setPriceTalanti] = useState("")
   const [stockQuantity, setStockQuantity] = useState("")
   const [unitLabel, setUnitLabel] = useState("buc")
@@ -124,7 +128,7 @@ export default function MerchantCatalogPage() {
       supabase.from("member_roles").select("role, is_active").eq("user_id", session.user.id).eq("role", "merchant").eq("is_active", true),
       supabase
         .from("merchant_catalog_items")
-        .select("id, merchant_user_id, title, description, category, price_talanti, stock_quantity, unit_label, is_active, created_at, updated_at")
+        .select("id, merchant_user_id, title, description, category, image_url, price_talanti, stock_quantity, unit_label, is_active, created_at, updated_at")
         .eq("merchant_user_id", session.user.id)
         .order("created_at", { ascending: false }),
     ])
@@ -160,6 +164,7 @@ export default function MerchantCatalogPage() {
     setTitle("")
     setDescription("")
     setCategory("")
+    setImageUrl("")
     setPriceTalanti("")
     setStockQuantity("")
     setUnitLabel("buc")
@@ -196,6 +201,7 @@ export default function MerchantCatalogPage() {
       title: title.trim(),
       description: description.trim() || null,
       category: category.trim() || null,
+      image_url: imageUrl.trim() || null,
       price_talanti: numericPrice,
       stock_quantity: numericStock,
       unit_label: unitLabel.trim() || "buc",
@@ -248,6 +254,7 @@ export default function MerchantCatalogPage() {
       title: item.title.trim(),
       description: item.description?.trim() || null,
       category: item.category?.trim() || null,
+      image_url: item.image_url?.trim() || null,
       price_talanti: Number(item.price_talanti || 0),
       stock_quantity: item.stock_quantity,
       unit_label: item.unit_label?.trim() || "buc",
@@ -286,6 +293,7 @@ export default function MerchantCatalogPage() {
     setTitle(item.title)
     setDescription(item.description || "")
     setCategory(item.category || "")
+    setImageUrl(item.image_url || "")
     setPriceTalanti(String(Number(item.price_talanti)))
     setStockQuantity(item.stock_quantity === null ? "" : String(item.stock_quantity))
     setUnitLabel(item.unit_label || "buc")
@@ -357,7 +365,7 @@ export default function MerchantCatalogPage() {
       if (catalogFilter === "active" && !item.is_active) return false
       if (catalogFilter === "inactive" && item.is_active) return false
       if (!query) return true
-      return [item.title, item.description || "", item.category || "", item.unit_label || ""]
+      return [item.title, item.description || "", item.category || "", item.unit_label || "", item.image_url || ""]
         .join(" ")
         .toLowerCase()
         .includes(query)
@@ -419,19 +427,23 @@ export default function MerchantCatalogPage() {
                     <Input value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-2xl" placeholder="Ex: piese auto" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Preț în talanți</label>
-                    <Input type="number" min="0" step="0.01" value={priceTalanti} onChange={(e) => setPriceTalanti(e.target.value)} className="rounded-2xl" placeholder="Ex: 20" />
+                    <label className="text-sm font-medium">Image URL</label>
+                    <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="rounded-2xl" placeholder="https://.../produs.jpg" />
                   </div>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
+                    <label className="text-sm font-medium">Preț în talanți</label>
+                    <Input type="number" min="0" step="0.01" value={priceTalanti} onChange={(e) => setPriceTalanti(e.target.value)} className="rounded-2xl" placeholder="Ex: 20" />
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-sm font-medium">Stoc</label>
                     <Input type="number" min="0" step="1" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} className="rounded-2xl" placeholder="Ex: 10" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Unitate</label>
-                    <Input value={unitLabel} onChange={(e) => setUnitLabel(e.target.value)} className="rounded-2xl" placeholder="buc" />
-                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Unitate</label>
+                  <Input value={unitLabel} onChange={(e) => setUnitLabel(e.target.value)} className="rounded-2xl" placeholder="buc" />
                 </div>
                 <label className="flex items-center gap-3 rounded-2xl border p-4">
                   <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
@@ -451,6 +463,7 @@ export default function MerchantCatalogPage() {
                 <div className="rounded-2xl border bg-slate-50 p-4 text-sm text-slate-700">
                   <p className="font-medium text-slate-900">Preview import</p>
                   <p className="mt-1">Produse detectate: {csvItems.length}</p>
+                  <p className="mt-1">Coloane suportate: title, description, category, image_url, price_talanti, stock_quantity, unit_label, is_active</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <Button type="button" className="rounded-2xl" disabled={saving || !csvItems.length} onClick={handleImportCsv}>{saving ? "Se importă..." : "Importă produse"}</Button>
@@ -468,7 +481,7 @@ export default function MerchantCatalogPage() {
                   </Button>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="rounded-2xl" placeholder="Caută produs după titlu, categorie sau descriere" />
+                  <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="rounded-2xl" placeholder="Caută produs după titlu, categorie, imagine sau descriere" />
                   <div className="flex gap-2">
                     <Button type="button" variant={catalogFilter === "all" ? "default" : "outline"} className="rounded-2xl" onClick={() => setCatalogFilter("all")}>Toate</Button>
                     <Button type="button" variant={catalogFilter === "active" ? "default" : "outline"} className="rounded-2xl" onClick={() => setCatalogFilter("active")}>Active</Button>
@@ -488,12 +501,16 @@ export default function MerchantCatalogPage() {
                         <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
                         <Badge className={`rounded-xl ${item.is_active ? "bg-emerald-100 text-emerald-900 hover:bg-emerald-100" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>{item.is_active ? "Activ" : "Inactiv"}</Badge>
                       </div>
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.title} className="mb-3 h-32 w-full rounded-2xl object-cover border" />
+                      ) : null}
                       <p className="text-lg font-semibold">{item.title}</p>
                       <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
-                      <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
+                      <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-4">
                         <p>Preț: <span className="font-medium text-slate-900">{Number(item.price_talanti).toFixed(2)} talanți</span></p>
                         <p>Stoc: <span className="font-medium text-slate-900">{item.stock_quantity ?? "nelimitat"}</span></p>
                         <p>Unitate: <span className="font-medium text-slate-900">{item.unit_label || "buc"}</span></p>
+                        <p>Imagine: <span className="font-medium text-slate-900">{item.image_url ? "da" : "nu"}</span></p>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Button type="button" variant="outline" className="rounded-2xl" onClick={() => handleEditItem(item)}>Editează</Button>

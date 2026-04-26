@@ -279,6 +279,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: transactionError.message }, { status: 500 })
     }
 
+    const notificationBody = orderItemsPayload.length > 0
+      ? `${orderItemsPayload.length} produse · ${totalTalanti.toFixed(2)} talanți`
+      : `${orderQuantity} buc · ${totalTalanti.toFixed(2)} talanți`
+
+    const { error: notificationError } = await supabase.from("notifications").insert({
+      user_id: merchantUserId,
+      event_type: "merchant_order_created",
+      title: "Ai primit o comandă nouă",
+      body: notificationBody,
+      ref_id: orderData.id,
+      is_read: false,
+    })
+
     return NextResponse.json({
       ok: true,
       orderId: orderData.id,
@@ -286,6 +299,8 @@ export async function POST(request: Request) {
       heldTalanti: totalTalanti,
       availableTalanti: availableTalanti - totalTalanti,
       itemCount: orderItemsPayload.length,
+      notificationCreated: !notificationError,
+      notificationError: notificationError?.message || null,
     })
   } catch (error: any) {
     return NextResponse.json(

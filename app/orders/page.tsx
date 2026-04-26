@@ -10,7 +10,7 @@ import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 type MerchantOrder = {
   id: string
-  market_post_id: string
+  market_post_id: string | null
   merchant_user_id: string
   buyer_user_id: string
   title: string
@@ -31,6 +31,12 @@ type ProfileLite = {
   name: string | null
   alias: string | null
   email: string | null
+}
+
+type MerchantProfileLite = {
+  user_id: string
+  display_name: string | null
+  business_name: string | null
 }
 
 type OrderFilter = "all" | "buying" | "selling"
@@ -58,6 +64,10 @@ function displayProfile(profile: ProfileLite | null, fallback: string) {
   return profile?.alias?.trim() || profile?.name?.trim() || profile?.email?.split("@")[0] || fallback
 }
 
+function displayMerchant(profile: MerchantProfileLite | null, userProfile: ProfileLite | null, fallback: string) {
+  return profile?.display_name?.trim() || profile?.business_name?.trim() || displayProfile(userProfile, fallback)
+}
+
 function nextMerchantStatuses(order: MerchantOrder): MerchantOrder["status"][] {
   if (order.status === "new") return ["accepted", "cancelled"]
   if (order.status === "accepted") return ["preparing", "cancelled"]
@@ -81,6 +91,7 @@ export default function OrdersPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [orders, setOrders] = useState<MerchantOrder[]>([])
   const [profilesMap, setProfilesMap] = useState<Record<string, ProfileLite>>({})
+  const [merchantProfilesMap, setMerchantProfilesMap] = useState<Record<string, MerchantProfileLite>>({})
   const [filter, setFilter] = useState<OrderFilter>("all")
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null)
 
@@ -116,30 +127,46 @@ export default function OrdersPage() {
       setOrders(loadedOrders)
 
       const userIds = Array.from(new Set(loadedOrders.flatMap((item) => [item.buyer_user_id, item.merchant_user_id]).filter(Boolean)))
+      const merchantUserIds = Array.from(new Set(loadedOrders.map((item) => item.merchant_user_id).filter(Boolean)))
 
       if (!userIds.length) {
         setProfilesMap({})
+        setMerchantProfilesMap({})
         setLoading(false)
         return
       }
 
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, name, alias, email")
-        .in("id", userIds)
+      const [profilesResult, merchantProfilesResult] = await Promise.all([
+        supabase.from("profiles").select("id, name, alias, email").in("id", userIds),
+        merchantUserIds.length
+          ? supabase.from("merchant_profiles").select("user_id, display_name, business_name").in("user_id", merchantUserIds).eq("is_active", true)
+          : Promise.resolve({ data: [], error: null }),
+      ])
 
-      if (profilesError) {
-        setMessage((prev) => prev || profilesError.message)
+      if (profilesResult.error) {
+        setMessage((prev) => prev || profilesResult.error.message)
         setLoading(false)
         return
       }
 
-      const nextProfilesMap = ((profilesData ?? []) as ProfileLite[]).reduce<Record<string, ProfileLite>>((acc, item) => {
+      if (merchantProfilesResult.error) {
+        setMessage((prev) => prev || merchantProfilesResult.error.message)
+        setLoading(false)
+        return
+      }
+
+      const nextProfilesMap = ((profilesResult.data ?? []) as ProfileLite[]).reduce<Record<string, ProfileLite>>((acc, item) => {
         acc[item.id] = item
         return acc
       }, {})
 
+      const nextMerchantProfilesMap = ((merchantProfilesResult.data ?? []) as MerchantProfileLite[]).reduce<Record<string, MerchantProfileLite>>((acc, item) => {
+        acc[item.user_id] = item
+        return acc
+      }, {})
+
       setProfilesMap(nextProfilesMap)
+      setMerchantProfilesMap(nextMerchantProfilesMap)
       setLoading(false)
     }
 
@@ -216,7 +243,7 @@ export default function OrdersPage() {
       if (!currentUserId) return false
       if (filter === "buying") return order.buyer_user_id === currentUserId
       if (filter === "selling") return order.merchant_user_id === currentUserId
-      return true
+      return order.buyer_user_id === currentUserId || order.merchant_user_id === currentUserId
     })
   }, [currentUserId, filter, orders])
 
@@ -256,7 +283,11 @@ export default function OrdersPage() {
                 const isBuyer = currentUserId === order.buyer_user_id
                 const otherPartyId = isBuyer ? order.merchant_user_id : order.buyer_user_id
                 const otherParty = profilesMap[otherPartyId] || null
+                const otherMerchantProfile = isBuyer ? merchantProfilesMap[order.merchant_user_id] || null : null
                 const actionStatuses = isBuyer ? nextBuyerStatuses(order) : nextMerchantStatuses(order)
+                const otherPartyLabel = isBuyer
+                  ? displayMerchant(otherMerchantProfile, otherParty, "Merchant")
+                  : displayProfile(otherParty, "Membru")
 
                 return (
                   <div key={order.id} className="rounded-2xl border p-4">
@@ -276,7 +307,7 @@ export default function OrdersPage() {
                     </div>
 
                     <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                      <p>{isBuyer ? "Merchant" : "Cumpărător"}: <span className="font-medium text-slate-900">{displayProfile(otherParty, "Membru")}</span></p>
+                      <p>{isBuyer ? "Merchant" : "Cumpărător"}: <span className="font-medium text-slate-900">{otherPartyLabel}</span></p>
                       <p className="mt-1">Detalii: <span className="font-medium text-slate-900">{order.notes?.trim() || "Fără detalii suplimentare"}</span></p>
                     </div>
 

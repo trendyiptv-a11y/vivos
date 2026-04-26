@@ -193,6 +193,49 @@ export default function MemberPage() {
     }, 0)
   }, [catalogItems, selectedItems])
 
+  async function sendOrderNotification(targetUserId: string, orderId: string, title: string, body: string) {
+    const { error: notificationError } = await supabase.from("notifications").insert({
+      user_id: targetUserId,
+      event_type: "merchant_order_created",
+      title,
+      body,
+      ref_id: orderId,
+      is_read: false,
+    })
+
+    if (notificationError) {
+      throw new Error(notificationError.message)
+    }
+
+    window.dispatchEvent(new CustomEvent("vivos:notifications-updated"))
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) return
+
+      await fetch("/api/notifications/send-web-push", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          targetUserId,
+          title,
+          body,
+          url: "/orders",
+          eventType: "merchant_order_created",
+          refId: orderId,
+        }),
+      })
+    } catch (pushError) {
+      console.error("Merchant order web push send error:", pushError)
+    }
+  }
+
   async function handleCreateDirectOrder() {
     if (!memberId || !merchantProfile) return
     if (!selectedItems.length) {
@@ -239,14 +282,12 @@ export default function MemberPage() {
         return
       }
 
-      await supabase.from("notifications").insert({
-        user_id: memberId,
-        event_type: "merchant_order_created",
-        title: "Ai primit o comandă nouă",
-        body: `${selectedItems.length} produse · ${directOrderTotal.toFixed(2)} talanți`,
-        ref_id: result.orderId,
-        is_read: false,
-      })
+      await sendOrderNotification(
+        memberId,
+        result.orderId,
+        "Ai primit o comandă nouă",
+        `${selectedItems.length} produse · ${directOrderTotal.toFixed(2)} talanți`
+      )
 
       setSelectedQuantities({})
       setOrderNotes("")

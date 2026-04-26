@@ -307,6 +307,8 @@ export default function MemberPage() {
     : []
 
   const merchantName = merchantProfile?.display_name?.trim() || merchantProfile?.business_name?.trim() || null
+  const headerTitle = merchantName || displayName
+  const headerSubtitle = merchantName ? displayName : member.email
 
   return (
     <main
@@ -327,19 +329,19 @@ export default function MemberPage() {
               className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
               style={{ color: "rgba(255,255,255,0.68)" }}
             >
-              Profil membru
+              {merchantName ? "Magazin comerciant" : "Profil membru"}
             </p>
             <h1
               className="truncate text-lg font-semibold sm:text-2xl"
               style={{ color: vivosTheme.colors.white }}
             >
-              {displayName}
+              {headerTitle}
             </h1>
             <p
               className="mt-1 truncate text-sm"
               style={{ color: "rgba(255,255,255,0.72)" }}
             >
-              {member.email}
+              {headerSubtitle}
             </p>
           </div>
 

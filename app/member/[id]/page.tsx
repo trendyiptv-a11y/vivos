@@ -426,7 +426,7 @@ export default function MemberPage() {
                         <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
                       </div>
                       {item.image_url ? (
-                        <img src={item.image_url} alt={item.title} className="mb-3 h-40 w-full rounded-2xl object-cover border" />
+                        <img src={item.image_url} alt={item.title} className="mb-3 h-40 w-full rounded-2xl border bg-white object-contain p-2" />
                       ) : null}
                       <p className="text-lg font-semibold">{item.title}</p>
                       <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>

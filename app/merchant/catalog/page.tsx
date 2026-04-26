@@ -502,7 +502,7 @@ export default function MerchantCatalogPage() {
                         <Badge className={`rounded-xl ${item.is_active ? "bg-emerald-100 text-emerald-900 hover:bg-emerald-100" : "bg-slate-200 text-slate-700 hover:bg-slate-200"}`}>{item.is_active ? "Activ" : "Inactiv"}</Badge>
                       </div>
                       {item.image_url ? (
-                        <img src={item.image_url} alt={item.title} className="mb-3 h-32 w-full rounded-2xl object-cover border" />
+                        <img src={item.image_url} alt={item.title} className="mb-3 h-40 w-full rounded-2xl border bg-white object-contain p-2" />
                       ) : null}
                       <p className="text-lg font-semibold">{item.title}</p>
                       <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>

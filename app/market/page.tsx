@@ -130,25 +130,9 @@ export default function MarketPage() {
 
     loadTopBarState()
 
-    const notificationsChannel = supabase
-      .channel("market-topbar-notifications")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
-        loadTopBarState()
-      })
-      .subscribe()
-
-    const pulseChannel = supabase
-      .channel("market-topbar-pulse")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "public_activity_feed" }, () => {
-        loadTopBarState()
-      })
-      .subscribe()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      loadTopBarState()
-    })
+    const notificationsChannel = supabase.channel("market-topbar-notifications").on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => { loadTopBarState() }).subscribe()
+    const pulseChannel = supabase.channel("market-topbar-pulse").on("postgres_changes", { event: "INSERT", schema: "public", table: "public_activity_feed" }, () => { loadTopBarState() }).subscribe()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => { loadTopBarState() })
 
     return () => {
       supabase.removeChannel(notificationsChannel)
@@ -160,27 +144,19 @@ export default function MarketPage() {
   async function handleStartChat(otherMemberId: string) {
     try {
       setBusyAuthorId(otherMemberId)
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
+      const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) {
         router.push("/login")
         return
       }
 
       const currentUserId = session.user.id
-
       if (currentUserId === otherMemberId) {
         router.push("/messages")
         return
       }
 
-      const { data, error } = await supabase.rpc("find_or_create_direct_conversation", {
-        other_member_id: otherMemberId,
-      })
-
+      const { data, error } = await supabase.rpc("find_or_create_direct_conversation", { other_member_id: otherMemberId })
       if (error || !data) {
         alert("Nu am putut porni conversația.")
         return
@@ -211,14 +187,9 @@ export default function MarketPage() {
       }
 
       const { error: deleteError } = await supabase.from("market_posts").delete().eq("id", post.id).eq("author_id", post.author_id)
-
       if (!deleteError) {
         setPosts((prev) => prev.filter((item) => item.id !== post.id))
-        setLinkedItemsByPost((prev) => {
-          const next = { ...prev }
-          delete next[post.id]
-          return next
-        })
+        setLinkedItemsByPost((prev) => { const next = { ...prev }; delete next[post.id]; return next })
         setMessage("Postarea a fost scoasă din Piață.")
         return
       }
@@ -231,11 +202,7 @@ export default function MarketPage() {
         }
 
         setPosts((prev) => prev.map((item) => (item.id === post.id ? { ...item, status: "closed" } : item)))
-        setLinkedItemsByPost((prev) => {
-          const next = { ...prev }
-          delete next[post.id]
-          return next
-        })
+        setLinkedItemsByPost((prev) => { const next = { ...prev }; delete next[post.id]; return next })
         setMessage("Postarea avea deja referințe active și a fost scoasă din lista publică prin închidere.")
         return
       }
@@ -280,10 +247,7 @@ export default function MarketPage() {
       setLoading(true)
       setMessage("")
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
+      const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) {
         router.push("/login")
         return
@@ -291,12 +255,7 @@ export default function MarketPage() {
 
       setCurrentUserId(session.user.id)
 
-      const { data, error } = await supabase
-        .from("market_posts")
-        .select("id, author_id, post_type, title, category, description, value_text, location, status, created_at")
-        .neq("status", "closed")
-        .order("created_at", { ascending: false })
-
+      const { data, error } = await supabase.from("market_posts").select("id, author_id, post_type, title, category, description, value_text, location, status, created_at").neq("status", "closed").order("created_at", { ascending: false })
       if (error) {
         setMessage(error.message)
         setPosts([])
@@ -311,19 +270,11 @@ export default function MarketPage() {
       const postIds = loadedPosts.map((post) => post.id)
 
       if (authorIds.length) {
-        const { data: merchantData, error: merchantError } = await supabase
-          .from("merchant_profiles")
-          .select("user_id, display_name, business_name, merchant_category, delivery_available, pickup_available, is_active")
-          .in("user_id", authorIds)
-          .eq("is_active", true)
-
+        const { data: merchantData, error: merchantError } = await supabase.from("merchant_profiles").select("user_id, display_name, business_name, merchant_category, delivery_available, pickup_available, is_active").in("user_id", authorIds).eq("is_active", true)
         if (merchantError) {
           setMessage((prev) => prev || merchantError.message)
         } else {
-          const merchantMap = ((merchantData ?? []) as MerchantProfile[]).reduce<Record<string, MerchantProfile>>((acc, item) => {
-            acc[item.user_id] = item
-            return acc
-          }, {})
+          const merchantMap = ((merchantData ?? []) as MerchantProfile[]).reduce<Record<string, MerchantProfile>>((acc, item) => { acc[item.user_id] = item; return acc }, {})
           setMerchantProfiles(merchantMap)
         }
       } else {
@@ -331,11 +282,7 @@ export default function MarketPage() {
       }
 
       if (postIds.length) {
-        const { data: linksData, error: linksError } = await supabase
-          .from("market_post_item_links")
-          .select("market_post_id, merchant_catalog_items(id, title, description, category, image_url, price_talanti, stock_quantity, unit_label, is_active)")
-          .in("market_post_id", postIds)
-
+        const { data: linksData, error: linksError } = await supabase.from("market_post_item_links").select("market_post_id, merchant_catalog_items(id, title, description, category, image_url, price_talanti, stock_quantity, unit_label, is_active)").in("market_post_id", postIds)
         if (linksError) {
           setMessage((prev) => prev || linksError.message)
           setLinkedItemsByPost({})
@@ -366,17 +313,10 @@ export default function MarketPage() {
     return posts.filter((post) => {
       const linkedItems = linkedItemsByPost[post.id] || []
       const merchantProfile = merchantProfiles[post.author_id]
-      const linkedText = linkedItems
-        .map((item) => [item.title, item.description || "", item.category || "", item.unit_label || "", item.image_url || ""].join(" "))
-        .join(" ")
-      const merchantText = merchantProfile
-        ? [merchantProfile.display_name || "", merchantProfile.business_name || "", merchantCategoryLabel(merchantProfile.merchant_category)].join(" ")
-        : ""
+      const linkedText = linkedItems.map((item) => [item.title, item.description || "", item.category || "", item.unit_label || "", item.image_url || ""].join(" ")).join(" ")
+      const merchantText = merchantProfile ? [merchantProfile.display_name || "", merchantProfile.business_name || "", merchantCategoryLabel(merchantProfile.merchant_category)].join(" ") : ""
 
-      return [post.title, post.description || "", post.category || "", post.value_text || "", post.location || "", linkedText, merchantText]
-        .join(" ")
-        .toLowerCase()
-        .includes(query)
+      return [post.title, post.description || "", post.category || "", post.value_text || "", post.location || "", linkedText, merchantText].join(" ").toLowerCase().includes(query)
     })
   }, [linkedItemsByPost, merchantProfiles, posts, searchTerm])
 
@@ -391,12 +331,9 @@ export default function MarketPage() {
             <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>Platforma comunitară</p>
             <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>Piață</h1>
           </div>
-
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative">
-              <button type="button" className="flex h-12 w-12 items-center justify-center rounded-2xl border transition" style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.10)", color: vivosTheme.colors.white }} onClick={() => { window.location.href = "/notifications" }}>
-                <Bell className="h-5 w-5" />
-              </button>
+              <button type="button" className="flex h-12 w-12 items-center justify-center rounded-2xl border transition" style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.10)", color: vivosTheme.colors.white }} onClick={() => { window.location.href = "/notifications" }}><Bell className="h-5 w-5" /></button>
               {showUnreadBadge && <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white" style={{ background: vivosTheme.colors.purple, boxShadow: vivosTheme.shadows.soft }}>{unreadCount > 99 ? "99+" : unreadCount}</div>}
               {showPublicBadge && <div className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold text-white" style={{ background: vivosTheme.colors.teal, boxShadow: vivosTheme.shadows.soft }}>{publicPulseCount > 99 ? "99+" : publicPulseCount}</div>}
             </div>
@@ -405,20 +342,8 @@ export default function MarketPage() {
               <>
                 <div className="hidden max-w-[180px] truncate rounded-2xl border px-3 py-2 text-sm sm:block" style={{ borderColor: "rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.78)" }}>{userEmail}</div>
                 <div className="relative" ref={profileMenuRef}>
-                  <button className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30" onClick={() => setProfileMenuOpen((prev) => !prev)}>
-                    <Avatar className="h-10 w-10 rounded-2xl border border-white/15 shadow-sm"><AvatarFallback className="rounded-2xl text-white" style={{ background: getVivosAvatarGradient(userEmail) }}>{userEmail.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
-                  </button>
-
-                  {profileMenuOpen && (
-                    <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border p-2 shadow-lg" style={{ background: "rgba(18,46,84,0.98)", borderColor: "rgba(255,255,255,0.10)", boxShadow: vivosTheme.shadows.modal }}>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/profile" }}>Profil</button>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/orders" }}>Comenzile mele</button>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/downloads/manifest.html" }}>Manifest VIVOS</button>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=settings" }}>Setări</button>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=about" }}>Despre</button>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 transition hover:bg-white/10" onClick={async () => { setProfileMenuOpen(false); await supabase.auth.signOut(); window.location.href = "/" }}>Logout</button>
-                    </div>
-                  )}
+                  <button className="rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30" onClick={() => setProfileMenuOpen((prev) => !prev)}><Avatar className="h-10 w-10 rounded-2xl border border-white/15 shadow-sm"><AvatarFallback className="rounded-2xl text-white" style={{ background: getVivosAvatarGradient(userEmail) }}>{userEmail.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar></button>
+                  {profileMenuOpen && <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border p-2 shadow-lg" style={{ background: "rgba(18,46,84,0.98)", borderColor: "rgba(255,255,255,0.10)", boxShadow: vivosTheme.shadows.modal }}><button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/profile" }}>Profil</button><button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/orders" }}>Comenzile mele</button><button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/downloads/manifest.html" }}>Manifest VIVOS</button><button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=settings" }}>Setări</button><button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=about" }}>Despre</button><button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 transition hover:bg-white/10" onClick={async () => { setProfileMenuOpen(false); await supabase.auth.signOut(); window.location.href = "/" }}>Logout</button></div>}
                 </div>
               </>
             ) : (
@@ -430,30 +355,12 @@ export default function MarketPage() {
 
       <div className="mx-auto max-w-5xl space-y-6 px-4 py-4 sm:px-6 sm:py-6">
         <div className="rounded-3xl bg-gradient-to-br from-[#173F74] via-[#204E8C] to-[#F39A3D] p-5 text-white shadow-sm sm:p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15"><span className="text-xl font-semibold">P</span></div>
-            <div className="min-w-0">
-              <h2 className="text-2xl font-semibold sm:text-3xl">Piața comunitară</h2>
-              <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">Oferte, cereri, barter și colaborări directe între membrii comunității.</p>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Button className="rounded-2xl bg-white text-[#173F74] hover:bg-white" onClick={() => router.push("/market/new")}>Publică</Button>
-            <Button variant="outline" className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/deliveries")}>Deschide livrări</Button>
-            <Button variant="outline" className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/orders")}>Comenzile mele</Button>
-          </div>
+          <div className="flex items-start gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15"><span className="text-xl font-semibold">P</span></div><div className="min-w-0"><h2 className="text-2xl font-semibold sm:text-3xl">Piața comunitară</h2><p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">Oferte, cereri, barter și colaborări directe între membrii comunității.</p></div></div>
+          <div className="mt-5 flex flex-wrap gap-3"><Button className="rounded-2xl bg-white text-[#173F74] hover:bg-white" onClick={() => router.push("/market/new")}>Publică</Button><Button variant="outline" className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/deliveries")}>Deschide livrări</Button><Button variant="outline" className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/orders")}>Comenzile mele</Button></div>
         </div>
 
         <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader className="space-y-4">
-            <div className="flex flex-row items-center justify-between">
-              <CardTitle className="text-2xl">Listă postări</CardTitle>
-              <div className="text-sm text-slate-500">{filteredPosts.length} / {posts.length} postări</div>
-            </div>
-            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="rounded-2xl" placeholder="Caută postări sau produse din piață" />
-          </CardHeader>
-
+          <CardHeader className="space-y-4"><div className="flex flex-row items-center justify-between"><CardTitle className="text-2xl">Listă postări</CardTitle><div className="text-sm text-slate-500">{filteredPosts.length} / {posts.length} postări</div></div><Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="rounded-2xl" placeholder="Caută postări sau produse din piață" /></CardHeader>
           <CardContent className="space-y-4 pb-24">
             {loading ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă postările...</div>
@@ -472,24 +379,11 @@ export default function MarketPage() {
 
                 return (
                   <div key={post.id} className="rounded-2xl border p-4">
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary" className="rounded-xl">{typeLabel(post.post_type)}</Badge>
-                      <Badge variant="outline" className="rounded-xl">{post.category || "General"}</Badge>
-                      <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">{statusLabel(post.status)}</Badge>
-                      {merchantProfile ? <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Comerciant</Badge> : null}
-                      {merchantProfile?.delivery_available ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Livrare disponibilă</Badge> : null}
-                      {linkedItems.length ? <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{linkedItems.length} produse</Badge> : null}
-                    </div>
-
+                    <div className="mb-3 flex flex-wrap items-center gap-2"><Badge variant="secondary" className="rounded-xl">{typeLabel(post.post_type)}</Badge><Badge variant="outline" className="rounded-xl">{post.category || "General"}</Badge><Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">{statusLabel(post.status)}</Badge>{merchantProfile ? <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Comerciant</Badge> : null}{merchantProfile?.delivery_available ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Livrare disponibilă</Badge> : null}{linkedItems.length ? <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{linkedItems.length} produse</Badge> : null}</div>
                     <p className="text-lg font-semibold">{post.title}</p>
                     <p className="mt-2 text-sm text-slate-600">{post.description?.trim() || "Fără descriere"}</p>
 
-                    {merchantProfile ? (
-                      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                        <p>Autor comercial: <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span></p>
-                        <p className="mt-1">Categorie merchant: <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category)}</span></p>
-                      </div>
-                    ) : null}
+                    {merchantProfile ? <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"><p>Autor comercial: <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span></p><p className="mt-1">Categorie merchant: <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category)}</span></p></div> : null}
 
                     {linkedItems.length ? (
                       <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
@@ -498,10 +392,7 @@ export default function MarketPage() {
                           {linkedItems.map((item) => (
                             <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                               {item.image_url ? <img src={item.image_url} alt={item.title} className="mb-3 h-32 w-full rounded-2xl border bg-white object-contain p-2" /> : null}
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <p className="font-medium text-slate-900">{item.title}</p>
-                                <Badge variant="outline" className="rounded-xl">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
-                              </div>
+                              <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium text-slate-900">{item.title}</p><Badge variant="outline" className="rounded-xl">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge></div>
                               <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
                               <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500"><span>Categorie: {item.category || "General"}</span><span>•</span><span>Stoc: {item.stock_quantity ?? "nelimitat"}</span></div>
                             </div>
@@ -510,21 +401,8 @@ export default function MarketPage() {
                       </div>
                     ) : null}
 
-                    <div className="mt-3 grid gap-2 text-sm text-slate-500 sm:grid-cols-3">
-                      <p>Locație: {post.location?.trim() || "Necompletat"}</p>
-                      <p>Valoare: {post.value_text?.trim() || "Necompletat"}</p>
-                      <p>Creat la: {new Date(post.created_at).toLocaleString("ro-RO")}</p>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/member/${post.author_id}`)}>Vezi profil</Button>
-                      <Button className="rounded-2xl" onClick={() => handleStartChat(post.author_id)} disabled={busyAuthorId === post.author_id}>{busyAuthorId === post.author_id ? "Se deschide..." : merchantProfile ? "Contactează comerciantul" : "Contactează autorul"}</Button>
-                      {canOrder ? <Button className="rounded-2xl" onClick={() => router.push(`/market/order?market_post_id=${post.id}&merchant_user_id=${post.author_id}&title=${encodeURIComponent(post.title)}&value_text=${encodeURIComponent(post.value_text || "")}&delivery_available=${merchantProfile?.delivery_available ? "true" : "false"}`)}>Comandă</Button> : null}
-                      {isOwner && merchantProfile && post.post_type === "offer" ? <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/market/link-products?market_post_id=${post.id}`)}>Leagă produse</Button> : null}
-                      {isOwner ? <Button variant="outline" className="rounded-2xl" disabled={ownerActionBusy} onClick={() => handleTogglePostStatus(post, post.status === "closed" ? "active" : "closed")}>{ownerActionBusy ? "Se actualizează..." : post.status === "closed" ? "Reactivează" : "Închide"}</Button> : null}
-                      {isOwner ? <Button variant="outline" className="rounded-2xl border-red-200 text-red-700 hover:bg-red-50" disabled={busyDeletePostId === post.id} onClick={() => handleDeletePost(post)}>{busyDeletePostId === post.id ? "Se scoate..." : "Scoate postarea"}</Button> : null}
-                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/deliveries/create?market_post_id=${post.id}&title=${encodeURIComponent(post.title)}`)}>Solicită livrare</Button>
-                    </div>
+                    <div className="mt-3 grid gap-2 text-sm text-slate-500 sm:grid-cols-3"><p>Locație: {post.location?.trim() || "Necompletat"}</p><p>Valoare: {post.value_text?.trim() || "Necompletat"}</p><p>Creat la: {new Date(post.created_at).toLocaleString("ro-RO")}</p></div>
+                    <div className="mt-4 flex flex-wrap gap-3"><Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/member/${post.author_id}`)}>Vezi profil</Button><Button className="rounded-2xl" onClick={() => handleStartChat(post.author_id)} disabled={busyAuthorId === post.author_id}>{busyAuthorId === post.author_id ? "Se deschide..." : merchantProfile ? "Contactează comerciantul" : "Contactează autorul"}</Button>{canOrder ? <Button className="rounded-2xl" onClick={() => router.push(`/market/order?market_post_id=${post.id}&merchant_user_id=${post.author_id}&title=${encodeURIComponent(post.title)}&value_text=${encodeURIComponent(post.value_text || "")}&delivery_available=${merchantProfile?.delivery_available ? "true" : "false"}`)}>Comandă</Button> : null}{isOwner && merchantProfile && post.post_type === "offer" ? <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/market/link-products?market_post_id=${post.id}`)}>Leagă produse</Button> : null}{isOwner ? <Button variant="outline" className="rounded-2xl" disabled={ownerActionBusy} onClick={() => handleTogglePostStatus(post, post.status === "closed" ? "active" : "closed")}>{ownerActionBusy ? "Se actualizează..." : post.status === "closed" ? "Reactivează" : "Închide"}</Button> : null}{isOwner ? <Button variant="outline" className="rounded-2xl border-red-200 text-red-700 hover:bg-red-50" disabled={busyDeletePostId === post.id} onClick={() => handleDeletePost(post)}>{busyDeletePostId === post.id ? "Se scoate..." : "Scoate postarea"}</Button> : null}<Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/deliveries/create?market_post_id=${post.id}&title=${encodeURIComponent(post.title)}`)}>Solicită livrare</Button></div>
                   </div>
                 )
               })

@@ -193,20 +193,7 @@ export default function MemberPage() {
     }, 0)
   }, [catalogItems, selectedItems])
 
-  async function sendOrderNotification(targetUserId: string, orderId: string, title: string, body: string) {
-    const { error: notificationError } = await supabase.from("notifications").insert({
-      user_id: targetUserId,
-      event_type: "merchant_order_created",
-      title,
-      body,
-      ref_id: orderId,
-      is_read: false,
-    })
-
-    if (notificationError) {
-      throw new Error(notificationError.message)
-    }
-
+  async function sendOrderPush(targetUserId: string, orderId: string, title: string, body: string) {
     window.dispatchEvent(new CustomEvent("vivos:notifications-updated"))
 
     try {
@@ -282,7 +269,7 @@ export default function MemberPage() {
         return
       }
 
-      await sendOrderNotification(
+      await sendOrderPush(
         memberId,
         result.orderId,
         "Ai primit o comandă nouă",

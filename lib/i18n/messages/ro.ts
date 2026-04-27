@@ -35,6 +35,7 @@ export const ro = {
     members: "Membri",
     messages: "Mesaje",
     market: "Piață comunitară",
+    deliveries: "Livrări",
     about: "Despre",
     wallet: "Portofel",
     fund: "Fond mutual",

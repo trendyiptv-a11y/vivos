@@ -939,10 +939,10 @@ function MarketScreen({
                     }
                   >
                     {item.status === "in_progress"
-                      ? "În lucru"
+                      ? t("marketPage.statusInProgress")
                       : item.status === "closed"
-                      ? "Închis"
-                      : "Activ"}
+                      ? t("marketPage.statusClosed")
+                      : t("marketPage.statusActive")}
                   </Badge>
                 </div>
 
@@ -985,16 +985,16 @@ function MarketScreen({
 }
 
 function AboutScreen() {
+  const { t } = useI18n()
   return (
     <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-xl sm:text-2xl">Despre VIVOS</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">{t("homePage.about")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-600">
-            VIVOS este o platformă comunitară pentru schimb, sprijin mutual și recunoașterea valorii reale dintre membri.
-            Aici păstrăm și documentele de bază ale comunității.
+            {t("aboutPage.manifestText1")}
           </p>
 
           <div className="grid gap-3 sm:flex sm:flex-row">
@@ -1004,7 +1004,7 @@ function AboutScreen() {
                 window.location.href = "/despre-talant-vivos.html"
               }}
             >
-              Deschide pagina Talantului
+              {t("aboutPage.readFullManifest")}
             </Button>
 
             <Button
@@ -1014,7 +1014,7 @@ function AboutScreen() {
                 window.location.href = "/wallet"
               }}
             >
-              Vezi wallet-ul în talanți
+              {t("aboutPage.installApp")}
             </Button>
           </div>
         </CardContent>
@@ -1058,19 +1058,20 @@ function AboutScreen() {
 }
 
 function WalletScreen() {
+  const { t } = useI18n()
   return (
     <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">Portofel intern</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">{t("walletPage.balanceSummary")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {walletEntries.map((entry, i) => (
               <div key={i} className="flex items-center justify-between rounded-2xl border p-4">
                 <div>
-                  <p className="font-medium">{entry.label}</p>
-                  <p className="text-sm text-slate-500">{entry.meta}</p>
+                  <p className="font-medium">{t(entry.labelKey)}</p>
+                  <p className="text-sm text-slate-500">{t(entry.metaKey)}</p>
                 </div>
                 <p className="text-lg font-semibold">{entry.amount}</p>
               </div>
@@ -1091,6 +1092,7 @@ function FundScreen({
   isLoggedIn: boolean
   onStartChat: (memberId: string) => void
 }) {
+  const { t } = useI18n()
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="rounded-3xl bg-gradient-to-br from-[#173F74] via-[#204E8C] to-[#F6BC3E] p-5 text-white shadow-sm sm:p-6">
@@ -1100,9 +1102,9 @@ function FundScreen({
           </div>
 
           <div className="min-w-0">
-            <h3 className="text-2xl font-semibold sm:text-3xl">Fond mutual de sprijin</h3>
+            <h3 className="text-2xl font-semibold sm:text-3xl">{t("nav.fund")}</h3>
             <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">
-              Cereri reale de sprijin, vizibile comunității și deschise contribuției directe.
+              {t("fundPage.recentRequests")}
             </p>
           </div>
         </div>
@@ -1115,23 +1117,23 @@ function FundScreen({
               window.location.href = isLoggedIn ? "/fund/new" : "/login"
             }}
           >
-            Cere sprijin
+            {t("fundPage.createRequest")}
           </Button>
         </div>
       </div>
 
       <Card className="vivos-card border-0">
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-lg sm:text-xl">Cereri recente</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">{t("fundPage.recentRequests")}</CardTitle>
           <div className="text-sm vivos-muted">{fundRequests.length} cereri</div>
         </CardHeader>
 
         <CardContent className="space-y-4">
           {fundRequests.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 p-6 text-center">
-              <p className="text-base font-medium">Nu există încă cereri în fondul mutual</p>
+              <p className="text-base font-medium">{t("fundPage.noActiveRequests")}</p>
               <p className="mt-2 text-sm vivos-muted">
-                Când apare o nevoie reală, comunitatea o poate vedea și sprijini direct.
+                {t("fundPage.noActiveRequests")}
               </p>
             </div>
           ) : (
@@ -1140,25 +1142,25 @@ function FundScreen({
                 item.author?.name?.trim() ||
                 item.author?.alias?.trim() ||
                 item.author?.email?.trim() ||
-                "Membru comunității"
+                t("roles.member")
 
               const urgencyLabel =
                 item.urgency === "ridicata"
-                  ? "Urgență ridicată"
+                  ? t("fundPage.urgencyHigh")
                   : item.urgency === "medie"
-                  ? "Urgență medie"
-                  : "Urgență scăzută"
+                  ? t("fundPage.urgencyMedium")
+                  : t("fundPage.urgencyLow")
 
               const statusLabel =
                 item.status === "in_review"
-                  ? "În analiză"
+                  ? t("fundPage.statusInReview")
                   : item.status === "approved"
-                  ? "Aprobat"
+                  ? t("fundPage.statusApproved")
                   : item.status === "supported"
-                  ? "Sprijinit"
+                  ? t("fundPage.statusSupported")
                   : item.status === "closed"
-                  ? "Închis"
-                  : "Nou"
+                  ? t("fundPage.statusClosed")
+                  : t("fundPage.statusNew")
 
               return (
                 <div
@@ -1196,22 +1198,22 @@ function FundScreen({
                   </div>
 
                   <p className="text-base font-semibold vivos-title">{item.title}</p>
-                  <p className="mt-1 text-sm vivos-muted">Cerere de la: {authorName}</p>
+                  <p className="mt-1 text-sm vivos-muted">{t("fundPage.requestFrom")}: {authorName}</p>
 
                   <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                      <p className="text-xs uppercase tracking-wide vivos-muted">Sumă</p>
+                      <p className="text-xs uppercase tracking-wide vivos-muted">{t("fundPage.amount")}</p>
                       <p className="mt-1 text-sm font-medium text-[#173F74]">
                         {item.amount_talanti
                           ? `${Number(item.amount_talanti).toFixed(2)} talanți`
-                          : "Fără sumă specificată"}
+                          : t("fundPage.flexibleAmount")}
                       </p>
                     </div>
 
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                      <p className="text-xs uppercase tracking-wide vivos-muted">Data</p>
+                      <p className="text-xs uppercase tracking-wide vivos-muted">{t("homePage.date")}</p>
                       <p className="mt-1 text-sm font-medium text-[#173F74]">
                         {new Date(item.created_at).toLocaleDateString("ro-RO")}
                       </p>
@@ -1224,7 +1226,7 @@ function FundScreen({
                       className="flex-1"
                       onClick={() => onStartChat(item.author_id)}
                     >
-                      Scrie autorului
+                      {t("fundPage.writeToAuthor")}
                     </Button>
 
                     <Button
@@ -1247,7 +1249,7 @@ function FundScreen({
                         window.location.href = `/wallet?${params.toString()}`
                       }}
                     >
-                      Oferă sprijin
+                      {t("fundPage.offerSupport")}
                     </Button>
                   </div>
                 </div>
@@ -1261,18 +1263,19 @@ function FundScreen({
 }
 
 function ArchiveScreen() {
+  const { t } = useI18n()
   return (
     <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">Arhivă și memorie comunitară</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">{t("archivePage.archiveAndProofs")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {archiveItems.map((item, i) => (
             <div key={i} className="rounded-2xl border p-4">
-              <p className="font-medium">{item.title}</p>
+              <p className="font-medium">{t(item.titleKey)}</p>
               <p className="text-sm text-slate-500">
-                {item.type} · {item.date}
+                {t(item.typeKey)} · {item.date}
               </p>
             </div>
           ))}
@@ -1283,15 +1286,16 @@ function ArchiveScreen() {
 }
 
 function GovernanceScreen() {
+  const { t } = useI18n()
   return (
     <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">Guvernanță vie</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">{t("nav.governance")}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-slate-600">
-            Modul de guvernanță rămâne demo în această versiune.
+            {t("governancePage.text1")}
           </p>
         </CardContent>
       </Card>
@@ -1300,15 +1304,16 @@ function GovernanceScreen() {
 }
 
 function SettingsScreen() {
+  const { t } = useI18n()
   return (
     <div className="space-y-4 sm:space-y-6">
       <Card className="rounded-3xl border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">Setări</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">{t("settingsPage.generalSettings")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-600">
-            Activează notificările push pentru a fi anunțat când primești mesaje noi.
+            {t("settingsPage.notificationsText")}
           </p>
 
           <PushSubscribeButton />

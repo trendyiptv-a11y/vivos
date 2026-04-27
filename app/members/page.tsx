@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import LanguageSwitcher from "@/components/LanguageSwitcher"
+import { useI18n } from "@/lib/i18n/provider"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
 
@@ -39,17 +41,13 @@ type MerchantProfileRow = {
 
 type MemberFilter = "all" | "offers" | "needs" | "skills" | "merchant" | "courier"
 
-function merchantCategoryLabel(category: MerchantProfileRow["merchant_category"]) {
-  if (category === "local_shop") return "Magazin local"
-  if (category === "artisan") return "Artizan"
-  if (category === "food") return "Food"
-  if (category === "auto_parts") return "Piese auto"
-  if (category === "services") return "Servicii"
-  return "Altceva"
+function merchantCategoryLabel(category: MerchantProfileRow["merchant_category"], t: (key: string) => string) {
+  return t(`merchantCategories.${category}`)
 }
 
 export default function MembersPage() {
   const router = useRouter()
+  const { t } = useI18n()
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState("")
   const [members, setMembers] = useState<ProfileMember[]>([])
@@ -225,55 +223,58 @@ export default function MembersPage() {
         <div className="mx-auto flex min-h-[84px] max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>
-              Registru comunitar
+              {t("membersPage.communityRegister")}
             </p>
             <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>
-              Membri
+              {t("membersPage.title")}
             </h1>
           </div>
 
-          <Button
-            variant="outline"
-            className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15"
-            onClick={() => router.push("/")}
-          >
-            Înapoi
-          </Button>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <Button
+              variant="outline"
+              className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15"
+              onClick={() => router.push("/")}
+            >
+              {t("common.back")}
+            </Button>
+          </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-5xl space-y-6 px-4 py-4 sm:px-6 sm:py-6">
         <Card className="rounded-3xl border-0 shadow-sm">
           <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-xl">Registrul membrilor</CardTitle>
-            <div className="text-sm text-slate-500">{filteredMembers.length} membri</div>
+            <CardTitle className="text-xl">{t("membersPage.registry")}</CardTitle>
+            <div className="text-sm text-slate-500">{filteredMembers.length} {t("membersPage.count")}</div>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Caută după nume, alias, email, skill sau profil comercial"
+              placeholder={t("membersPage.searchPlaceholder")}
               className="rounded-2xl"
             />
 
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant={filter === "all" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("all")}>Toți</Button>
-              <Button type="button" variant={filter === "offers" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("offers")}>Cu oferte</Button>
-              <Button type="button" variant={filter === "needs" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("needs")}>Cu nevoi</Button>
-              <Button type="button" variant={filter === "skills" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("skills")}>Cu skill-uri</Button>
-              <Button type="button" variant={filter === "merchant" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("merchant")}>Comercianți</Button>
-              <Button type="button" variant={filter === "courier" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("courier")}>Curieri</Button>
+              <Button type="button" variant={filter === "all" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("all")}>{t("common.all")}</Button>
+              <Button type="button" variant={filter === "offers" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("offers")}>{t("membersPage.withOffers")}</Button>
+              <Button type="button" variant={filter === "needs" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("needs")}>{t("membersPage.withNeeds")}</Button>
+              <Button type="button" variant={filter === "skills" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("skills")}>{t("membersPage.withSkills")}</Button>
+              <Button type="button" variant={filter === "merchant" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("merchant")}>{t("membersPage.merchants")}</Button>
+              <Button type="button" variant={filter === "courier" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("courier")}>{t("membersPage.couriers")}</Button>
             </div>
 
             {loading ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă membrii...</div>
+              <div className="rounded-2xl border p-4 text-sm text-slate-600">{t("membersPage.loadingMembers")}</div>
             ) : message ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">{message}</div>
             ) : filteredMembers.length === 0 ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu există membri care să corespundă căutării sau filtrului selectat.</div>
+              <div className="rounded-2xl border p-4 text-sm text-slate-600">{t("membersPage.noResults")}</div>
             ) : (
               filteredMembers.map((member) => {
-                const displayName = member.name?.trim() || member.alias?.trim() || member.email?.split("@")[0] || "Membru"
+                const displayName = member.name?.trim() || member.alias?.trim() || member.email?.split("@")[0] || t("roles.member")
                 const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
                 const skillsList = member.skills ? member.skills.split(",").map((s) => s.trim()).filter(Boolean) : []
                 const roles = memberRolesMap[member.id] || [member.role || "member"]
@@ -292,10 +293,10 @@ export default function MembersPage() {
                           <p className="font-medium">{displayName}</p>
                           <p className="truncate text-sm text-slate-500">{member.email}</p>
                           <div className="mt-2 flex flex-wrap gap-2">
-                            {roles.includes("merchant") ? <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Comerciant</Badge> : null}
-                            {roles.includes("courier") ? <Badge className="rounded-xl bg-sky-100 text-sky-900 hover:bg-sky-100">Curier</Badge> : null}
-                            {merchantProfile?.delivery_available ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Livrare disponibilă</Badge> : null}
-                            {(skillsList.length ? skillsList : ["fără competențe completate"]).map((skill, idx) => (
+                            {roles.includes("merchant") ? <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">{t("membersPage.merchants")}</Badge> : null}
+                            {roles.includes("courier") ? <Badge className="rounded-xl bg-sky-100 text-sky-900 hover:bg-sky-100">{t("membersPage.couriers")}</Badge> : null}
+                            {merchantProfile?.delivery_available ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">{t("memberPage.deliveryAvailable")}</Badge> : null}
+                            {(skillsList.length ? skillsList : [t("common.notCompleted")]).map((skill, idx) => (
                               <Badge key={idx} variant="outline" className="rounded-xl">{skill}</Badge>
                             ))}
                           </div>
@@ -305,33 +306,33 @@ export default function MembersPage() {
                       {merchantProfile ? (
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                           <p>
-                            Profil comerciant: <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span>
+                            {t("membersPage.merchantProfile")}: <span className="font-medium text-slate-900">{merchantName || t("membersPage.merchantProfileActive")}</span>
                           </p>
                           <p className="mt-1">
-                            Categorie: <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category)}</span>
+                            {t("membersPage.category")}: <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category, t)}</span>
                           </p>
                         </div>
                       ) : null}
 
                       <div className="grid gap-2 text-sm text-slate-600">
                         <p>
-                          Rol principal: <span className="font-medium text-slate-900">{member.role || "member"}</span>
+                          {t("roles.mainRole")}: <span className="font-medium text-slate-900">{member.role || "member"}</span>
                         </p>
                         <p>
-                          Oferă: <span className="font-medium text-slate-900">{member.offers_summary?.trim() || "necompletat"}</span>
+                          {t("membersPage.offers")}: <span className="font-medium text-slate-900">{member.offers_summary?.trim() || t("common.notCompleted")}</span>
                         </p>
                         <p>
-                          Caută: <span className="font-medium text-slate-900">{member.needs_summary?.trim() || "necompletat"}</span>
+                          {t("membersPage.needs")}: <span className="font-medium text-slate-900">{member.needs_summary?.trim() || t("common.notCompleted")}</span>
                         </p>
                       </div>
                     </div>
 
                     <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
                       <Button variant="outline" className="rounded-2xl" onClick={(e) => { e.stopPropagation(); router.push(`/member/${member.id}`) }}>
-                        Vezi profil
+                        {t("membersPage.openProfile")}
                       </Button>
                       <Button variant="outline" className="rounded-2xl" onClick={(e) => { e.stopPropagation(); handleStartChat(member.id) }}>
-                        Trimite mesaj
+                        {t("membersPage.sendMessage")}
                       </Button>
                     </div>
                   </div>

@@ -43,6 +43,14 @@ export const ro = {
     governance: "Guvernanță",
     settings: "Setări",
   },
+  mobileNav: {
+    dashboard: "Acasă",
+    members: "Membri",
+    messages: "Mesaje",
+    market: "Piață",
+    deliveries: "Livrări",
+    wallet: "Portofel",
+  },
   homePage: {
     platform: "Platforma comunitară",
     communitySpace: "Spațiu comunitar",

@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { motion, AnimatePresence } from "framer-motion"
+import { useI18n } from "@/lib/i18n/provider"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 type NotificationCountRow = {
@@ -34,12 +35,12 @@ type DeliveryReviewBadgeRow = {
 }
 
 const items = [
-  { label: "Acasă", href: "/", tab: null, icon: Home, eventTypes: ["user_registered"] },
-  { label: "Membri", href: "/", tab: "members", icon: Users, eventTypes: [] },
-  { label: "Mesaje", href: "/messages", tab: null, icon: MessageCircle, eventTypes: ["new_message"] },
-  { label: "Piață", href: "/market", tab: null, icon: ShoppingBag, eventTypes: ["market_post_created"] },
+  { labelKey: "nav.dashboard", href: "/", tab: null, icon: Home, eventTypes: ["user_registered"] },
+  { labelKey: "nav.members", href: "/", tab: "members", icon: Users, eventTypes: [] },
+  { labelKey: "nav.messages", href: "/messages", tab: null, icon: MessageCircle, eventTypes: ["new_message"] },
+  { labelKey: "nav.market", href: "/market", tab: null, icon: ShoppingBag, eventTypes: ["market_post_created"] },
   {
-    label: "Livrări",
+    labelKey: "nav.deliveries",
     href: "/deliveries",
     tab: null,
     icon: Package,
@@ -52,8 +53,8 @@ const items = [
       "delivery_review_received",
     ],
   },
-  { label: "Portofel", href: "/wallet", tab: null, icon: Wallet, eventTypes: [] },
-]
+  { labelKey: "nav.wallet", href: "/wallet", tab: null, icon: Wallet, eventTypes: [] },
+] as const
 
 function BadgeBubble({ count }: { count: number }) {
   return (
@@ -84,6 +85,7 @@ function MobileBottomNavInner() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const currentTab = searchParams.get("tab")
+  const { t } = useI18n()
 
   const [badges, setBadges] = useState<Record<string, number>>({})
   const [deliveryNeedsActionCount, setDeliveryNeedsActionCount] = useState(0)
@@ -307,7 +309,7 @@ function MobileBottomNavInner() {
                   color: active ? vivosTheme.colors.white : vivosTheme.colors.textMuted,
                 }}
               >
-                {item.label}
+                {t(item.labelKey)}
               </span>
             </button>
           )

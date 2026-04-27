@@ -25,17 +25,49 @@ export const homeNavItems = [
 ] as const
 
 export const homeWalletEntries = [
-  { label: "Schimb confirmat", amount: "+120", meta: "Reparații electrice" },
-  { label: "Contribuție fond mutual", amount: "-30", meta: "Contribuție lunară" },
-  { label: "Recompensă implicare", amount: "+25", meta: "Moderare comunitară" },
-  { label: "Sprijin primit", amount: "+90", meta: "Transport medical" },
+  {
+    labelKey: "walletPage.entryConfirmedExchange",
+    amount: "+120",
+    metaKey: "walletPage.metaElectricalRepairs",
+  },
+  {
+    labelKey: "walletPage.entryFundContribution",
+    amount: "-30",
+    metaKey: "walletPage.metaMonthlyContribution",
+  },
+  {
+    labelKey: "walletPage.entryInvolvementReward",
+    amount: "+25",
+    metaKey: "walletPage.metaCommunityModeration",
+  },
+  {
+    labelKey: "walletPage.entrySupportReceived",
+    amount: "+90",
+    metaKey: "walletPage.metaMedicalTransport",
+  },
 ] as const
 
 export const homeArchiveItems = [
-  { title: "Decizie #14 — criterii fond mutual", type: "Hotărâre", date: "28 mar 2026" },
-  { title: "Raport lunar martie 2026", type: "Raport", date: "27 mar 2026" },
-  { title: "Actualizare regulament barter", type: "Regulă", date: "25 mar 2026" },
-  { title: "Timestamp registru contribuții", type: "Dovadă", date: "24 mar 2026" },
+  {
+    titleKey: "archivePage.itemDecision14",
+    typeKey: "archivePage.typeDecision",
+    date: "28 mar 2026",
+  },
+  {
+    titleKey: "archivePage.itemMarchReport",
+    typeKey: "archivePage.typeReport",
+    date: "27 mar 2026",
+  },
+  {
+    titleKey: "archivePage.itemBarterUpdate",
+    typeKey: "archivePage.typeRule",
+    date: "25 mar 2026",
+  },
+  {
+    titleKey: "archivePage.itemTimestampRegistry",
+    typeKey: "archivePage.typeProof",
+    date: "24 mar 2026",
+  },
 ] as const
 
 export type HomeNavItem = (typeof homeNavItems)[number]

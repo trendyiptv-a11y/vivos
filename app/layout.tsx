@@ -12,6 +12,7 @@ import GlobalPresence from "@/components/GlobalPresence"
 import DeliveryChatContextBanner from "@/components/DeliveryChatContextBanner"
 import HomeMembersTabRedirect from "@/components/HomeMembersTabRedirect"
 import MainPageSearchBridge from "@/components/MainPageSearchBridge"
+import { I18nProvider } from "@/lib/i18n/provider"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
 
 export const metadata: Metadata = {
@@ -45,24 +46,26 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           color: vivosTheme.colors.textPrimary,
         }}
       >
-        <ServiceWorkerRegister />
-        <GlobalPresence />
-        <NativeRuntimeBridge />
-        <NativePushSetup />
-        <WebPushSetup />
-        <Suspense fallback={null}>
-          <HomeMembersTabRedirect />
-          <MainPageSearchBridge />
-        </Suspense>
-        <NativeHapticsBridge />
-        <InAppPushBanner />
-        <DeliveryChatContextBanner />
+        <I18nProvider>
+          <ServiceWorkerRegister />
+          <GlobalPresence />
+          <NativeRuntimeBridge />
+          <NativePushSetup />
+          <WebPushSetup />
+          <Suspense fallback={null}>
+            <HomeMembersTabRedirect />
+            <MainPageSearchBridge />
+          </Suspense>
+          <NativeHapticsBridge />
+          <InAppPushBanner />
+          <DeliveryChatContextBanner />
 
-        <div className="relative min-h-screen pb-24 md:pb-0">
-          {children}
-        </div>
+          <div className="relative min-h-screen pb-24 md:pb-0">
+            {children}
+          </div>
 
-        <MobileBottomNav />
+          <MobileBottomNav />
+        </I18nProvider>
       </body>
     </html>
   )

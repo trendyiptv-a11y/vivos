@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import LanguageSwitcher from "@/components/LanguageSwitcher"
+import { useI18n } from "@/lib/i18n/provider"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
 
@@ -56,24 +58,20 @@ type CatalogItemRow = {
 type CatalogSort = "newest" | "price_asc" | "price_desc" | "title_asc"
 type StockFilter = "all" | "in_stock" | "out_of_stock"
 
-function merchantCategoryLabel(category: MerchantProfileRow["merchant_category"]) {
-  if (category === "local_shop") return "Magazin local"
-  if (category === "artisan") return "Artizan"
-  if (category === "food") return "Food"
-  if (category === "auto_parts") return "Piese auto"
-  if (category === "services") return "Servicii"
-  return "Altceva"
+function merchantCategoryLabel(category: MerchantProfileRow["merchant_category"], t: (key: string) => string) {
+  return t(`merchantCategories.${category}`)
 }
 
-function roleLabel(role: MemberRoleRow["role"]) {
-  if (role === "merchant") return "Comerciant"
-  if (role === "courier") return "Curier"
-  return "Membru"
+function roleLabel(role: MemberRoleRow["role"], t: (key: string) => string) {
+  if (role === "merchant") return t("roles.merchant")
+  if (role === "courier") return t("roles.courier")
+  return t("roles.member")
 }
 
 export default function MemberPage() {
   const params = useParams()
   const router = useRouter()
+  const { t } = useI18n()
   const memberId = params?.id as string
 
   const [loading, setLoading] = useState(true)
@@ -131,7 +129,7 @@ export default function MemberPage() {
       ])
 
       if (profileResult.error || !profileResult.data) {
-        setMessage("Membrul nu a fost găsit.")
+        setMessage(t("memberPage.memberNotFound"))
         setLoading(false)
         return
       }
@@ -165,15 +163,15 @@ export default function MemberPage() {
     if (memberId) {
       loadMember()
     }
-  }, [memberId, router])
+  }, [memberId, router, t])
 
   const activeRoleLabels = useMemo(() => {
     if (memberRoles.length) {
-      return memberRoles.map((item) => roleLabel(item.role))
+      return memberRoles.map((item) => roleLabel(item.role, t))
     }
 
-    return [member?.role?.trim() || "Membru"]
-  }, [member, memberRoles])
+    return [member?.role?.trim() || t("roles.member")]
+  }, [member, memberRoles, t])
 
   const categoryOptions = useMemo(() => {
     return Array.from(new Set(catalogItems.map((item) => item.category?.trim()).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "ro"))
@@ -258,7 +256,7 @@ export default function MemberPage() {
   async function handleCreateDirectOrder() {
     if (!memberId || !merchantProfile) return
     if (!selectedItems.length) {
-      setMessage("Selectează cel puțin un produs din magazin.")
+      setMessage(t("memberPage.selectAtLeastOneProduct"))
       return
     }
 
@@ -275,7 +273,7 @@ export default function MemberPage() {
         return
       }
 
-      const displayStoreName = merchantProfile.display_name?.trim() || merchantProfile.business_name?.trim() || "Magazin comerciant"
+      const displayStoreName = merchantProfile.display_name?.trim() || merchantProfile.business_name?.trim() || t("memberPage.storeTitle")
 
       const response = await fetch("/api/orders/create-with-hold", {
         method: "POST",
@@ -285,7 +283,7 @@ export default function MemberPage() {
         },
         body: JSON.stringify({
           merchantUserId: memberId,
-          title: `Comandă directă · ${displayStoreName}`,
+          title: `Order direct · ${displayStoreName}`,
           totalTalanti: directOrderTotal,
           notes: orderNotes,
           deliveryNeeded,
@@ -296,19 +294,19 @@ export default function MemberPage() {
       const result = await response.json().catch(() => null)
 
       if (!response.ok || !result?.orderId) {
-        setMessage(result?.error || "Comanda nu a putut fi creată.")
+        setMessage(result?.error || t("memberPage.orderCouldNotBeCreated"))
         setOrderBusy(false)
         return
       }
 
-      await sendOrderPush(memberId, result.orderId, "Ai primit o comandă nouă", `${selectedItems.length} produse · ${directOrderTotal.toFixed(2)} talanți`)
+      await sendOrderPush(memberId, result.orderId, t("memberPage.newOrderReceived"), `${selectedItems.length} ${t("memberPage.products")} · ${directOrderTotal.toFixed(2)} talanți`)
 
       setSelectedQuantities({})
       setOrderNotes("")
-      setMessage("Comanda directă a fost creată cu succes.")
+      setMessage(t("memberPage.orderCreatedSuccess"))
       router.push("/orders")
     } catch (error: any) {
-      setMessage(error?.message || "Comanda nu a putut fi creată.")
+      setMessage(error?.message || t("memberPage.orderCouldNotBeCreated"))
     } finally {
       setOrderBusy(false)
     }
@@ -318,7 +316,7 @@ export default function MemberPage() {
     return (
       <main className="min-h-screen p-6" style={{ background: vivosTheme.gradients.appBackground }}>
         <div className="mx-auto max-w-5xl">
-          <Card className="rounded-3xl border-0 shadow-sm"><CardContent className="p-6"><p className="text-sm text-slate-600">Se încarcă profilul membrului...</p></CardContent></Card>
+          <Card className="rounded-3xl border-0 shadow-sm"><CardContent className="p-6"><p className="text-sm text-slate-600">{t("memberPage.loadingMemberProfile")}</p></CardContent></Card>
         </div>
       </main>
     )
@@ -328,13 +326,13 @@ export default function MemberPage() {
     return (
       <main className="min-h-screen p-6" style={{ background: vivosTheme.gradients.appBackground }}>
         <div className="mx-auto max-w-5xl">
-          <Card className="rounded-3xl border-0 shadow-sm"><CardContent className="space-y-4 p-6"><p className="text-sm text-slate-600">{message || "Membrul nu a fost găsit."}</p><Button className="rounded-2xl" onClick={() => router.push("/")}>Înapoi</Button></CardContent></Card>
+          <Card className="rounded-3xl border-0 shadow-sm"><CardContent className="space-y-4 p-6"><p className="text-sm text-slate-600">{message || t("memberPage.memberNotFound")}</p><Button className="rounded-2xl" onClick={() => router.push("/")}>{t("common.back")}</Button></CardContent></Card>
         </div>
       </main>
     )
   }
 
-  const displayName = member.name?.trim() || member.alias?.trim() || member.email?.split("@")[0] || "Membru"
+  const displayName = member.name?.trim() || member.alias?.trim() || member.email?.split("@")[0] || t("roles.member")
   const skillsList = member.skills ? member.skills.split(",").map((s: string) => s.trim()).filter((s: string) => s.length > 0) : []
   const merchantName = merchantProfile?.display_name?.trim() || merchantProfile?.business_name?.trim() || null
   const headerTitle = merchantName || displayName
@@ -345,11 +343,14 @@ export default function MemberPage() {
       <header className="sticky top-0 z-10 border-b backdrop-blur-xl" style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}>
         <div className="mx-auto flex min-h-[84px] max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>{merchantName ? "Magazin comerciant" : "Profil membru"}</p>
+            <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>{merchantName ? t("memberPage.storeTitle") : t("memberPage.memberProfile")}</p>
             <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>{headerTitle}</h1>
             <p className="mt-1 truncate text-sm" style={{ color: "rgba(255,255,255,0.72)" }}>{headerSubtitle}</p>
           </div>
-          <Button variant="outline" className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/")}>Înapoi la membri</Button>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <Button variant="outline" className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/")}>{t("common.backToMembers")}</Button>
+          </div>
         </div>
       </header>
 
@@ -357,77 +358,77 @@ export default function MemberPage() {
         {message ? <div className="mb-6 rounded-2xl border bg-white p-4 text-sm text-slate-700">{message}</div> : null}
         <div className="space-y-6 pb-24">
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-2xl">Profil public intern</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-2xl">{t("memberPage.publicInternalProfile")}</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              <div><p className="mb-2 text-sm font-medium">Roluri active</p><div className="flex flex-wrap gap-2">{activeRoleLabels.map((item) => (<Badge key={item} variant="outline" className="rounded-xl">{item}</Badge>))}</div></div>
-              <div><p className="mb-2 text-sm font-medium">Competențe</p><div className="flex flex-wrap gap-2">{(skillsList.length ? skillsList : ["fără competențe completate"]).map((skill, idx) => (<Badge key={idx} variant="outline" className="rounded-xl">{skill}</Badge>))}</div></div>
-              <div><p className="mb-2 text-sm font-medium">Ce oferă</p><div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">{member.offers_summary?.trim() || "Necompletat"}</div></div>
-              <div><p className="mb-2 text-sm font-medium">Ce caută</p><div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">{member.needs_summary?.trim() || "Necompletat"}</div></div>
+              <div><p className="mb-2 text-sm font-medium">{t("roles.activeRoles")}</p><div className="flex flex-wrap gap-2">{activeRoleLabels.map((item) => (<Badge key={item} variant="outline" className="rounded-xl">{item}</Badge>))}</div></div>
+              <div><p className="mb-2 text-sm font-medium">{t("memberPage.skills")}</p><div className="flex flex-wrap gap-2">{(skillsList.length ? skillsList : [t("common.notCompleted")]).map((skill, idx) => (<Badge key={idx} variant="outline" className="rounded-xl">{skill}</Badge>))}</div></div>
+              <div><p className="mb-2 text-sm font-medium">{t("memberPage.offers")}</p><div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">{member.offers_summary?.trim() || t("common.notCompleted")}</div></div>
+              <div><p className="mb-2 text-sm font-medium">{t("memberPage.needs")}</p><div className="rounded-2xl border bg-white p-4 text-sm text-slate-700">{member.needs_summary?.trim() || t("common.notCompleted")}</div></div>
             </CardContent>
           </Card>
 
           {merchantProfile ? (
             <Card className="rounded-3xl border-0 shadow-sm">
               <CardHeader className="space-y-4">
-                <CardTitle className="text-2xl">Magazin comerciant</CardTitle>
+                <CardTitle className="text-2xl">{t("memberPage.storeTitle")}</CardTitle>
                 <div className="rounded-2xl border bg-slate-50 p-4 text-sm text-slate-700">
                   <div className="space-y-3">
-                    <p>Nume comercial: <span className="font-medium text-slate-900">{merchantName || "Profil comerciant activ"}</span></p>
-                    <p>Categorie: <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category)}</span></p>
-                    <p>Descriere: <span className="font-medium text-slate-900">{merchantProfile.description?.trim() || "Necompletat"}</span></p>
-                    <p>Zonă pickup: <span className="font-medium text-slate-900">{merchantProfile.pickup_area?.trim() || "Necompletat"}</span></p>
-                    <p>Program: <span className="font-medium text-slate-900">{merchantProfile.opening_hours?.trim() || "Necompletat"}</span></p>
+                    <p>{t("memberPage.commercialName")}: <span className="font-medium text-slate-900">{merchantName || t("membersPage.merchantProfileActive")}</span></p>
+                    <p>{t("memberPage.category")}: <span className="font-medium text-slate-900">{merchantCategoryLabel(merchantProfile.merchant_category, t)}</span></p>
+                    <p>{t("memberPage.description")}: <span className="font-medium text-slate-900">{merchantProfile.description?.trim() || t("common.notCompleted")}</span></p>
+                    <p>{t("memberPage.pickupArea")}: <span className="font-medium text-slate-900">{merchantProfile.pickup_area?.trim() || t("common.notCompleted")}</span></p>
+                    <p>{t("memberPage.openingHours")}: <span className="font-medium text-slate-900">{merchantProfile.opening_hours?.trim() || t("common.notCompleted")}</span></p>
                     <div className="flex flex-wrap gap-2">
-                      {merchantProfile.delivery_available ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Livrare disponibilă</Badge> : null}
-                      {merchantProfile.pickup_available ? <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Ridicare disponibilă</Badge> : null}
+                      {merchantProfile.delivery_available ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">{t("memberPage.deliveryAvailable")}</Badge> : null}
+                      {merchantProfile.pickup_available ? <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">{t("memberPage.pickupAvailable")}</Badge> : null}
                     </div>
                   </div>
                 </div>
-                <Input value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)} className="rounded-2xl" placeholder="Caută produs în magazin" />
+                <Input value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)} className="rounded-2xl" placeholder={t("memberPage.storeSearchPlaceholder")} />
                 <div className="grid gap-3 md:grid-cols-3">
                   <select value={catalogCategoryFilter} onChange={(e) => setCatalogCategoryFilter(e.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none">
-                    <option value="all">Toate categoriile</option>
+                    <option value="all">{t("memberPage.allCategories")}</option>
                     {categoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
                   </select>
                   <select value={catalogStockFilter} onChange={(e) => setCatalogStockFilter(e.target.value as StockFilter)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none">
-                    <option value="all">Tot stocul</option>
-                    <option value="in_stock">În stoc</option>
-                    <option value="out_of_stock">Fără stoc</option>
+                    <option value="all">{t("memberPage.fullStock")}</option>
+                    <option value="in_stock">{t("common.inStock")}</option>
+                    <option value="out_of_stock">{t("common.outOfStock")}</option>
                   </select>
                   <select value={catalogSort} onChange={(e) => setCatalogSort(e.target.value as CatalogSort)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none">
-                    <option value="newest">Cele mai noi</option>
-                    <option value="price_asc">Preț crescător</option>
-                    <option value="price_desc">Preț descrescător</option>
-                    <option value="title_asc">A-Z</option>
+                    <option value="newest">{t("common.newest")}</option>
+                    <option value="price_asc">{t("memberPage.priceAscending")}</option>
+                    <option value="price_desc">{t("memberPage.priceDescending")}</option>
+                    <option value="title_asc">{t("common.sortAZ")}</option>
                   </select>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {filteredCatalogItems.length === 0 ? (
-                  <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu există produse active pentru filtrul curent.</div>
+                  <div className="rounded-2xl border p-4 text-sm text-slate-600">{t("memberPage.noProductsForFilter")}</div>
                 ) : (
                   filteredCatalogItems.map((item) => (
                     <div key={item.id} className="rounded-2xl border p-4">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
+                        <Badge variant="outline" className="rounded-xl">{item.category || t("common.general")}</Badge>
                         <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
-                        {item.stock_quantity !== null && item.stock_quantity <= 0 ? <Badge className="rounded-xl bg-red-100 text-red-900 hover:bg-red-100">Fără stoc</Badge> : null}
+                        {item.stock_quantity !== null && item.stock_quantity <= 0 ? <Badge className="rounded-xl bg-red-100 text-red-900 hover:bg-red-100">{t("common.outOfStock")}</Badge> : null}
                       </div>
                       {item.image_url ? <img src={item.image_url} alt={item.title} className="mb-3 h-40 w-full rounded-2xl border bg-white object-contain p-2" /> : null}
                       <p className="text-lg font-semibold">{item.title}</p>
-                      <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
+                      <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || t("common.noDescription")}</p>
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-xs text-slate-500">Stoc: {item.stock_quantity ?? "nelimitat"}</p>
+                        <p className="text-xs text-slate-500">{t("memberPage.stock")}: {item.stock_quantity ?? t("memberPage.unlimited")}</p>
                         <div className="w-28"><Input type="number" min={0} step="1" value={selectedQuantities[item.id] ?? 0} onChange={(e) => setSelectedQuantities((prev) => ({ ...prev, [item.id]: Math.max(0, Number(e.target.value || 0)) }))} className="rounded-2xl" placeholder="0" /></div>
                       </div>
                     </div>
                   ))
                 )}
 
-                <div className="rounded-2xl border bg-slate-50 p-4"><p className="text-sm text-slate-500">Produse selectate</p><p className="mt-1 text-2xl font-semibold text-slate-900">{selectedItems.length}</p><p className="mt-2 text-sm text-slate-600">Total estimat: {directOrderTotal.toFixed(2)} talanți</p></div>
-                <div className="space-y-2"><label className="text-sm font-medium">Detalii comandă</label><textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300" placeholder="Ex: interval orar, detalii variantă, preferințe" /></div>
-                <label className="flex items-center gap-3 rounded-2xl border p-4"><input type="checkbox" checked={deliveryNeeded} onChange={(e) => setDeliveryNeeded(e.target.checked)} /><span className="text-sm text-slate-700">Am nevoie și de livrare</span></label>
-                <Button className="w-full rounded-2xl" disabled={orderBusy || !selectedItems.length} onClick={handleCreateDirectOrder}>{orderBusy ? "Se creează comanda..." : "Cumpără din magazin"}</Button>
+                <div className="rounded-2xl border bg-slate-50 p-4"><p className="text-sm text-slate-500">{t("memberPage.selectedProducts")}</p><p className="mt-1 text-2xl font-semibold text-slate-900">{selectedItems.length}</p><p className="mt-2 text-sm text-slate-600">{t("memberPage.estimatedTotal")}: {directOrderTotal.toFixed(2)} talanți</p></div>
+                <div className="space-y-2"><label className="text-sm font-medium">{t("memberPage.orderDetails")}</label><textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} className="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300" placeholder={t("memberPage.orderDetailsPlaceholder")} /></div>
+                <label className="flex items-center gap-3 rounded-2xl border p-4"><input type="checkbox" checked={deliveryNeeded} onChange={(e) => setDeliveryNeeded(e.target.checked)} /><span className="text-sm text-slate-700">{t("memberPage.needDelivery")}</span></label>
+                <Button className="w-full rounded-2xl" disabled={orderBusy || !selectedItems.length} onClick={handleCreateDirectOrder}>{orderBusy ? t("memberPage.creatingOrder") : t("memberPage.buyFromStore")}</Button>
               </CardContent>
             </Card>
           ) : null}

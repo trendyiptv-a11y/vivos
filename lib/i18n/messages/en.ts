@@ -35,6 +35,7 @@ export const en = {
     members: "Members",
     messages: "Messages",
     market: "Community market",
+    deliveries: "Deliveries",
     about: "About",
     wallet: "Wallet",
     fund: "Mutual fund",

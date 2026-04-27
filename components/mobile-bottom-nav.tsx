@@ -85,7 +85,7 @@ function MobileBottomNavInner() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const currentTab = searchParams.get("tab")
-  const { t } = useI18n()
+  const { t, language } = useI18n()
 
   const [badges, setBadges] = useState<Record<string, number>>({})
   const [deliveryNeedsActionCount, setDeliveryNeedsActionCount] = useState(0)
@@ -239,6 +239,33 @@ function MobileBottomNavInner() {
     })
   }, [badges, deliveryNeedsActionCount])
 
+  const compactLabelMap: Record<string, Record<string, string>> = {
+    ro: {
+      "nav.dashboard": "Acasă",
+      "nav.members": "Membri",
+      "nav.messages": "Mesaje",
+      "nav.market": "Piață",
+      "nav.deliveries": "Livrări",
+      "nav.wallet": "Portofel",
+    },
+    da: {
+      "nav.dashboard": "Hjem",
+      "nav.members": "Medlemmer",
+      "nav.messages": "Beskeder",
+      "nav.market": "Marked",
+      "nav.deliveries": "Levering",
+      "nav.wallet": "Wallet",
+    },
+    en: {
+      "nav.dashboard": "Home",
+      "nav.members": "Members",
+      "nav.messages": "Messages",
+      "nav.market": "Market",
+      "nav.deliveries": "Delivery",
+      "nav.wallet": "Wallet",
+    },
+  }
+
   return (
     <nav
       className="vivos-mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 border-t backdrop-blur-xl md:hidden"
@@ -256,6 +283,8 @@ function MobileBottomNavInner() {
             : item.href === "/"
               ? pathname === "/" && !currentTab
               : pathname === item.href || pathname.startsWith(item.href + "/")
+
+          const compactLabel = compactLabelMap[language]?.[item.labelKey] || t(item.labelKey)
 
           return (
             <button
@@ -304,12 +333,12 @@ function MobileBottomNavInner() {
               </motion.span>
 
               <span
-                className="transition-colors duration-200"
+                className="max-w-[54px] text-center text-[9px] leading-tight transition-colors duration-200"
                 style={{
                   color: active ? vivosTheme.colors.white : vivosTheme.colors.textMuted,
                 }}
               >
-                {t(item.labelKey)}
+                {compactLabel}
               </span>
             </button>
           )

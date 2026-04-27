@@ -245,13 +245,13 @@ function Shell({
             <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
               <div className="min-w-0">
                 <p
-                  className="text-xs uppercase tracking-[0.22em]"
+                  className="hidden text-xs uppercase tracking-[0.22em] sm:block"
                   style={{ color: "rgba(255,255,255,0.68)" }}
                 >
                   {t("homePage.platform")}
                 </p>
                 <h2
-                  className="truncate text-lg font-semibold sm:text-2xl"
+                  className="truncate text-base font-semibold sm:text-2xl"
                   style={{ color: vivosTheme.colors.white }}
                 >
                   {active === "dashboard" ? "VIVOS" : activeLabel}

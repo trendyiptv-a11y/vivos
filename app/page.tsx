@@ -66,7 +66,7 @@ type ProfileMember = {
   needs_summary: string | null
   created_at?: string | null
 }
-type MemberFilter = "all" | "offers" | "needs" | "skills" | "merchant" | "courier"
+type MemberFilter = "all" | "offers" | "needs" | "skills"
 
 type MarketPost = {
   id: string
@@ -97,12 +97,6 @@ type MutualFundRequest = {
   status: "new" | "in_review" | "approved" | "supported" | "closed"
   created_at: string
   author: FundRequestAuthor | null
-}
-
-type MemberRoleRow = {
-  user_id: string
-  role: "member" | "merchant" | "courier"
-  is_active: boolean
 }
 
 type ShellProps = {
@@ -561,7 +555,6 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
 
 function MembersScreen({
   members,
-  memberRolesMap,
   loading,
   isLoggedIn,
   onStartChat,
@@ -572,7 +565,6 @@ function MembersScreen({
   setMemberFilter,
 }: {
   members: ProfileMember[]
-  memberRolesMap: Record<string, string[]>
   loading: boolean
   isLoggedIn: boolean
   onStartChat: (memberId: string) => void
@@ -585,14 +577,11 @@ function MembersScreen({
   const normalizedSearch = memberSearch.trim().toLowerCase()
 
   const filteredMembers = members.filter((member) => {
-    const roles = memberRolesMap[member.id] || [member.role || "member"]
-
     const haystack = [
       member.name || "",
       member.alias || "",
       member.email || "",
       member.role || "",
-      roles.join(" "),
       member.skills || "",
       member.offers_summary || "",
       member.needs_summary || "",
@@ -605,16 +594,12 @@ function MembersScreen({
     const hasOffers = !!member.offers_summary?.trim()
     const hasNeeds = !!member.needs_summary?.trim()
     const hasSkills = !!member.skills?.trim()
-    const isMerchant = roles.includes("merchant")
-    const isCourier = roles.includes("courier")
 
     const matchesFilter =
       memberFilter === "all" ||
       (memberFilter === "offers" && hasOffers) ||
       (memberFilter === "needs" && hasNeeds) ||
-      (memberFilter === "skills" && hasSkills) ||
-      (memberFilter === "merchant" && isMerchant) ||
-      (memberFilter === "courier" && isCourier)
+      (memberFilter === "skills" && hasSkills)
 
     return matchesSearch && matchesFilter
   })
@@ -635,7 +620,7 @@ function MembersScreen({
               <Input
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
-                placeholder="Caută după nume, email, alias, skill sau rol..."
+                placeholder="Caută după nume, email, alias, skill..."
                 className="rounded-2xl"
               />
 
@@ -647,24 +632,6 @@ function MembersScreen({
                   onClick={() => setMemberFilter("all")}
                 >
                   Toți
-                </Button>
-
-                <Button
-                  type="button"
-                  variant={memberFilter === "merchant" ? "default" : "outline"}
-                  className="rounded-2xl"
-                  onClick={() => setMemberFilter("merchant")}
-                >
-                  Comercianți
-                </Button>
-
-                <Button
-                  type="button"
-                  variant={memberFilter === "courier" ? "default" : "outline"}
-                  className="rounded-2xl"
-                  onClick={() => setMemberFilter("courier")}
-                >
-                  Curieri
                 </Button>
 
                 <Button
@@ -706,8 +673,7 @@ function MembersScreen({
               <div className="rounded-2xl border p-5 sm:p-6">
                 <h3 className="text-lg font-semibold">Vezi membrii comunității</h3>
                 <p className="mt-2 text-sm text-slate-600">
-                  Autentifică-te pentru a vedea membrii activi, profilurile lor și
-                  posibilitățile de colaborare.
+                  Autentifică-te pentru a vedea membrii activi, profilurile lor și posibilitățile de colaborare.
                 </p>
                 <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
                   <Button
@@ -752,8 +718,6 @@ function MembersScreen({
                   ? member.skills.split(",").map((s) => s.trim()).filter(Boolean)
                   : []
 
-                const roles = memberRolesMap[member.id] || [member.role || "member"]
-
                 return (
                   <div
                     key={member.id}
@@ -773,20 +737,7 @@ function MembersScreen({
                         <div className="min-w-0">
                           <p className="font-medium">{displayName}</p>
                           <p className="truncate text-sm text-slate-500">{member.email}</p>
-
                           <div className="mt-2 flex flex-wrap gap-2">
-                            {roles.includes("merchant") ? (
-                              <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">
-                                Comerciant
-                              </Badge>
-                            ) : null}
-
-                            {roles.includes("courier") ? (
-                              <Badge className="rounded-xl bg-sky-100 text-sky-900 hover:bg-sky-100">
-                                Curier
-                              </Badge>
-                            ) : null}
-
                             {(skillsList.length ? skillsList : ["fără competențe completate"]).map(
                               (skill, idx) => (
                                 <Badge key={idx} variant="outline" className="rounded-xl">
@@ -800,7 +751,7 @@ function MembersScreen({
 
                       <div className="grid gap-2 text-sm text-slate-600">
                         <p>
-                          Rol principal:{" "}
+                          Rol:{" "}
                           <span className="font-medium text-slate-900">
                             {member.role || "member"}
                           </span>
@@ -1346,7 +1297,6 @@ export default function Page() {
   const [publicPulseCount, setPublicPulseCount] = useState(0)
   const [memberSearch, setMemberSearch] = useState("")
   const [memberFilter, setMemberFilter] = useState<MemberFilter>("all")
-  const [memberRolesMap, setMemberRolesMap] = useState<Record<string, string[]>>({})
 
   async function handleStartChat(otherMemberId: string) {
     const {
@@ -1406,43 +1356,24 @@ export default function Page() {
         data: { session },
       } = await supabase.auth.getSession()
 
-      const isLoggedIn = !!session?.user
-
-      if (isLoggedIn) {
-        const [membersResult, rolesResult] = await Promise.all([
-          supabase
-            .from("profiles")
-            .select("id, email, name, alias, role, skills, offers_summary, needs_summary, created_at")
-            .order("created_at", { ascending: false })
-            .limit(50),
-          supabase
-            .from("member_roles")
-            .select("user_id, role, is_active")
-            .eq("is_active", true),
-        ])
-
-        const membersData = (membersResult.data || []) as ProfileMember[]
-        const rolesData = (rolesResult.data || []) as MemberRoleRow[]
-
-        const rolesMap = rolesData.reduce<Record<string, string[]>>((acc, item) => {
-          if (!acc[item.user_id]) acc[item.user_id] = []
-          acc[item.user_id].push(item.role)
-          return acc
-        }, {})
-
-        setMembers(membersData)
-        setMemberRolesMap(rolesMap)
-        setPublicMembersCount(membersData.length)
+      if (!session?.user) {
+        setMembers([])
         setMembersLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, email, name, alias, role, skills, offers_summary, needs_summary, created_at")
+        .order("created_at", { ascending: false })
+
+      if (!error && data) {
+        setMembers(data as ProfileMember[])
       } else {
         setMembers([])
-        setMemberRolesMap({})
-        const { count } = await supabase
-          .from("profiles")
-          .select("*", { count: "exact", head: true })
-        setPublicMembersCount(count || 0)
-        setMembersLoading(false)
       }
+
+      setMembersLoading(false)
     }
 
     loadMembers()
@@ -1663,7 +1594,6 @@ export default function Page() {
         return (
           <MembersScreen
             members={members}
-            memberRolesMap={memberRolesMap}
             loading={membersLoading}
             isLoggedIn={!!userEmail}
             onStartChat={handleStartChat}

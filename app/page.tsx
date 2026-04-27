@@ -27,33 +27,13 @@ import { motion } from "framer-motion"
 import { supabase } from "@/lib/supabase/client"
 import PushSubscribeButton from "@/components/push/push-subscribe-button"
 import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
+import { homeArchiveItems, homeNavItems, homeWalletEntries } from "@/components/home/home-config"
+import LanguageSwitcher from "@/components/LanguageSwitcher"
+import { useI18n } from "@/lib/i18n/provider"
 
-const navItems = [
-  { id: "dashboard", label: "Acasă", icon: LayoutDashboard },
-  { id: "members", label: "Membri", icon: Users },
-  { id: "messages", label: "Mesaje", icon: MessageSquare },
-  { id: "market", label: "Piață comunitară", icon: ShoppingBag },
-  { id: "about", label: "Despre", icon: BookOpen },
-  { id: "wallet", label: "Portofel", icon: Wallet },
-  { id: "fund", label: "Fond mutual", icon: HeartHandshake },
-  { id: "archive", label: "Arhivă", icon: FileText },
-  { id: "governance", label: "Guvernanță", icon: Shield },
-  { id: "settings", label: "Setări", icon: Settings },
-] as const
-
-const walletEntries = [
-  { label: "Schimb confirmat", amount: "+120", meta: "Reparații electrice" },
-  { label: "Contribuție fond mutual", amount: "-30", meta: "Contribuție lunară" },
-  { label: "Recompensă implicare", amount: "+25", meta: "Moderare comunitară" },
-  { label: "Sprijin primit", amount: "+90", meta: "Transport medical" },
-]
-
-const archiveItems = [
-  { title: "Decizie #14 — criterii fond mutual", type: "Hotărâre", date: "28 mar 2026" },
-  { title: "Raport lunar martie 2026", type: "Raport", date: "27 mar 2026" },
-  { title: "Actualizare regulament barter", type: "Regulă", date: "25 mar 2026" },
-  { title: "Timestamp registru contribuții", type: "Dovadă", date: "24 mar 2026" },
-]
+const navItems = homeNavItems
+const walletEntries = homeWalletEntries
+const archiveItems = homeArchiveItems
 
 type ProfileMember = {
   id: string
@@ -66,7 +46,7 @@ type ProfileMember = {
   needs_summary: string | null
   created_at?: string | null
 }
-type MemberFilter = "all" | "offers" | "needs" | "skills"
+type MemberFilter = "all" | "offers" | "needs" | "skills" | "merchant" | "courier"
 
 type MarketPost = {
   id: string
@@ -97,6 +77,12 @@ type MutualFundRequest = {
   status: "new" | "in_review" | "approved" | "supported" | "closed"
   created_at: string
   author: FundRequestAuthor | null
+}
+
+type MemberRoleRow = {
+  user_id: string
+  role: "member" | "merchant" | "courier"
+  is_active: boolean
 }
 
 type ShellProps = {
@@ -150,8 +136,10 @@ function Shell({
   unreadCount,
   publicPulseCount,
 }: ShellProps) {
+  const { t } = useI18n()
   const showUnreadBadge = !!userEmail && unreadCount > 0
-  const activeLabel = navItems.find((x) => x.id === active)?.label || "VIVOS"
+  const activeItem = navItems.find((x) => x.id === active)
+  const activeLabel = activeItem ? t(activeItem.labelKey) : "VIVOS"
 
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
@@ -207,10 +195,10 @@ function Shell({
               }}
             >
               <p className="text-xs uppercase tracking-[0.18em]" style={{ color: "#7A8598" }}>
-                Spațiu comunitar
+                {t("homePage.communitySpace")}
               </p>
               <p className="mt-1 text-sm font-medium" style={{ color: "#173F72" }}>
-                Ordine vie, schimb și sprijin mutual
+                {t("homePage.communitySpaceSubtitle")}
               </p>
             </div>
 
@@ -237,7 +225,7 @@ function Shell({
                     }
                   >
                     <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <span>{t(item.labelKey)}</span>
                   </button>
                 )
               })}
@@ -260,7 +248,7 @@ function Shell({
                   className="text-xs uppercase tracking-[0.22em]"
                   style={{ color: "rgba(255,255,255,0.68)" }}
                 >
-                  Platforma comunitară
+                  {t("homePage.platform")}
                 </p>
                 <h2
                   className="truncate text-lg font-semibold sm:text-2xl"
@@ -271,6 +259,8 @@ function Shell({
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3">
+                <LanguageSwitcher />
+
                 <div
                   className="hidden items-center gap-2 rounded-2xl border px-3 py-2 md:flex"
                   style={{
@@ -281,7 +271,7 @@ function Shell({
                   <Search className="h-4 w-4" style={{ color: "rgba(255,255,255,0.68)" }} />
                   <Input
                     className="h-auto w-48 border-0 bg-transparent p-0 text-white placeholder:text-white/45 shadow-none focus-visible:ring-0"
-                    placeholder="Caută membri, decizii, schimburi..."
+                    placeholder={t("homePage.searchPlaceholder")}
                   />
                 </div>
 
@@ -361,7 +351,7 @@ function Shell({
                               window.location.href = "/profile"
                             }}
                           >
-                            Profil
+                            {t("homePage.profile")}
                           </button>
 
                           <button
@@ -371,7 +361,7 @@ function Shell({
                               window.location.href = "/downloads/manifest.html"
                             }}
                           >
-                            Manifest VIVOS
+                            {t("homePage.manifest")}
                           </button>
 
                           <button
@@ -381,7 +371,7 @@ function Shell({
                               setActive("settings")
                             }}
                           >
-                            Setări
+                            {t("nav.settings")}
                           </button>
 
                           <button
@@ -391,7 +381,7 @@ function Shell({
                               setActive("about")
                             }}
                           >
-                            Despre
+                            {t("homePage.about")}
                           </button>
 
                           <button
@@ -402,7 +392,7 @@ function Shell({
                               window.location.href = "/"
                             }}
                           >
-                            Logout
+                            {t("common.logout")}
                           </button>
                         </div>
                       )}
@@ -420,7 +410,7 @@ function Shell({
                       window.location.href = "/login"
                     }}
                   >
-                    Login
+                    {t("common.login")}
                   </Button>
                 )}
               </div>
@@ -445,6 +435,7 @@ function Shell({
 }
 
 function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
+  const { t } = useI18n()
   const offersCount = marketPosts.filter((item) => item.post_type === "offer").length
   const requestsCount = marketPosts.filter((item) => item.post_type === "request").length
 
@@ -457,9 +448,9 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
           </div>
 
           <div className="min-w-0">
-            <h3 className="text-2xl font-semibold sm:text-3xl">Bine ai venit în VIVOS</h3>
+            <h3 className="text-2xl font-semibold sm:text-3xl">{t("homePage.publicWelcome")}</h3>
             <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">
-              Spațiul comunitar pentru schimb, sprijin mutual și colaborare directă între membri.
+              {t("homePage.publicWelcomeText")}
             </p>
           </div>
         </div>
@@ -471,7 +462,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
               window.location.href = "/market/new"
             }}
           >
-            Publică anunț
+            {t("homePage.publishPost")}
           </Button>
 
           <Button
@@ -481,7 +472,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
               window.location.href = "/profile"
             }}
           >
-            Actualizează profil
+            {t("homePage.updateProfile")}
           </Button>
 
           <Button
@@ -491,7 +482,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
               window.location.href = "/market"
             }}
           >
-            Vezi piața reală
+            {t("homePage.viewRealMarket")}
           </Button>
         </div>
       </div>
@@ -499,14 +490,14 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
       <div className="grid grid-cols-2 gap-3">
         <Card className="vivos-card border-0">
           <CardContent className="p-4 sm:p-5">
-            <p className="text-sm vivos-muted">Oferte</p>
+            <p className="text-sm vivos-muted">{t("homePage.offers")}</p>
             <p className="mt-2 text-3xl font-semibold text-[#173F74]">{offersCount}</p>
           </CardContent>
         </Card>
 
         <Card className="vivos-card border-0">
           <CardContent className="p-4 sm:p-5">
-            <p className="text-sm vivos-muted">Nevoi</p>
+            <p className="text-sm vivos-muted">{t("homePage.needs")}</p>
             <p className="mt-2 text-3xl font-semibold text-[#173F74]">{requestsCount}</p>
           </CardContent>
         </Card>
@@ -514,7 +505,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
 
       <Card className="vivos-card border-0">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg sm:text-xl">Acțiuni rapide</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">{t("homePage.quickActions")}</CardTitle>
         </CardHeader>
 
         <CardContent className="grid gap-3 sm:grid-cols-2">
@@ -525,7 +516,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
               window.location.href = "/messages"
             }}
           >
-            Mesajele mele
+            {t("homePage.myMessages")}
           </Button>
 
           <Button
@@ -535,7 +526,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
               window.location.href = "/notifications"
             }}
           >
-            Notificări
+            {t("homePage.notifications")}
           </Button>
 
           <Button
@@ -545,7 +536,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
               window.location.href = "/?tab=fund"
             }}
           >
-            Fond
+            {t("homePage.fund")}
           </Button>
         </CardContent>
       </Card>
@@ -555,6 +546,7 @@ function DashboardScreen({ marketPosts }: { marketPosts: MarketPost[] }) {
 
 function MembersScreen({
   members,
+  memberRolesMap,
   loading,
   isLoggedIn,
   onStartChat,
@@ -565,6 +557,7 @@ function MembersScreen({
   setMemberFilter,
 }: {
   members: ProfileMember[]
+  memberRolesMap: Record<string, string[]>
   loading: boolean
   isLoggedIn: boolean
   onStartChat: (memberId: string) => void
@@ -574,14 +567,18 @@ function MembersScreen({
   memberFilter: MemberFilter
   setMemberFilter: (value: MemberFilter) => void
 }) {
+  const { t } = useI18n()
   const normalizedSearch = memberSearch.trim().toLowerCase()
 
   const filteredMembers = members.filter((member) => {
+    const roles = memberRolesMap[member.id] || [member.role || "member"]
+
     const haystack = [
       member.name || "",
       member.alias || "",
       member.email || "",
       member.role || "",
+      roles.join(" "),
       member.skills || "",
       member.offers_summary || "",
       member.needs_summary || "",
@@ -594,12 +591,16 @@ function MembersScreen({
     const hasOffers = !!member.offers_summary?.trim()
     const hasNeeds = !!member.needs_summary?.trim()
     const hasSkills = !!member.skills?.trim()
+    const isMerchant = roles.includes("merchant")
+    const isCourier = roles.includes("courier")
 
     const matchesFilter =
       memberFilter === "all" ||
       (memberFilter === "offers" && hasOffers) ||
       (memberFilter === "needs" && hasNeeds) ||
-      (memberFilter === "skills" && hasSkills)
+      (memberFilter === "skills" && hasSkills) ||
+      (memberFilter === "merchant" && isMerchant) ||
+      (memberFilter === "courier" && isCourier)
 
     return matchesSearch && matchesFilter
   })
@@ -609,9 +610,9 @@ function MembersScreen({
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <Card className="rounded-3xl border-0 shadow-sm">
           <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-lg sm:text-xl">Registrul membrilor</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">{t("membersPage.registry")}</CardTitle>
             <div className="text-sm text-slate-500">
-              {isLoggedIn ? `${filteredMembers.length} membri` : "acces restricționat"}
+              {isLoggedIn ? `${filteredMembers.length} ${t("membersPage.count")}` : t("homePage.restrictedAccess")}
             </div>
           </CardHeader>
 
@@ -620,7 +621,7 @@ function MembersScreen({
               <Input
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
-                placeholder="Caută după nume, email, alias, skill..."
+                placeholder={t("membersPage.searchPlaceholder")}
                 className="rounded-2xl"
               />
 
@@ -631,7 +632,25 @@ function MembersScreen({
                   className="rounded-2xl"
                   onClick={() => setMemberFilter("all")}
                 >
-                  Toți
+                  {t("common.all")}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={memberFilter === "merchant" ? "default" : "outline"}
+                  className="rounded-2xl"
+                  onClick={() => setMemberFilter("merchant")}
+                >
+                  {t("membersPage.merchants")}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={memberFilter === "courier" ? "default" : "outline"}
+                  className="rounded-2xl"
+                  onClick={() => setMemberFilter("courier")}
+                >
+                  {t("membersPage.couriers")}
                 </Button>
 
                 <Button
@@ -640,7 +659,7 @@ function MembersScreen({
                   className="rounded-2xl"
                   onClick={() => setMemberFilter("offers")}
                 >
-                  Cu oferte
+                  {t("membersPage.withOffers")}
                 </Button>
 
                 <Button
@@ -649,7 +668,7 @@ function MembersScreen({
                   className="rounded-2xl"
                   onClick={() => setMemberFilter("needs")}
                 >
-                  Cu nevoi
+                  {t("membersPage.withNeeds")}
                 </Button>
 
                 <Button
@@ -658,7 +677,7 @@ function MembersScreen({
                   className="rounded-2xl"
                   onClick={() => setMemberFilter("skills")}
                 >
-                  Cu skill-uri
+                  {t("membersPage.withSkills")}
                 </Button>
               </div>
             </div>
@@ -667,13 +686,13 @@ function MembersScreen({
           <CardContent className="space-y-3">
             {loading ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Se încarcă membrii...
+                {t("membersPage.loadingMembers")}
               </div>
             ) : !isLoggedIn ? (
               <div className="rounded-2xl border p-5 sm:p-6">
-                <h3 className="text-lg font-semibold">Vezi membrii comunității</h3>
+                <h3 className="text-lg font-semibold">{t("homePage.seeCommunityMembers")}</h3>
                 <p className="mt-2 text-sm text-slate-600">
-                  Autentifică-te pentru a vedea membrii activi, profilurile lor și posibilitățile de colaborare.
+                  {t("homePage.seeCommunityMembersText")}
                 </p>
                 <div className="mt-4 grid gap-3 sm:flex sm:flex-row">
                   <Button
@@ -682,7 +701,7 @@ function MembersScreen({
                       window.location.href = "/login"
                     }}
                   >
-                    Login
+                    {t("common.login")}
                   </Button>
                   <Button
                     variant="outline"
@@ -691,13 +710,13 @@ function MembersScreen({
                       window.location.href = "/signup"
                     }}
                   >
-                    Creează cont
+                    {t("common.createAccount")}
                   </Button>
                 </div>
               </div>
             ) : filteredMembers.length === 0 ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Nu există membri care să corespundă căutării sau filtrului selectat.
+                {t("homePage.noMembersForFilter")}
               </div>
             ) : (
               filteredMembers.map((member) => {
@@ -705,7 +724,7 @@ function MembersScreen({
                   member.name?.trim() ||
                   member.alias?.trim() ||
                   member.email?.split("@")[0] ||
-                  "Membru"
+                  t("roles.member")
 
                 const initials = displayName
                   .split(" ")
@@ -717,6 +736,8 @@ function MembersScreen({
                 const skillsList = member.skills
                   ? member.skills.split(",").map((s) => s.trim()).filter(Boolean)
                   : []
+
+                const roles = memberRolesMap[member.id] || [member.role || "member"]
 
                 return (
                   <div
@@ -737,8 +758,21 @@ function MembersScreen({
                         <div className="min-w-0">
                           <p className="font-medium">{displayName}</p>
                           <p className="truncate text-sm text-slate-500">{member.email}</p>
+
                           <div className="mt-2 flex flex-wrap gap-2">
-                            {(skillsList.length ? skillsList : ["fără competențe completate"]).map(
+                            {roles.includes("merchant") ? (
+                              <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">
+                                {t("membersPage.merchants")}
+                              </Badge>
+                            ) : null}
+
+                            {roles.includes("courier") ? (
+                              <Badge className="rounded-xl bg-sky-100 text-sky-900 hover:bg-sky-100">
+                                {t("membersPage.couriers")}
+                              </Badge>
+                            ) : null}
+
+                            {(skillsList.length ? skillsList : [t("common.notCompleted")]).map(
                               (skill, idx) => (
                                 <Badge key={idx} variant="outline" className="rounded-xl">
                                   {skill}
@@ -751,21 +785,21 @@ function MembersScreen({
 
                       <div className="grid gap-2 text-sm text-slate-600">
                         <p>
-                          Rol:{" "}
+                          {t("roles.mainRole")}:{" "}
                           <span className="font-medium text-slate-900">
                             {member.role || "member"}
                           </span>
                         </p>
                         <p>
-                          Oferă:{" "}
+                          {t("membersPage.offers")}:{" "}
                           <span className="font-medium text-slate-900">
-                            {member.offers_summary?.trim() || "necompletat"}
+                            {member.offers_summary?.trim() || t("common.notCompleted")}
                           </span>
                         </p>
                         <p>
-                          Caută:{" "}
+                          {t("membersPage.needs")}:{" "}
                           <span className="font-medium text-slate-900">
-                            {member.needs_summary?.trim() || "necompletat"}
+                            {member.needs_summary?.trim() || t("common.notCompleted")}
                           </span>
                         </p>
                       </div>
@@ -780,7 +814,7 @@ function MembersScreen({
                           window.location.href = `/member/${member.id}`
                         }}
                       >
-                        Vezi profil
+                        {t("membersPage.openProfile")}
                       </Button>
 
                       <Button
@@ -791,7 +825,7 @@ function MembersScreen({
                           onStartChat(member.id)
                         }}
                       >
-                        Trimite mesaj
+                        {t("membersPage.sendMessage")}
                       </Button>
                     </div>
                   </div>
@@ -803,11 +837,11 @@ function MembersScreen({
 
         <Card className="rounded-3xl border-0 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Membri înregistrați</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">{t("homePage.registeredMembers")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-2xl border p-5 text-center">
-              <p className="text-sm text-slate-500">Număr membri</p>
+              <p className="text-sm text-slate-500">{t("homePage.memberCount")}</p>
               <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-900">
                 {isLoggedIn ? filteredMembers.length : publicMembersCount}
               </p>
@@ -826,6 +860,7 @@ function MarketScreen({
   marketPosts: MarketPost[]
   onStartChat: (memberId: string) => void
 }) {
+  const { t } = useI18n()
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="rounded-3xl bg-gradient-to-br from-[#173F74] via-[#204E8C] to-[#F39A3D] p-5 text-white shadow-sm sm:p-6">
@@ -835,9 +870,9 @@ function MarketScreen({
           </div>
 
           <div className="min-w-0">
-            <h3 className="text-2xl font-semibold sm:text-3xl">Piața comunitară</h3>
+            <h3 className="text-2xl font-semibold sm:text-3xl">{t("homePage.marketTitle")}</h3>
             <p className="mt-1 max-w-2xl text-sm text-white/85 sm:text-base">
-              Oferte, cereri, barter și colaborări directe între membrii comunității.
+              {t("homePage.marketSubtitle")}
             </p>
           </div>
         </div>
@@ -850,7 +885,7 @@ function MarketScreen({
               window.location.href = "/market/new"
             }}
           >
-            Publică cerere
+            {t("homePage.publicRequest")}
           </Button>
 
           <Button
@@ -860,23 +895,23 @@ function MarketScreen({
               window.location.href = "/market/new"
             }}
           >
-            Publică ofertă
+            {t("homePage.publicOffer")}
           </Button>
         </div>
       </div>
 
       <Card className="vivos-card border-0">
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-lg sm:text-xl">Toate postările recente</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">{t("homePage.allRecentPosts")}</CardTitle>
           <div className="text-sm vivos-muted">{marketPosts.length} postări</div>
         </CardHeader>
 
         <CardContent className="space-y-4">
           {marketPosts.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 p-6 text-center">
-              <p className="text-base font-medium">Nu există încă postări în piață</p>
+              <p className="text-base font-medium">{t("homePage.noMarketPosts")}</p>
               <p className="mt-2 text-sm vivos-muted">
-                Publică prima ofertă sau prima cerere și pornește schimbul în comunitate.
+                {t("homePage.noMarketPostsText")}
               </p>
             </div>
           ) : (
@@ -927,7 +962,7 @@ function MarketScreen({
                     className="flex-1"
                     onClick={() => onStartChat(item.author_id)}
                   >
-                    Contactează autorul
+                    {t("homePage.contactAuthor")}
                   </Button>
 
                   <Button
@@ -1297,6 +1332,7 @@ export default function Page() {
   const [publicPulseCount, setPublicPulseCount] = useState(0)
   const [memberSearch, setMemberSearch] = useState("")
   const [memberFilter, setMemberFilter] = useState<MemberFilter>("all")
+  const [memberRolesMap, setMemberRolesMap] = useState<Record<string, string[]>>({})
 
   async function handleStartChat(otherMemberId: string) {
     const {
@@ -1356,24 +1392,43 @@ export default function Page() {
         data: { session },
       } = await supabase.auth.getSession()
 
-      if (!session?.user) {
-        setMembers([])
+      const isLoggedIn = !!session?.user
+
+      if (isLoggedIn) {
+        const [membersResult, rolesResult] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("id, email, name, alias, role, skills, offers_summary, needs_summary, created_at")
+            .order("created_at", { ascending: false })
+            .limit(50),
+          supabase
+            .from("member_roles")
+            .select("user_id, role, is_active")
+            .eq("is_active", true),
+        ])
+
+        const membersData = (membersResult.data || []) as ProfileMember[]
+        const rolesData = (rolesResult.data || []) as MemberRoleRow[]
+
+        const rolesMap = rolesData.reduce<Record<string, string[]>>((acc, item) => {
+          if (!acc[item.user_id]) acc[item.user_id] = []
+          acc[item.user_id].push(item.role)
+          return acc
+        }, {})
+
+        setMembers(membersData)
+        setMemberRolesMap(rolesMap)
+        setPublicMembersCount(membersData.length)
         setMembersLoading(false)
-        return
-      }
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, email, name, alias, role, skills, offers_summary, needs_summary, created_at")
-        .order("created_at", { ascending: false })
-
-      if (!error && data) {
-        setMembers(data as ProfileMember[])
       } else {
         setMembers([])
+        setMemberRolesMap({})
+        const { count } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+        setPublicMembersCount(count || 0)
+        setMembersLoading(false)
       }
-
-      setMembersLoading(false)
     }
 
     loadMembers()
@@ -1594,6 +1649,7 @@ export default function Page() {
         return (
           <MembersScreen
             members={members}
+            memberRolesMap={memberRolesMap}
             loading={membersLoading}
             isLoggedIn={!!userEmail}
             onStartChat={handleStartChat}

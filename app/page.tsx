@@ -66,7 +66,7 @@ type ProfileMember = {
   needs_summary: string | null
   created_at?: string | null
 }
-type MemberFilter = "all" | "offers" | "needs" | "skills"
+type MemberFilter = "all" | "merchant" | "offers" | "needs" | "skills"
 
 type MarketPost = {
   id: string
@@ -594,9 +594,11 @@ function MembersScreen({
     const hasOffers = !!member.offers_summary?.trim()
     const hasNeeds = !!member.needs_summary?.trim()
     const hasSkills = !!member.skills?.trim()
+    const isMerchant = member.role === "merchant"
 
     const matchesFilter =
       memberFilter === "all" ||
+      (memberFilter === "merchant" && isMerchant) ||
       (memberFilter === "offers" && hasOffers) ||
       (memberFilter === "needs" && hasNeeds) ||
       (memberFilter === "skills" && hasSkills)
@@ -632,6 +634,15 @@ function MembersScreen({
                   onClick={() => setMemberFilter("all")}
                 >
                   Toți
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={memberFilter === "merchant" ? "default" : "outline"}
+                  className="rounded-2xl"
+                  onClick={() => setMemberFilter("merchant")}
+                >
+                  Comercianți
                 </Button>
 
                 <Button

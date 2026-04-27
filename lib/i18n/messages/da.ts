@@ -35,6 +35,7 @@ export const da = {
     members: "Medlemmer",
     messages: "Beskeder",
     market: "Fællesskabsmarked",
+    deliveries: "Leveringer",
     about: "Om",
     wallet: "Wallet",
     fund: "Fælles fond",

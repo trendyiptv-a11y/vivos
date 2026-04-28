@@ -146,4 +146,13 @@ export const ro = {
     stock: "Stoc",
     unlimited: "nelimitat",
   },
+  aboutPage: {
+    manifestText1: "VIVOS este spațiul comunitar în care schimbul dintre oameni se face prin acord, transparență și sprijin mutual. Accentul este pus pe relații directe, contribuție, responsabilitate și guvernanță distribuită.",
+    readFullManifest: "Citește manifestul complet",
+    installApp: "Instalează aplicația",
+  },
+  settingsPage: {
+    generalSettings: "Setări generale",
+    notificationsText: "Controlează modul în care primești alerte în aplicație și în browser.",
+  },
 } as const

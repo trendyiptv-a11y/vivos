@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Bell } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
+import { useI18n } from "@/lib/i18n/provider"
 
 type ProfileOption = {
   id: string
@@ -40,25 +41,178 @@ type WalletOrderHold = {
   status: "active" | "released" | "captured" | "cancelled"
 }
 
-function formatTalents(value: number | string | null | undefined) {
-  return Number(value || 0).toLocaleString("ro-RO", {
+type AppLang = "ro" | "da" | "en"
+
+const walletTexts: Record<AppLang, Record<string, string>> = {
+  ro: {
+    platform: "Platforma comunitară",
+    title: "Portofel",
+    loading: "Se încarcă portofelul...",
+    profile: "Profil",
+    manifest: "Manifest VIVOS",
+    settings: "Setări",
+    about: "Despre",
+    logout: "Logout",
+    login: "Login",
+    availableBalance: "Sold disponibil",
+    reserved: "Rezervat",
+    orderReceipts: "Încasări comenzi",
+    orderPayments: "Plăți comenzi",
+    transfersReceived: "Transferuri primite",
+    transfersSent: "Transferuri trimise",
+    talentsUnit: "talanți",
+    sendTalanti: "Trimite talanți",
+    supportForRequest: "Sprijin pentru cerere",
+    supportRequestFallback: "Cerere de sprijin",
+    supportForPrefix: "Sprijin pentru",
+    supportAuthorPrefix: "Autor cerere",
+    recipient: "Destinatar",
+    chooseMember: "Alege un membru",
+    amount: "Sumă",
+    note: "Notă",
+    notePlaceholder: "Ex: Ajutor pentru transport",
+    sending: "Se trimite...",
+    sendAction: "Trimite talanți",
+    history: "Istoric tranzacții",
+    noTransactions: "Nu există încă tranzacții.",
+    status: "Status",
+    noDescription: "Fără descriere",
+    memberFallback: "Membru",
+    topup: "Grant / alimentare",
+    hold: "Rezervare comandă",
+    release: "Eliberare hold",
+    paymentIn: "Încasare comandă",
+    paymentOut: "Plată comandă",
+    transferIn: "Transfer primit",
+    transferOut: "Transfer trimis",
+    refund: "Rambursare",
+    adjustment: "Ajustare",
+    transferSuccess: "Transfer realizat",
+    transferSupportSuccess: "Transfer realizat și cererea a fost marcată ca sprijinită.",
+  },
+  da: {
+    platform: "Fællesskabsplatform",
+    title: "Wallet",
+    loading: "Indlæser wallet...",
+    profile: "Profil",
+    manifest: "VIVOS-manifest",
+    settings: "Indstillinger",
+    about: "Om",
+    logout: "Log ud",
+    login: "Log ind",
+    availableBalance: "Tilgængelig saldo",
+    reserved: "Reserveret",
+    orderReceipts: "Ordreindtægter",
+    orderPayments: "Ordrebetalinger",
+    transfersReceived: "Modtagne overførsler",
+    transfersSent: "Sendte overførsler",
+    talentsUnit: "talanti",
+    sendTalanti: "Send talanti",
+    supportForRequest: "Støtte til anmodning",
+    supportRequestFallback: "Støtteanmodning",
+    supportForPrefix: "Støtte til",
+    supportAuthorPrefix: "Forfatter til anmodning",
+    recipient: "Modtager",
+    chooseMember: "Vælg et medlem",
+    amount: "Beløb",
+    note: "Note",
+    notePlaceholder: "Fx Hjælp til transport",
+    sending: "Sender...",
+    sendAction: "Send talanti",
+    history: "Transaktionshistorik",
+    noTransactions: "Der er endnu ingen transaktioner.",
+    status: "Status",
+    noDescription: "Ingen beskrivelse",
+    memberFallback: "Medlem",
+    topup: "Grant / påfyldning",
+    hold: "Ordre-reservation",
+    release: "Frigiv reservation",
+    paymentIn: "Ordreindtægt",
+    paymentOut: "Ordrebetaling",
+    transferIn: "Modtaget overførsel",
+    transferOut: "Sendt overførsel",
+    refund: "Refusion",
+    adjustment: "Justering",
+    transferSuccess: "Overførsel gennemført",
+    transferSupportSuccess: "Overførsel gennemført, og anmodningen er markeret som støttet.",
+  },
+  en: {
+    platform: "Community platform",
+    title: "Wallet",
+    loading: "Loading wallet...",
+    profile: "Profile",
+    manifest: "VIVOS Manifest",
+    settings: "Settings",
+    about: "About",
+    logout: "Logout",
+    login: "Login",
+    availableBalance: "Available balance",
+    reserved: "Reserved",
+    orderReceipts: "Order receipts",
+    orderPayments: "Order payments",
+    transfersReceived: "Transfers received",
+    transfersSent: "Transfers sent",
+    talentsUnit: "talanti",
+    sendTalanti: "Send talanti",
+    supportForRequest: "Support for request",
+    supportRequestFallback: "Support request",
+    supportForPrefix: "Support for",
+    supportAuthorPrefix: "Request author",
+    recipient: "Recipient",
+    chooseMember: "Choose a member",
+    amount: "Amount",
+    note: "Note",
+    notePlaceholder: "Ex: Help with transport",
+    sending: "Sending...",
+    sendAction: "Send talanti",
+    history: "Transaction history",
+    noTransactions: "There are no transactions yet.",
+    status: "Status",
+    noDescription: "No description",
+    memberFallback: "Member",
+    topup: "Grant / top-up",
+    hold: "Order hold",
+    release: "Release hold",
+    paymentIn: "Order receipt",
+    paymentOut: "Order payment",
+    transferIn: "Transfer received",
+    transferOut: "Transfer sent",
+    refund: "Refund",
+    adjustment: "Adjustment",
+    transferSuccess: "Transfer completed",
+    transferSupportSuccess: "Transfer completed and the request was marked as supported.",
+  },
+}
+
+function localeFromLanguage(language: string) {
+  if (language === "da") return "da-DK"
+  if (language === "en") return "en-US"
+  return "ro-RO"
+}
+
+function formatTalants(value: number | string | null | undefined, locale: string) {
+  return Number(value || 0).toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
 }
 
-function transactionTypeLabel(tx: WalletTransaction) {
-  if (tx.transaction_type === "topup") return "Grant / alimentare"
-  if (tx.transaction_type === "hold") return "Rezervare comandă"
-  if (tx.transaction_type === "release") return "Eliberare hold"
-  if (tx.transaction_type === "payment") return tx.direction === "credit" ? "Încasare comandă" : "Plată comandă"
-  if (tx.transaction_type === "transfer") return tx.direction === "credit" ? "Transfer primit" : "Transfer trimis"
-  if (tx.transaction_type === "refund") return "Rambursare"
-  return "Ajustare"
+function transactionTypeLabel(tx: WalletTransaction, text: Record<string, string>) {
+  if (tx.transaction_type === "topup") return text.topup
+  if (tx.transaction_type === "hold") return text.hold
+  if (tx.transaction_type === "release") return text.release
+  if (tx.transaction_type === "payment") return tx.direction === "credit" ? text.paymentIn : text.paymentOut
+  if (tx.transaction_type === "transfer") return tx.direction === "credit" ? text.transferIn : text.transferOut
+  if (tx.transaction_type === "refund") return text.refund
+  return text.adjustment
 }
 
 export default function WalletPage() {
   const router = useRouter()
+  const { language } = useI18n()
+  const lang = (language === "da" || language === "en" ? language : "ro") as AppLang
+  const text = walletTexts[lang]
+  const locale = localeFromLanguage(lang)
 
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -214,7 +368,10 @@ export default function WalletPage() {
     if (supportAuthorParam) setSupportAuthor(supportAuthorParam)
 
     if (supportTitleParam || supportAuthorParam) {
-      const pieces = [supportTitleParam ? `Sprijin pentru: ${supportTitleParam}` : "", supportAuthorParam ? `Autor cerere: ${supportAuthorParam}` : ""].filter(Boolean)
+      const pieces = [
+        supportTitleParam ? `${text.supportForPrefix}: ${supportTitleParam}` : "",
+        supportAuthorParam ? `${text.supportAuthorPrefix}: ${supportAuthorParam}` : "",
+      ].filter(Boolean)
       setNote(pieces.join(" · "))
     }
   }, [])
@@ -290,8 +447,8 @@ export default function WalletPage() {
 
     setMessage(
       supportRequestId
-        ? "Transfer realizat și cererea a fost marcată ca sprijinită."
-        : ((data as { message?: string } | null)?.message || "Transfer realizat")
+        ? text.transferSupportSuccess
+        : ((data as { message?: string } | null)?.message || text.transferSuccess)
     )
     setReceiverId("")
     setAmount("")
@@ -312,7 +469,7 @@ export default function WalletPage() {
   }
 
   function memberLabel(member: ProfileOption) {
-    return member.name?.trim() || member.alias?.trim() || member.email || "Membru"
+    return member.name?.trim() || member.alias?.trim() || member.email || text.memberFallback
   }
 
   const showUnreadBadge = !!userEmail && unreadCount > 0
@@ -324,7 +481,7 @@ export default function WalletPage() {
         <div className="mx-auto max-w-5xl">
           <Card className="rounded-3xl border-0 shadow-sm">
             <CardContent className="p-6">
-              <p className="text-sm text-slate-600">Se încarcă wallet-ul...</p>
+              <p className="text-sm text-slate-600">{text.loading}</p>
             </CardContent>
           </Card>
         </div>
@@ -337,8 +494,8 @@ export default function WalletPage() {
       <header className="sticky top-0 z-10 border-b backdrop-blur-xl" style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}>
         <div className="flex min-h-[84px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>Platforma comunitară</p>
-            <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>Portofel</h1>
+            <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>{text.platform}</p>
+            <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>{text.title}</h1>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -363,17 +520,17 @@ export default function WalletPage() {
 
                   {profileMenuOpen && (
                     <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border p-2 shadow-lg" style={{ background: "rgba(18,46,84,0.98)", borderColor: "rgba(255,255,255,0.10)", boxShadow: vivosTheme.shadows.modal }}>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/profile" }}>Profil</button>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/downloads/manifest.html" }}>Manifest VIVOS</button>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=settings" }}>Setări</button>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=about" }}>Despre</button>
-                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 transition hover:bg-white/10" onClick={async () => { setProfileMenuOpen(false); await supabase.auth.signOut(); window.location.href = "/" }}>Logout</button>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/profile" }}>{text.profile}</button>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/downloads/manifest.html" }}>{text.manifest}</button>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=settings" }}>{text.settings}</button>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 transition hover:bg-white/10" onClick={() => { setProfileMenuOpen(false); window.location.href = "/?tab=about" }}>{text.about}</button>
+                      <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 transition hover:bg-white/10" onClick={async () => { setProfileMenuOpen(false); await supabase.auth.signOut(); window.location.href = "/" }}>{text.logout}</button>
                     </div>
                   )}
                 </div>
               </>
             ) : (
-              <Button className="rounded-2xl border-0" style={{ background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white, boxShadow: vivosTheme.shadows.bubble }} onClick={() => { window.location.href = "/login" }}>Login</Button>
+              <Button className="rounded-2xl border-0" style={{ background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white, boxShadow: vivosTheme.shadows.bubble }} onClick={() => { window.location.href = "/login" }}>{text.login}</Button>
             )}
           </div>
         </div>
@@ -382,78 +539,78 @@ export default function WalletPage() {
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-4 sm:px-6 sm:py-6">
         <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Sold disponibil</CardTitle></CardHeader>
-            <CardContent><p className="text-3xl font-semibold">{formatTalents(availableBalance)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
+            <CardHeader><CardTitle className="text-base">{text.availableBalance}</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-semibold">{formatTalants(availableBalance, locale)}</p><p className="mt-2 text-sm text-slate-500">{text.talentsUnit}</p></CardContent>
           </Card>
 
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Rezervat</CardTitle></CardHeader>
-            <CardContent><p className="text-3xl font-semibold">{formatTalents(reservedTalanti)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
+            <CardHeader><CardTitle className="text-base">{text.reserved}</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-semibold">{formatTalants(reservedTalanti, locale)}</p><p className="mt-2 text-sm text-slate-500">{text.talentsUnit}</p></CardContent>
           </Card>
 
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Încasări comenzi</CardTitle></CardHeader>
-            <CardContent><p className="text-3xl font-semibold">{formatTalents(totalCommandReceived)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
+            <CardHeader><CardTitle className="text-base">{text.orderReceipts}</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-semibold">{formatTalants(totalCommandReceived, locale)}</p><p className="mt-2 text-sm text-slate-500">{text.talentsUnit}</p></CardContent>
           </Card>
 
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Plăți comenzi</CardTitle></CardHeader>
-            <CardContent><p className="text-3xl font-semibold">{formatTalents(totalCommandPaid)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
+            <CardHeader><CardTitle className="text-base">{text.orderPayments}</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-semibold">{formatTalants(totalCommandPaid, locale)}</p><p className="mt-2 text-sm text-slate-500">{text.talentsUnit}</p></CardContent>
           </Card>
 
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Transferuri primite</CardTitle></CardHeader>
-            <CardContent><p className="text-3xl font-semibold">{formatTalents(totalTransferredIn)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
+            <CardHeader><CardTitle className="text-base">{text.transfersReceived}</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-semibold">{formatTalants(totalTransferredIn, locale)}</p><p className="mt-2 text-sm text-slate-500">{text.talentsUnit}</p></CardContent>
           </Card>
 
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Transferuri trimise</CardTitle></CardHeader>
-            <CardContent><p className="text-3xl font-semibold">{formatTalents(totalTransferredOut)}</p><p className="mt-2 text-sm text-slate-500">talanți</p></CardContent>
+            <CardHeader><CardTitle className="text-base">{text.transfersSent}</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-semibold">{formatTalants(totalTransferredOut, locale)}</p><p className="mt-2 text-sm text-slate-500">{text.talentsUnit}</p></CardContent>
           </Card>
         </div>
 
         <div className="grid gap-6 pb-24 lg:grid-cols-[1fr_1.1fr]">
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-xl">Trimite talanți</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-xl">{text.sendTalanti}</CardTitle></CardHeader>
             <CardContent>
               <form onSubmit={handleTransfer} className="space-y-4">
                 {(supportTitle || supportAuthor) && (
                   <div className="rounded-2xl border bg-slate-50 p-4">
-                    <p className="text-sm font-medium text-slate-900">Sprijin pentru cerere</p>
-                    <p className="mt-2 text-sm text-slate-600">{supportTitle || "Cerere de sprijin"}{supportAuthor ? ` · ${supportAuthor}` : ""}</p>
+                    <p className="text-sm font-medium text-slate-900">{text.supportForRequest}</p>
+                    <p className="mt-2 text-sm text-slate-600">{supportTitle || text.supportRequestFallback}{supportAuthor ? ` · ${supportAuthor}` : ""}</p>
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Destinatar</label>
+                  <label className="text-sm font-medium">{text.recipient}</label>
                   <select value={receiverId} onChange={(e) => setReceiverId(e.target.value)} className="flex h-10 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-300" required>
-                    <option value="">Alege un membru</option>
+                    <option value="">{text.chooseMember}</option>
                     {members.map((member) => <option key={member.id} value={member.id}>{memberLabel(member)}</option>)}
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Sumă</label>
+                  <label className="text-sm font-medium">{text.amount}</label>
                   <Input type="number" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="rounded-2xl" placeholder="Ex: 25" required />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Notă</label>
-                  <Input value={note} onChange={(e) => setNote(e.target.value)} className="rounded-2xl" placeholder="Ex: Ajutor pentru transport" />
+                  <label className="text-sm font-medium">{text.note}</label>
+                  <Input value={note} onChange={(e) => setNote(e.target.value)} className="rounded-2xl" placeholder={text.notePlaceholder} />
                 </div>
 
                 {message && <div className="rounded-2xl border p-3 text-sm text-slate-600">{message}</div>}
 
-                <Button type="submit" className="rounded-2xl" disabled={sending}>{sending ? "Se trimite..." : "Trimite talanți"}</Button>
+                <Button type="submit" className="rounded-2xl" disabled={sending}>{sending ? text.sending : text.sendAction}</Button>
               </form>
             </CardContent>
           </Card>
 
           <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-xl">Istoric tranzacții</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-xl">{text.history}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {transactions.length === 0 ? (
-                <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu există încă tranzacții.</div>
+                <div className="rounded-2xl border p-4 text-sm text-slate-600">{text.noTransactions}</div>
               ) : (
                 transactions.map((tx) => {
                   const incoming = tx.direction === "credit"
@@ -461,13 +618,13 @@ export default function WalletPage() {
                     <div key={tx.id} className="rounded-2xl border p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="font-medium">{transactionTypeLabel(tx)}</p>
-                          <p className="mt-1 text-sm text-slate-500">{tx.description?.trim() || "Fără descriere"}</p>
-                          <p className="mt-1 text-xs text-slate-400">Status: {tx.status}</p>
+                          <p className="font-medium">{transactionTypeLabel(tx, text)}</p>
+                          <p className="mt-1 text-sm text-slate-500">{tx.description?.trim() || text.noDescription}</p>
+                          <p className="mt-1 text-xs text-slate-400">{text.status}: {tx.status}</p>
                         </div>
-                        <p className="text-lg font-semibold">{incoming ? "+" : "-"}{formatTalents(tx.amount_talanti)}</p>
+                        <p className="text-lg font-semibold">{incoming ? "+" : "-"}{formatTalants(tx.amount_talanti, locale)}</p>
                       </div>
-                      <p className="mt-2 text-xs text-slate-500">{new Date(tx.created_at).toLocaleString("ro-RO")}</p>
+                      <p className="mt-2 text-xs text-slate-500">{new Date(tx.created_at).toLocaleString(locale)}</p>
                     </div>
                   )
                 })

@@ -148,8 +148,8 @@ export const ro = {
   },
   aboutPage: {
     manifestText1: "VIVOS este spațiul comunitar în care schimbul dintre oameni se face prin acord, transparență și sprijin mutual. Accentul este pus pe relații directe, contribuție, responsabilitate și guvernanță distribuită.",
-    readFullManifest: "Citește manifestul complet",
-    installApp: "Instalează aplicația",
+    readFullManifest: "Vezi talantul VIVOS",
+    installApp: "Deschide instalarea",
   },
   settingsPage: {
     generalSettings: "Setări generale",

@@ -4,400 +4,215 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Despre Talantul VIVOS</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg: #0c2040;
-      --bg-mid: #0f2b55;
-      --bg-top: #142f60;
-      --card: rgba(255,255,255,0.97);
-      --card-soft: rgba(255,255,255,0.07);
-      --text: #0d1f38;
-      --muted: #526481;
-      --line: rgba(13,31,56,0.09);
-      --wline: rgba(255,255,255,0.11);
-      --pink: #d46aaa;
-      --purple: #9a71c1;
-      --blue: #4fa8e8;
-      --teal: #35c9dd;
-      --gold: #f79a42;
-      --green: #0e7c72;
-      --green-bg: #e8fffe;
-      --r: 20px;
-      --rcard: 22px;
-    }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html {
-      scroll-behavior: smooth;
-      -webkit-text-size-adjust: 100%;
-    }
-
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
     body {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 15px;
-      line-height: 1.65;
-      color: var(--text);
-      background:
-        radial-gradient(ellipse 80% 40% at 50% 0%, rgba(79,168,232,0.18) 0%, transparent 60%),
-        linear-gradient(175deg, var(--bg-top) 0%, var(--bg-mid) 40%, var(--bg) 100%);
-      min-height: 100vh;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-
-    .wrap {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 20px 16px 100px;
-    }
-
-    /* ── HERO ── */
-    .hero {
-      background:
-        linear-gradient(135deg, rgba(212,106,170,0.14) 0%, rgba(154,113,193,0.18) 45%, rgba(79,168,232,0.15) 100%),
-        rgba(255,255,255,0.055);
-      border: 1px solid var(--wline);
-      border-radius: 28px;
-      padding: 28px 22px 22px;
-      color: white;
-      margin-bottom: 16px;
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      box-shadow: 0 24px 56px rgba(4,10,22,0.32);
-    }
-
-    .eyebrow {
-      font-family: 'Syne', sans-serif;
-      font-size: 11px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 10px;
-      display: block;
-    }
-
-    h1 {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(32px, 8vw, 48px);
-      font-weight: 800;
-      line-height: 1.04;
-      letter-spacing: -0.03em;
-      margin-bottom: 14px;
-    }
-
-    .lead {
-      color: rgba(255,255,255,0.84);
-      font-size: clamp(14px, 3.8vw, 16px);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      font-size: 16px;
       line-height: 1.6;
-      margin-bottom: 20px;
+      background: #cfe0ee;
+      color: #0d1f38;
+      padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    }
+    .wrap {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 16px 14px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .hero-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+    /* HERO */
+    .hero {
+      background: linear-gradient(160deg, #2060c8 0%, #1a4fa8 55%, #163e8a 100%);
+      border-radius: 28px;
+      padding: 28px 22px 26px;
+      color: white;
+    }
+    .hero-label {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.9);
       margin-bottom: 18px;
     }
-
-    .hero-chip {
-      background: rgba(255,255,255,0.09);
-      border: 1px solid rgba(255,255,255,0.13);
-      border-radius: 14px;
-      padding: 10px 14px;
-      flex: 1 1 calc(50% - 5px);
-      min-width: 130px;
-    }
-
-    .hero-chip strong {
-      display: block;
-      font-size: 13px;
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      margin-bottom: 3px;
-      color: white;
-    }
-
-    .hero-chip span {
-      font-size: 12.5px;
-      color: rgba(255,255,255,0.75);
-      line-height: 1.45;
-    }
-
-    .formula-bar {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 16px;
-      padding: 16px 18px;
-      text-align: center;
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(17px, 4.5vw, 22px);
+    .hero h1 {
+      font-size: clamp(28px, 7.5vw, 38px);
       font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    .hero p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.88);
+      margin-bottom: 22px;
+    }
+    .formula-bar {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-size: 18px;
+      font-weight: 800;
+      text-align: center;
       letter-spacing: -0.01em;
-      color: white;
     }
 
-    /* ── CARDS ── */
+    /* CARDS */
     .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--rcard);
+      background: #ffffff;
+      border-radius: 24px;
       padding: 22px 18px;
-      box-shadow: 0 8px 28px rgba(4,12,30,0.1);
-      margin-bottom: 14px;
+      box-shadow: 0 2px 12px rgba(10,30,70,0.07);
     }
-
-    .card-dark {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid var(--wline);
+    .card-blue {
+      background: linear-gradient(145deg, #1a4fa8 0%, #163e8a 100%);
+      border-radius: 24px;
+      padding: 22px 18px;
       color: white;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      box-shadow: 0 12px 36px rgba(4,10,22,0.22);
     }
+    .card-blue h2 { color: white; }
+    .card-blue p { color: rgba(255,255,255,0.85); margin-bottom: 10px; }
+    .card-blue p:last-child { margin-bottom: 0; }
 
-    .card-dark .muted,
-    .card-dark p,
-    .card-dark li { color: rgba(255,255,255,0.8); }
+    .card-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #6a85a8;
+      margin-bottom: 8px;
+    }
+    .card-blue .card-label { color: rgba(255,255,255,0.5); }
 
     h2 {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(20px, 5.5vw, 26px);
+      font-size: clamp(22px, 5.5vw, 28px);
       font-weight: 800;
       letter-spacing: -0.025em;
-      line-height: 1.15;
+      line-height: 1.12;
       margin-bottom: 12px;
+      color: #0d1f38;
     }
-
     h3 {
-      font-family: 'Syne', sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 4px;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 3px;
+      color: #0d1f38;
     }
-
-    p { margin-bottom: 12px; }
+    p { font-size: 15.5px; color: #334155; margin-bottom: 10px; line-height: 1.6; }
     p:last-child { margin-bottom: 0; }
+    ul { padding-left: 20px; margin: 8px 0; }
+    li { font-size: 15.5px; color: #334155; margin-bottom: 5px; line-height: 1.55; }
+    strong { color: #0d1f38; }
+    .muted { color: #64748b; }
 
-    .muted { color: var(--muted); }
-
-    ul {
-      padding-left: 18px;
-      margin: 8px 0;
-    }
-    li { margin-bottom: 6px; }
-
-    /* ── PILLS ── */
     .pill {
       display: inline-block;
-      background: #f1f5fb;
-      border: 1px solid #dde6f0;
-      color: #2d4a70;
+      background: #eef4fb;
       border-radius: 999px;
-      padding: 4px 10px;
+      padding: 4px 11px;
       font-size: 11.5px;
       font-weight: 700;
-      font-family: 'Syne', sans-serif;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
+      color: #2060c8;
       margin-bottom: 8px;
     }
 
-    /* ── ITEM ROWS ── */
-    .list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
-
+    .list { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
     .list-item {
-      border: 1px solid #e4ecf5;
-      background: #fafcff;
+      background: #f7fafd;
+      border: 1px solid #e2ecf5;
       border-radius: 16px;
       padding: 13px 14px;
     }
+    .list-item strong { display: block; font-size: 15px; margin-bottom: 2px; }
+    .list-item p { margin: 0; font-size: 14.5px; }
 
-    .list-item strong { display: block; margin-bottom: 2px; font-size: 14.5px; }
-
-    /* ── HIGHLIGHT / SUCCESS ── */
     .highlight {
-      margin-top: 14px;
-      padding: 13px 15px;
+      background: #eef4fb;
       border-radius: 14px;
-      background: #f4f8ff;
-      border: 1px solid #d4e3f5;
+      padding: 13px 15px;
+      font-size: 14.5px;
       font-weight: 600;
-      font-size: 14px;
-    }
-
-    .success-box {
+      color: #1a3d70;
       margin-top: 14px;
-      padding: 14px 16px;
-      border-radius: 16px;
-      background: var(--green-bg);
-      border: 1px solid #8ee8e0;
-      color: var(--green);
-      font-weight: 700;
-      font-size: 14px;
     }
-
-    /* ── QUOTE ── */
+    .success-box {
+      background: #e8faf7;
+      border: 1px solid #a7e9dc;
+      border-radius: 14px;
+      padding: 13px 15px;
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #0b6b60;
+      margin-top: 14px;
+    }
     .quote {
-      border-left: 3px solid var(--purple);
+      border-left: 3px solid #4a90d9;
       padding: 8px 0 8px 14px;
-      color: var(--muted);
       font-style: italic;
-      font-size: 14px;
+      font-size: 15px;
+      color: #4a6080;
       margin: 12px 0;
     }
 
-    /* ── TABLE ── */
     .table-wrap {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-      border: 1px solid #e4ecf5;
+      border: 1px solid #e2ecf5;
       border-radius: 16px;
-      margin-top: 14px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 360px;
-      background: white;
-      font-size: 14px;
-    }
-
-    th, td {
-      padding: 11px 13px;
-      border-bottom: 1px solid #eef3f9;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    th {
-      background: #f6f9fd;
-      font-family: 'Syne', sans-serif;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #6a85a8;
-      font-weight: 700;
-    }
-
-    tr:last-child td { border-bottom: none; }
-
-    .small-note {
-      margin-top: 10px;
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    /* ── PRINCIPLES GRID ── */
-    .principles {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
       margin-top: 12px;
     }
+    table { width: 100%; border-collapse: collapse; min-width: 300px; font-size: 14px; }
+    th, td { padding: 11px 13px; border-bottom: 1px solid #eef3f9; text-align: left; vertical-align: top; }
+    th { background: #f6f9fd; font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #7a95b4; }
+    tr:last-child td { border-bottom: none; }
+    td { color: #334155; }
+    .small-note { margin-top: 10px; font-size: 13px; color: #7a95b4; line-height: 1.5; }
 
-    .principle {
-      border: 1px solid #e4ecf5;
-      border-radius: 16px;
-      padding: 13px 13px;
-      background: #fafcff;
-    }
+    .principles { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 12px; }
+    .principle { background: #f7fafd; border: 1px solid #e2ecf5; border-radius: 16px; padding: 13px 12px; }
+    .principle strong { display: block; font-size: 14px; margin-bottom: 3px; }
+    .principle span { font-size: 13px; color: #64748b; }
 
-    .principle strong {
-      display: block;
-      font-family: 'Syne', sans-serif;
-      font-size: 13.5px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
+    .footer-note { text-align: center; font-size: 13px; color: #6a85a8; padding: 4px 0 8px; font-weight: 500; letter-spacing: 0.04em; }
 
-    .principle span { font-size: 13px; color: var(--muted); }
-
-    /* ── SECTION DIVIDER ── */
-    .section-label {
-      font-family: 'Syne', sans-serif;
-      font-size: 10.5px;
-      font-weight: 700;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.38);
-      margin: 22px 0 10px 4px;
-    }
-
-    /* ── MOBILE NAV ── */
+    /* NAV */
     .mobile-nav {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(8, 24, 52, 0.92);
-      backdrop-filter: blur(16px) saturate(180%);
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
-      border-top: 1px solid rgba(255,255,255,0.08);
+      bottom: 0; left: 0; right: 0;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(0,0,0,0.07);
       z-index: 100;
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
-
-    .mobile-nav-inner {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      max-width: 500px;
-      margin: 0 auto;
-    }
-
+    .mobile-nav-inner { display: grid; grid-template-columns: repeat(5, 1fr); max-width: 500px; margin: 0 auto; }
     .mobile-nav a {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      padding: 9px 4px 10px;
-      text-decoration: none;
-      color: rgba(255,255,255,0.45);
-      font-size: 10px;
-      font-weight: 500;
-      font-family: 'Syne', sans-serif;
-      letter-spacing: 0.02em;
-      transition: color 0.15s;
-      -webkit-tap-highlight-color: transparent;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 10px 4px 11px; text-decoration: none;
+      color: #94a3b8; font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+      -webkit-tap-highlight-color: transparent; transition: color 0.15s;
     }
-
-    .mobile-nav a:active,
-    .mobile-nav a.active { color: white; }
-
+    .mobile-nav a:active, .mobile-nav a.active { color: #2060c8; }
     .mobile-nav svg { width: 20px; height: 20px; }
 
-    .footer-note {
-      text-align: center;
-      font-size: 13px;
-      color: rgba(255,255,255,0.35);
-      padding: 10px 0 6px;
-      font-family: 'Syne', sans-serif;
-      letter-spacing: 0.05em;
-    }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 480px) {
-      .principles {
-        grid-template-columns: 1fr;
-      }
-      .hero-chip {
-        flex: 1 1 100%;
-      }
-      .formula-bar {
-        font-size: 16px;
-        padding: 14px 14px;
-      }
-    }
-
-    @media (min-width: 600px) {
-      .wrap { padding: 28px 24px 100px; }
-      .card { padding: 26px 24px; }
-      .hero { padding: 32px 28px 26px; }
+    @media (max-width: 400px) {
+      .principles { grid-template-columns: 1fr; }
+      .hero { padding: 22px 16px 20px; }
+      .card { padding: 18px 14px; }
     }
   </style>
 </head>
@@ -405,27 +220,14 @@
   <main class="wrap">
 
     <section class="hero">
-      <span class="eyebrow">Despre • VIVOS</span>
+      <div class="hero-label">Despre · VIVOS</div>
       <h1>Talantul VIVOS</h1>
-      <p class="lead">
-        Talantul este unitatea internă de valoare a comunității VIVOS — nu o monedă speculativă, ci expresia coerentă a contribuției umane, a utilității reale și a schimbului viu dintre membri.
-      </p>
-      <div class="hero-chips">
-        <div class="hero-chip">
-          <strong>Definiție scurtă</strong>
-          <span>O unitate comunitară de valoare — timp, utilitate, dificultate, impact real.</span>
-        </div>
-        <div class="hero-chip">
-          <strong>Principiu de pornire</strong>
-          <span>În MVP, talantul rămâne simplu, lizibil și ușor de aplicat practic.</span>
-        </div>
-      </div>
-      <div class="formula-bar">1 talant = 15 minute de contribuție standard</div>
+      <p>Talantul este unitatea internă de valoare a comunității VIVOS — nu o monedă speculativă, ci expresia coerentă a contribuției umane, a utilității reale și a schimbului viu dintre membri.</p>
+      <div class="formula-bar">1 talant = 15 min contribuție standard</div>
     </section>
 
-    <div class="section-label">Ce este</div>
-
     <article class="card">
+      <div class="card-label">Definiție</div>
       <h2>Ce este talantul</h2>
       <p>Talantul este o <strong>unitate comunitară de măsură a valorii</strong>. El există pentru a exprima:</p>
       <ul>
@@ -435,125 +237,59 @@
         <li>sprijinul mutual</li>
         <li>schimbul viu dintre membri</li>
       </ul>
-      <p class="highlight">
-        Talantul nu este scopul. El este instrumentul prin care comunitatea recunoaște, circulă și păstrează valoarea reală.
-      </p>
+      <div class="highlight">Talantul nu este scopul. El este instrumentul prin care comunitatea recunoaște, circulă și păstrează valoarea reală.</div>
     </article>
 
     <article class="card">
-      <h2>Formula de lansare</h2>
-      <p class="muted">Repere ușor de înțeles și de aplicat în faza inițială.</p>
+      <div class="card-label">Formula de lansare</div>
+      <h2>Repere de timp</h2>
       <div class="list">
-        <div class="list-item"><strong>1 talant</strong><span class="muted">≈ 15 minute de contribuție standard</span></div>
-        <div class="list-item"><strong>4 talanți</strong><span class="muted">≈ 1 oră de contribuție standard</span></div>
-        <div class="list-item"><strong>8 talanți</strong><span class="muted">≈ 2 ore de contribuție standard</span></div>
-        <div class="list-item"><strong>16 talanți</strong><span class="muted">≈ 4 ore de contribuție standard</span></div>
+        <div class="list-item"><strong>1 talant</strong><p class="muted">≈ 15 minute de contribuție standard</p></div>
+        <div class="list-item"><strong>4 talanți</strong><p class="muted">≈ 1 oră de contribuție standard</p></div>
+        <div class="list-item"><strong>8 talanți</strong><p class="muted">≈ 2 ore de contribuție standard</p></div>
+        <div class="list-item"><strong>16 talanți</strong><p class="muted">≈ 4 ore de contribuție standard</p></div>
       </div>
     </article>
 
-    <div class="section-label">Logica valorii</div>
-
     <article class="card">
-      <h2>Logica reală a talantului</h2>
-      <p>Talantul nu pornește de la bancă, ci de la aportul real al omului în comunitate.</p>
+      <div class="card-label">Logica valorii</div>
+      <h2>Cum se calculează</h2>
+      <p>Valoarea nu pornește de la bancă, ci de la aportul real al omului în comunitate.</p>
       <div class="list">
-        <div class="list-item">
-          <span class="pill">Timp</span>
-          <p class="muted">Cât timp real a fost oferit.</p>
-        </div>
-        <div class="list-item">
-          <span class="pill">Utilitate</span>
-          <p class="muted">Cât de folositoare este contribuția pentru o nevoie concretă.</p>
-        </div>
-        <div class="list-item">
-          <span class="pill">Dificultate</span>
-          <p class="muted">Câtă pricepere, efort sau responsabilitate cere activitatea.</p>
-        </div>
-        <div class="list-item">
-          <span class="pill">Impact comunitar</span>
-          <p class="muted">Ce efect real produce în relațiile și echilibrul comunității.</p>
-        </div>
+        <div class="list-item"><span class="pill">Timp</span><p class="muted">Cât timp real a fost oferit.</p></div>
+        <div class="list-item"><span class="pill">Utilitate</span><p class="muted">Cât de folositoare este contribuția pentru o nevoie concretă.</p></div>
+        <div class="list-item"><span class="pill">Dificultate</span><p class="muted">Câtă pricepere, efort sau responsabilitate cere activitatea.</p></div>
+        <div class="list-item"><span class="pill">Impact comunitar</span><p class="muted">Ce efect real produce în relațiile și echilibrul comunității.</p></div>
       </div>
-      <div class="success-box">
-        Valoarea în talanți = timp + utilitate + dificultate + impact comunitar.
-      </div>
+      <div class="success-box">Valoarea în talanți = timp + utilitate + dificultate + impact comunitar.</div>
     </article>
 
     <article class="card">
+      <div class="card-label">Principiu</div>
       <h2>De ce nu e legat rigid de bani</h2>
       <p>VIVOS nu reduce valoarea exclusiv la monedă fiat. Talantul nu are un echivalent bancar fix în DKK, EUR sau RON.</p>
-      <p class="quote">
-        Talantul rămâne o unitate comunitară de valoare. Banii pot fi folosiți doar ca reper orientativ local, nu ca definiție a lui.
-      </p>
+      <div class="quote">Talantul rămâne o unitate comunitară de valoare. Banii pot fi folosiți doar ca reper orientativ local, nu ca definiție a lui.</div>
       <p><strong>1 talant rămâne 1 talant.</strong> Doar ancora locală de orientare poate varia.</p>
     </article>
 
-    <div class="section-label">Ancore locale</div>
-
     <article class="card">
-      <h2>Cum am ajuns la ancorele locale</h2>
+      <div class="card-label">Ancore locale</div>
+      <h2>Repere de orientare</h2>
       <p>Nu am întrebat „cât face 1 talant la schimb", ci <strong>ce greutate practică trebuie să aibă</strong> într-o comunitate reală.</p>
-      <div class="list">
-        <div class="list-item">
-          <span class="pill">Pasul 1</span>
-          <p class="muted">Talantul rămâne unitate comunitară, nu monedă de piață.</p>
-        </div>
-        <div class="list-item">
-          <span class="pill">Pasul 2</span>
-          <p class="muted">Reperul: contribuția utilă de bază — ajutor practic, timp oferit, muncă simplă.</p>
-        </div>
-        <div class="list-item">
-          <span class="pill">Pasul 3</span>
-          <p class="muted">O valoare suficient de serioasă să aibă greutate, dar accesibilă să circule ușor.</p>
-        </div>
-      </div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr><th>Țară</th><th>Logică folosită</th><th>Ancoră</th></tr>
-          </thead>
+          <thead><tr><th>Țară</th><th>Ancoră</th><th>Logică</th></tr></thead>
           <tbody>
-            <tr>
-              <td><strong>România</strong></td>
-              <td>Valoare medie, ușor de calculat, realistă pentru schimburi mici și servicii de bază.</td>
-              <td><strong>≈ 30 lei</strong></td>
-            </tr>
-            <tr>
-              <td><strong>Danemarca</strong></td>
-              <td>Cost de trai mai ridicat — ancora trebuia să fie mai sus pentru aceeași greutate practică.</td>
-              <td><strong>≈ 100 DKK</strong></td>
-            </tr>
+            <tr><td><strong>România</strong></td><td><strong>≈ 30 lei</strong></td><td>Valoare medie, realistă pentru schimburi mici și servicii de bază.</td></tr>
+            <tr><td><strong>Danemarca</strong></td><td><strong>≈ 100 DKK</strong></td><td>Cost de trai mai ridicat — ancora mai sus pentru aceeași greutate practică.</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="small-note">Diferența nu schimbă talantul în sine — arată că aceeași unitate comunitară are nevoie de o orientare locală diferită în contexte economice diferite.</p>
+      <p class="small-note">Diferența nu schimbă talantul în sine — arată că aceeași unitate comunitară are nevoie de orientare locală diferită în contexte economice diferite.</p>
     </article>
 
     <article class="card">
-      <h2>Repere locale de orientare</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Țară</th><th>Ancoră</th><th>Sens</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>România</td>
-              <td><strong>≈ 30 lei</strong></td>
-              <td>echivalent comunitar de orientare</td>
-            </tr>
-            <tr>
-              <td>Danemarca</td>
-              <td><strong>≈ 100 DKK</strong></td>
-              <td>echivalent comunitar de orientare</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="small-note">Aceste valori nu definesc talantul în sens bancar. Ajută membrii să înțeleagă mai ușor greutatea practică a unei contribuții în context local.</p>
-    </article>
-
-    <article class="card">
+      <div class="card-label">Clarificare</div>
       <h2>Ce NU este talantul</h2>
       <ul>
         <li>nu este salariu clasic</li>
@@ -564,11 +300,9 @@
       </ul>
     </article>
 
-    <div class="section-label">Evaluarea contribuției</div>
-
     <article class="card">
-      <h2>Cum se evaluează contribuția</h2>
-      <p class="muted">Nu orice activitate are aceeași dificultate. VIVOS folosește repere orientative, nu etichete rigide.</p>
+      <div class="card-label">Evaluarea contribuției</div>
+      <h2>Repere pe tipuri de muncă</h2>
       <div class="list">
         <div class="list-item">
           <span class="pill">Contribuție standard</span>
@@ -589,95 +323,77 @@
     </article>
 
     <article class="card">
-      <h2>Scară practică în talanți</h2>
+      <div class="card-label">Scară practică</div>
+      <h2>Valori orientative</h2>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr><th>Nivel</th><th>Talanți</th><th>Exemple</th></tr>
-          </thead>
+          <thead><tr><th>Nivel</th><th>Talanți</th><th>Exemple</th></tr></thead>
           <tbody>
-            <tr><td>Foarte mic</td><td>0.5</td><td>gest, ajutor simbolic, sprijin scurt</td></tr>
-            <tr><td>Mic</td><td>1</td><td>ajutor de bază, sarcină scurtă</td></tr>
-            <tr><td>Util</td><td>2–3</td><td>serviciu standard, produs mic, transport scurt</td></tr>
-            <tr><td>Consistent</td><td>5</td><td>muncă clară, bun util, ajutor concret</td></tr>
-            <tr><td>Important</td><td>10</td><td>muncă serioasă, intervenție tehnică</td></tr>
-            <tr><td>Mare</td><td>20</td><td>sprijin major, bun substanțial</td></tr>
-            <tr><td>Major</td><td>50+</td><td>caz special, contribuție de impact</td></tr>
+            <tr><td>Foarte mic</td><td><strong>0.5</strong></td><td>gest, ajutor simbolic, sprijin scurt</td></tr>
+            <tr><td>Mic</td><td><strong>1</strong></td><td>ajutor de bază, sarcină scurtă</td></tr>
+            <tr><td>Util</td><td><strong>2–3</strong></td><td>serviciu standard, produs mic, transport scurt</td></tr>
+            <tr><td>Consistent</td><td><strong>5</strong></td><td>muncă clară, bun util, ajutor concret</td></tr>
+            <tr><td>Important</td><td><strong>10</strong></td><td>muncă serioasă, intervenție tehnică</td></tr>
+            <tr><td>Mare</td><td><strong>20</strong></td><td>sprijin major, bun substanțial</td></tr>
+            <tr><td>Major</td><td><strong>50+</strong></td><td>caz special, contribuție de impact</td></tr>
           </tbody>
         </table>
       </div>
     </article>
 
-    <div class="section-label">Exemple & Principii</div>
-
     <article class="card">
-      <h2>Exemple reale de folosire</h2>
+      <div class="card-label">Exemple reale</div>
+      <h2>Folosire în practică</h2>
       <div class="list">
-        <div class="list-item"><strong>1 talant</strong><span class="muted"> — ajutor de bază, drum foarte scurt, mic sprijin practic</span></div>
-        <div class="list-item"><strong>2–3 talanți</strong><span class="muted"> — serviciu util standard, produs mic, suport punctual</span></div>
-        <div class="list-item"><strong>5 talanți</strong><span class="muted"> — muncă consistentă, bun util, ajutor clar pentru o nevoie</span></div>
-        <div class="list-item"><strong>10 talanți</strong><span class="muted"> — intervenție serioasă, muncă specializată, produs valoros</span></div>
+        <div class="list-item"><strong>1 talant</strong><p class="muted">ajutor de bază, drum foarte scurt, mic sprijin practic</p></div>
+        <div class="list-item"><strong>2–3 talanți</strong><p class="muted">serviciu util standard, produs mic, suport punctual</p></div>
+        <div class="list-item"><strong>5 talanți</strong><p class="muted">muncă consistentă, bun util, ajutor clar pentru o nevoie</p></div>
+        <div class="list-item"><strong>10 talanți</strong><p class="muted">intervenție serioasă, muncă specializată, produs valoros</p></div>
       </div>
     </article>
 
-    <article class="card card-dark">
+    <article class="card-blue">
+      <div class="card-label">Interpretare</div>
       <h2>Interpretare sănătoasă</h2>
       <p>Talantul nu trebuie folosit mecanic. El trebuie păstrat viu — raportat permanent la realitatea concretă a comunității.</p>
       <p>Când apar diferențe, ele se explică prin timp, utilitate, dificultate și impact — nu se impun arbitrar.</p>
     </article>
 
     <article class="card">
-      <h2>Principiile VIVOS pentru talant</h2>
+      <div class="card-label">Principiile VIVOS</div>
+      <h2>Valorile din spate</h2>
       <div class="principles">
-        <div class="principle">
-          <strong>Claritate</strong>
-          <span>Regulile de evaluare trebuie să fie ușor de înțeles.</span>
-        </div>
-        <div class="principle">
-          <strong>Echitate</strong>
-          <span>Contribuțiile reale recunoscute proporțional.</span>
-        </div>
-        <div class="principle">
-          <strong>Transparență</strong>
-          <span>Diferențele de evaluare pot fi explicate.</span>
-        </div>
-        <div class="principle">
-          <strong>Utilitate reală</strong>
-          <span>Valoarea vine din timp, efect și sens concret.</span>
-        </div>
-        <div class="principle">
-          <strong>Echilibru</strong>
-          <span>Talantul susține circulația sănătoasă, nu dominarea.</span>
-        </div>
-        <div class="principle">
-          <strong>Demnitate</strong>
-          <span>Contribuția umană recunoscută cu respect.</span>
-        </div>
+        <div class="principle"><strong>Claritate</strong><span>Regulile de evaluare ușor de înțeles.</span></div>
+        <div class="principle"><strong>Echitate</strong><span>Contribuțiile reale recunoscute proporțional.</span></div>
+        <div class="principle"><strong>Transparență</strong><span>Diferențele de evaluare pot fi explicate.</span></div>
+        <div class="principle"><strong>Utilitate reală</strong><span>Valoarea vine din timp, efect și sens concret.</span></div>
+        <div class="principle"><strong>Echilibru</strong><span>Circulație sănătoasă, nu dominare.</span></div>
+        <div class="principle"><strong>Demnitate</strong><span>Contribuția umană recunoscută cu respect.</span></div>
       </div>
     </article>
 
-    <div class="section-label">Platformă</div>
-
     <article class="card">
+      <div class="card-label">Platformă</div>
       <h2>Wallet-ul în talanți</h2>
-      <p>Instrumentul intern prin care talanții circulă între membri:</p>
+      <p>Instrumentul intern prin care talanții circulă între membri. Permite:</p>
       <ul>
         <li>transferuri clare</li>
         <li>istoric al schimburilor</li>
         <li>vizibilitate asupra circulației valorii</li>
         <li>încredere și trasabilitate în comunitate</li>
       </ul>
-      <p class="highlight">Wallet-ul nu schimbă sensul talantului. El doar îl face operabil în platformă.</p>
+      <div class="highlight">Wallet-ul nu schimbă sensul talantului. El doar îl face operabil în platformă.</div>
     </article>
 
     <article class="card">
-      <h2>Formulare scurtă</h2>
+      <div class="card-label">Rezumat</div>
+      <h2>Pe scurt</h2>
       <p><strong>Talantul este unitatea internă de valoare a comunității VIVOS.</strong></p>
-      <p><strong>În faza inițială, 1 talant = aproximativ 15 minute de contribuție standard.</strong></p>
+      <p><strong>1 talant = aproximativ 15 minute de contribuție standard.</strong></p>
       <p class="muted">Valoarea concretă se stabilește în funcție de timp, utilitate, dificultate, responsabilitate și specializare. Reperele locale în RON sau DKK sunt doar orientative.</p>
     </article>
 
-    <p class="footer-note">VIVOS • Ordine vie, schimb și sprijin mutual</p>
+    <p class="footer-note">VIVOS · Ordine vie, schimb și sprijin mutual</p>
   </main>
 
   <nav class="mobile-nav">

@@ -997,24 +997,15 @@ function AboutScreen() {
             {t("aboutPage.manifestText1")}
           </p>
 
-          <div className="grid gap-3 sm:flex sm:flex-row">
+          <div className="mt-5">
             <Button
-              className="rounded-2xl"
+              variant="outline"
+              className="h-12 w-full"
               onClick={() => {
                 window.location.href = "/despre-talant-vivos.html"
               }}
             >
               {t("aboutPage.readFullManifest")}
-            </Button>
-
-            <Button
-              variant="outline"
-              className="rounded-2xl"
-              onClick={() => {
-                window.location.href = "/wallet"
-              }}
-            >
-              {t("aboutPage.installApp")}
             </Button>
           </div>
         </CardContent>

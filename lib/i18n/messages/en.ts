@@ -138,4 +138,13 @@ export const en = {
     stock: "Stock",
     unlimited: "unlimited",
   },
+  aboutPage: {
+    manifestText1: "VIVOS is the community space where exchange between people happens through agreement, transparency, and mutual support. The focus is on direct relationships, contribution, responsibility, and distributed governance.",
+    readFullManifest: "Read the full manifesto",
+    installApp: "Install the app",
+  },
+  settingsPage: {
+    generalSettings: "General settings",
+    notificationsText: "Control how you receive alerts in the app and in the browser.",
+  },
 } as const

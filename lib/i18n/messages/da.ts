@@ -140,8 +140,8 @@ export const da = {
   },
   aboutPage: {
     manifestText1: "VIVOS er fællesskabsrummet, hvor udvekslingen mellem mennesker sker gennem aftale, gennemsigtighed og gensidig støtte. Fokus ligger på direkte relationer, bidrag, ansvar og distribueret styring.",
-    readFullManifest: "Læs hele manifestet",
-    installApp: "Installer appen",
+    readFullManifest: "Se VIVOS-talant",
+    installApp: "Åbn installation",
   },
   settingsPage: {
     generalSettings: "Generelle indstillinger",

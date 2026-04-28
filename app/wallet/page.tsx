@@ -32,6 +32,8 @@ type WalletTransaction = {
   direction: "credit" | "debit"
   status: "pending" | "posted" | "cancelled"
   description: string | null
+  description_key?: string | null
+  description_meta?: Record<string, unknown> | null
   created_at: string
 }
 
@@ -207,6 +209,39 @@ function transactionTypeLabel(tx: WalletTransaction, text: Record<string, string
   return text.adjustment
 }
 
+function renderWalletDescription(
+  tx: WalletTransaction,
+  lang: AppLang,
+  text: Record<string, string>
+) {
+  const meta = (tx.description_meta ?? {}) as Record<string, unknown>
+  const note = typeof meta.note === "string" ? meta.note.trim() : ""
+
+  const map: Record<AppLang, Record<string, string>> = {
+    ro: {
+      "wallet.desc.topup.initial_signup_grant": "Grant inițial automat la înregistrare",
+      "wallet.desc.transfer.sent": note ? `Transfer trimis · ${note}` : "Transfer trimis",
+      "wallet.desc.transfer.received": note ? `Transfer primit · ${note}` : "Transfer primit",
+    },
+    da: {
+      "wallet.desc.topup.initial_signup_grant": "Automatisk startgrant ved registrering",
+      "wallet.desc.transfer.sent": note ? `Sendt overførsel · ${note}` : "Sendt overførsel",
+      "wallet.desc.transfer.received": note ? `Modtaget overførsel · ${note}` : "Modtaget overførsel",
+    },
+    en: {
+      "wallet.desc.topup.initial_signup_grant": "Automatic signup grant",
+      "wallet.desc.transfer.sent": note ? `Transfer sent · ${note}` : "Transfer sent",
+      "wallet.desc.transfer.received": note ? `Transfer received · ${note}` : "Transfer received",
+    },
+  }
+
+  if (tx.description_key && map[lang]?.[tx.description_key]) {
+    return map[lang][tx.description_key]
+  }
+
+  return tx.description?.trim() || text.noDescription
+}
+
 export default function WalletPage() {
   const router = useRouter()
   const { language } = useI18n()
@@ -326,7 +361,7 @@ export default function WalletPage() {
         supabase.from("profiles").select("id, email, name, alias").neq("id", currentUserId).order("created_at", { ascending: false }),
         supabase
           .from("wallet_transactions")
-          .select("id, user_id, order_id, transaction_type, amount_talanti, direction, status, description, created_at")
+          .select("id, user_id, order_id, transaction_type, amount_talanti, direction, status, description, description_key, description_meta, created_at")
           .eq("user_id", currentUserId)
           .order("created_at", { ascending: false })
           .limit(30),
@@ -404,7 +439,7 @@ export default function WalletPage() {
       supabase.from("wallet_accounts").select("user_id, balance_talanti").eq("user_id", currentUserId).maybeSingle(),
       supabase
         .from("wallet_transactions")
-        .select("id, user_id, order_id, transaction_type, amount_talanti, direction, status, description, created_at")
+        .select("id, user_id, order_id, transaction_type, amount_talanti, direction, status, description, description_key, description_meta, created_at")
         .eq("user_id", currentUserId)
         .order("created_at", { ascending: false })
         .limit(30),
@@ -619,7 +654,7 @@ export default function WalletPage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="font-medium">{transactionTypeLabel(tx, text)}</p>
-                          <p className="mt-1 text-sm text-slate-500">{tx.description?.trim() || text.noDescription}</p>
+                          <p className="mt-1 text-sm text-slate-500">{renderWalletDescription(tx, lang, text)}</p>
                           <p className="mt-1 text-xs text-slate-400">{text.status}: {tx.status}</p>
                         </div>
                         <p className="text-lg font-semibold">{incoming ? "+" : "-"}{formatTalants(tx.amount_talanti, locale)}</p>

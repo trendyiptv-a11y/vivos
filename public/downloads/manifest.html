@@ -5,229 +5,86 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Manifestul VIVOS — Comunitate autonomă online</title>
   <meta name="description" content="Manifestul VIVOS: o comunitate autonomă online, cu identitate internă, guvernanță, economie mutuală și memorie verificabilă." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,300&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root {
+    :root{
       --navy:#173F74; --navy2:#204E8C; --cyan:#56B6DE; --purple:#9A6FC0;
       --bg:#F4F7FB; --surface:#FFFFFF; --text:#18324B; --muted:#5C708A;
       --border:#D9E3F0; --shadow:0 14px 40px rgba(23,63,116,.12); --radius:24px; --max:1120px;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-      color: var(--text);
-      background: radial-gradient(circle at top right, rgba(86,182,222,.14), transparent 30%),
-                  linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
-      line-height: 1.6;
-    }
-    .wrap { width: min(var(--max), calc(100% - 32px)); margin: 0 auto; }
+    *{box-sizing:border-box} html{scroll-behavior:smooth}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);
+      background:radial-gradient(circle at top right, rgba(86,182,222,.14), transparent 30%), linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      line-height:1.6}
+    .wrap{width:min(var(--max),calc(100% - 32px));margin:0 auto}
 
     /* ── Lang switcher ── */
-    .lang-bar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 10px 0;
+    .lang-bar{
+      position:sticky;top:0;z-index:100;
+      background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--border);
+      padding:10px 0;
     }
-    .lang-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+    .lang-inner{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .lang-brand{font-weight:700;font-size:16px;color:var(--navy);letter-spacing:-.01em}
+    .lang-btns{display:flex;gap:6px}
+    .lang-btn{
+      padding:6px 14px;border-radius:10px;border:1px solid var(--border);
+      background:transparent;color:var(--muted);
+      font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+      font-size:13px;font-weight:600;letter-spacing:.08em;
+      cursor:pointer;transition:all .15s ease;
     }
-    .lang-brand {
-      font-family: 'Fraunces', Georgia, serif;
-      font-weight: 700;
-      font-size: 18px;
-      color: var(--navy);
-      letter-spacing: -0.02em;
-    }
-    .lang-btns {
-      display: flex;
-      gap: 6px;
-    }
-    .lang-btn {
-      padding: 6px 14px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      cursor: pointer;
-      transition: all 0.18s ease;
-    }
-    .lang-btn:hover {
-      background: var(--bg);
-      color: var(--navy);
-    }
-    .lang-btn.active {
-      background: var(--navy);
-      color: #fff;
-      border-color: var(--navy);
-    }
+    .lang-btn:hover{background:var(--bg);color:var(--navy)}
+    .lang-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 
-    /* ── Hero ── */
-    .hero { padding: 56px 0 40px; }
-    .hero-box {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 58%, var(--cyan) 100%);
-      color: #fff;
-      border-radius: 32px;
-      padding: 56px 40px;
-      box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
-    }
-    .hero-box::before {
-      content: '';
-      position: absolute;
-      top: -60px; right: -60px;
-      width: 320px; height: 320px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.05);
-      pointer-events: none;
-    }
-    .eyebrow {
-      display: inline-flex;
-      padding: 7px 14px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.12);
-      border: 1px solid rgba(255,255,255,.18);
-      font-size: 11px;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-      font-weight: 600;
-    }
-    h1 {
-      font-family: 'Fraunces', Georgia, serif;
-      font-size: clamp(30px, 6vw, 58px);
-      line-height: 1.08;
-      letter-spacing: -.03em;
-      max-width: 860px;
-      font-weight: 900;
-    }
-    .lead {
-      margin: 18px 0 0;
-      max-width: 780px;
-      font-size: clamp(17px, 2.2vw, 20px);
-      color: rgba(255,255,255,.90);
-      font-weight: 400;
-    }
-    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      min-height: 46px; padding: 0 20px; border-radius: 14px;
-      text-decoration: none; font-weight: 600; border: 1px solid transparent;
-      font-family: 'DM Sans', sans-serif; font-size: 15px; transition: opacity 0.15s;
-    }
-    .btn:hover { opacity: 0.88; }
-    .btn-primary { background: #fff; color: var(--navy); }
-    .btn-secondary { background: rgba(255,255,255,.10); color: #fff; border-color: rgba(255,255,255,.22); }
+    .hero{padding:72px 0 48px}
+    .hero-box{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 58%,var(--cyan) 100%);color:#fff;border-radius:32px;padding:56px 32px;box-shadow:var(--shadow)}
+    .eyebrow{display:inline-flex;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px}
+    h1{margin:0;font-size:clamp(34px,7vw,64px);line-height:1.05;letter-spacing:-.03em;max-width:900px}
+    .lead{margin:18px 0 0;max-width:820px;font-size:clamp(18px,2.5vw,22px);color:rgba(255,255,255,.92)}
+    .hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:28px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;border-radius:16px;text-decoration:none;font-weight:600;border:1px solid transparent}
+    .btn-primary{background:#fff;color:var(--navy)} .btn-secondary{background:rgba(255,255,255,.10);color:#fff;border-color:rgba(255,255,255,.22)}
+    .grid{display:grid;gap:18px} .grid-3{grid-template-columns:repeat(3,1fr)}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .stats{margin-top:20px}.stat{padding:22px}.stat .k{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.stat .v{margin-top:8px;font-size:24px;line-height:1.2;font-weight:700;color:var(--navy)}
+    main{padding:18px 0 80px} section{margin-top:22px} .section-card{padding:28px}
+    .section-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px}
+    .badge{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:14px;background:rgba(86,182,222,.12);color:var(--navy);font-weight:800;flex:0 0 auto}
+    h2{margin:0;font-size:clamp(24px,4vw,34px);line-height:1.15;letter-spacing:-.02em}.sub{margin:6px 0 0;color:var(--muted);font-size:16px}
+    .pill-list{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.pill{padding:10px 14px;border-radius:999px;background:#f8fbff;border:1px solid var(--border);color:var(--navy);font-size:14px;font-weight:600}
+    .article{display:grid;gap:14px;margin-top:18px}.article p{margin:0;font-size:17px}
+    .quote{margin-top:18px;padding:20px 22px;border-radius:20px;background:linear-gradient(135deg, rgba(86,182,222,.10), rgba(154,111,192,.08));border:1px solid var(--border);font-size:18px;font-weight:600;color:var(--navy)}
+    .principles{margin-top:18px;display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
+    .principle,.article-item,.step,.manifest-end{background:#fff}
+    .principle,.article-item{padding:20px;border-radius:22px;border:1px solid var(--border)}
+    .principle h3,.article-item h3{margin:0 0 8px;color:var(--navy)}
+    .principle p,.article-item p{margin:0;color:var(--muted)}
+    .articles,.steps{display:grid;gap:14px;margin-top:18px}
+    .step{display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:flex-start;padding:18px;border:1px solid var(--border);border-radius:22px}
+    .step-num{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy),var(--cyan));color:#fff;font-weight:800;font-size:20px}
+    .step h3{margin:2px 0 6px;font-size:18px;color:var(--navy)} .step p{margin:0;color:var(--muted)}
+    .manifest-end{margin-top:22px;padding:32px;border-radius:32px;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .signature{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);font-size:15px}
+    footer{padding:0 0 48px;color:var(--muted);font-size:14px}
 
-    /* ── Stats ── */
-    .grid { display: grid; gap: 16px; }
-    .grid-3 { grid-template-columns: repeat(3, 1fr); }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
-    .stats { margin-top: 18px; }
-    .stat { padding: 22px 24px; }
-    .stat .k { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-    .stat .v { margin-top: 8px; font-family: 'Fraunces', Georgia, serif; font-size: 22px; line-height: 1.2; font-weight: 700; color: var(--navy); }
+    /* ── i18n ── */
+    [data-lang]{display:none}
+    [data-lang].visible{display:block}
+    [data-lang-inline]{display:none}
+    [data-lang-inline].visible{display:inline}
 
-    /* ── Sections ── */
-    main { padding: 16px 0 80px; }
-    section { margin-top: 20px; }
-    .section-card { padding: 32px 36px; }
-    .section-head { display: flex; gap: 18px; align-items: flex-start; margin-bottom: 20px; }
-    .badge {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 44px; height: 44px; border-radius: 14px;
-      background: linear-gradient(135deg, rgba(86,182,222,.18), rgba(154,111,192,.12));
-      color: var(--navy); font-weight: 800; flex: 0 0 auto;
-      font-family: 'Fraunces', Georgia, serif; font-size: 18px;
-    }
-    h2 {
-      font-family: 'Fraunces', Georgia, serif;
-      font-size: clamp(22px, 3.5vw, 32px);
-      line-height: 1.18; letter-spacing: -.02em;
-      font-weight: 700;
-    }
-    .sub { margin: 6px 0 0; color: var(--muted); font-size: 16px; }
-    .pill-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-    .pill {
-      padding: 9px 16px; border-radius: 999px;
-      background: #f0f6ff; border: 1px solid var(--border);
-      color: var(--navy); font-size: 14px; font-weight: 600;
-    }
-    .article { display: grid; gap: 14px; margin-top: 18px; }
-    .article p { font-size: 17px; color: var(--text); }
-    .quote {
-      margin-top: 20px; padding: 22px 26px; border-radius: 20px;
-      background: linear-gradient(135deg, rgba(86,182,222,.10), rgba(154,111,192,.08));
-      border: 1px solid rgba(86,182,222,.22);
-      font-family: 'Fraunces', Georgia, serif;
-      font-size: 18px; font-weight: 600; font-style: italic;
-      color: var(--navy); line-height: 1.5;
-    }
-    .principles { margin-top: 20px; display: grid; gap: 14px; grid-template-columns: repeat(2,1fr); }
-    .principle, .article-item { padding: 22px; border-radius: 20px; border: 1px solid var(--border); background: #fff; }
-    .principle h3, .article-item h3 { font-family: 'Fraunces', Georgia, serif; margin: 0 0 8px; color: var(--navy); font-size: 17px; }
-    .principle p, .article-item p { margin: 0; color: var(--muted); font-size: 15px; }
-    .articles, .steps { display: grid; gap: 14px; margin-top: 20px; }
-    .step {
-      display: grid; grid-template-columns: 56px 1fr; gap: 16px;
-      align-items: flex-start; padding: 20px; border: 1px solid var(--border);
-      border-radius: 22px; background: #fff;
-    }
-    .step-num {
-      width: 52px; height: 52px; border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, var(--navy), var(--cyan));
-      color: #fff; font-weight: 800; font-size: 20px;
-      font-family: 'Fraunces', Georgia, serif;
-    }
-    .step h3 { margin: 2px 0 6px; font-family: 'Fraunces', Georgia, serif; font-size: 17px; color: var(--navy); }
-    .step p { margin: 0; color: var(--muted); font-size: 15px; }
-    .manifest-end {
-      margin-top: 24px; padding: 36px; border-radius: 32px;
-      border: 1px solid var(--border); box-shadow: var(--shadow);
-      background: #fff;
-    }
-    .manifest-end h2 { margin-bottom: 16px; }
-    .manifest-end p { font-size: 17px; color: var(--text); margin-bottom: 14px; }
-    .signature { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 15px; }
-    footer { padding: 0 0 48px; color: var(--muted); font-size: 14px; }
-
-    /* ── i18n hide/show ── */
-    [data-lang] { display: none; }
-    [data-lang].visible { display: block; }
-    [data-lang-inline] { display: none; }
-    [data-lang-inline].visible { display: inline; }
-
-    @media (max-width: 900px) {
-      .grid-3, .principles { grid-template-columns: 1fr; }
-      .hero-box { padding: 36px 22px; border-radius: 26px; }
-      .section-card { padding: 22px 20px; }
-      .step { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 900px){.grid-3,.principles{grid-template-columns:1fr}.hero-box{padding:38px 22px;border-radius:28px}.section-card{padding:22px}.step{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 
-<!-- Lang bar -->
 <div class="lang-bar">
   <div class="wrap lang-inner">
     <span class="lang-brand">VIVOS</span>
     <div class="lang-btns">
-      <button class="lang-btn active" data-target="ro" onclick="setLang('ro')">RO</button>
+      <button class="lang-btn" data-target="ro" onclick="setLang('ro')">RO</button>
       <button class="lang-btn" data-target="da" onclick="setLang('da')">DA</button>
       <button class="lang-btn" data-target="en" onclick="setLang('en')">EN</button>
     </div>
@@ -265,7 +122,6 @@
         </a>
       </div>
     </div>
-
     <div class="grid grid-3 stats">
       <div class="card stat">
         <div class="k"><span data-lang-inline="ro">Nucleu</span><span data-lang-inline="da">Kerne</span><span data-lang-inline="en">Core</span></div>
@@ -286,59 +142,23 @@
 <main id="manifest">
   <div class="wrap">
 
-    <!-- I -->
     <section class="card section-card">
-      <div class="section-head">
-        <div class="badge">I</div>
-        <div>
-          <h2>
-            <span data-lang="ro">Declarația de principiu</span>
-            <span data-lang="da">Principerklæringen</span>
-            <span data-lang="en">Declaration of principle</span>
-          </h2>
-          <p class="sub">
-            <span data-lang="ro">VIVOS afirmă prioritatea realității umane directe asupra reprezentării impersonale și administrative.</span>
-            <span data-lang="da">VIVOS bekræfter prioriteten af direkte menneskelig virkelighed over upersonlig og administrativ repræsentation.</span>
-            <span data-lang="en">VIVOS affirms the priority of direct human reality over impersonal and administrative representation.</span>
-          </p>
-        </div>
-      </div>
+      <div class="section-head"><div class="badge">I</div><div>
+        <h2><span data-lang="ro">Declarația de principiu</span><span data-lang="da">Principerklæringen</span><span data-lang="en">Declaration of principle</span></h2>
+        <p class="sub"><span data-lang="ro">VIVOS afirmă prioritatea realității umane directe asupra reprezentării impersonale și administrative.</span><span data-lang="da">VIVOS bekræfter prioriteten af direkte menneskelig virkelighed over upersonlig og administrativ repræsentation.</span><span data-lang="en">VIVOS affirms the priority of direct human reality over impersonal and administrative representation.</span></p>
+      </div></div>
       <div class="article">
-        <p>
-          <span data-lang="ro">Fiecare membru al VIVOS este un om real, viu, conștient și responsabil. În lumea exterioară, el interacționează prin forme juridice și administrative recunoscute de state. În interiorul VIVOS, el este recunoscut ca participant direct la o ordine comunitară vie.</span>
-          <span data-lang="da">Hvert VIVOS-medlem er et virkeligt, levende, bevidst og ansvarligt menneske. I den ydre verden interagerer de gennem juridiske og administrative former anerkendt af stater. Inden for VIVOS anerkendes de som direkte deltagere i en levende fællesskabsorden.</span>
-          <span data-lang="en">Every VIVOS member is a real, living, conscious and responsible person. In the outside world, they interact through legal and administrative forms recognised by states. Within VIVOS, they are recognised as a direct participant in a living community order.</span>
-        </p>
-        <p>
-          <span data-lang="ro">VIVOS nu neagă existența sistemelor juridice ale statelor și nici nu pretinde, prin simplă declarație, statut de stat recunoscut în sensul dreptului internațional. VIVOS propune însă un nivel superior de organizare comunitară: o ordine civică digitală autonomă, capabilă să funcționeze cu propriile sale reguli, instituții, mecanisme de încredere și memorie verificabilă.</span>
-          <span data-lang="da">VIVOS benægter ikke eksistensen af staternes retssystemer og hævder heller ikke ved simpel erklæring anerkendt statsstatus i folkerettens forstand. VIVOS foreslår dog et højere niveau af fællesskabsorganisering: en autonom digital borgerorden, der kan fungere med egne regler, institutioner, tillidsmekanismer og verificerbar hukommelse.</span>
-          <span data-lang="en">VIVOS does not deny the existence of states' legal systems, nor does it claim, by simple declaration, recognised state status in the sense of international law. VIVOS proposes, however, a higher level of community organisation: an autonomous digital civic order, capable of operating with its own rules, institutions, trust mechanisms, and verifiable memory.</span>
-        </p>
+        <p><span data-lang="ro">Fiecare membru al VIVOS este un om real, viu, conștient și responsabil. În lumea exterioară, el interacționează prin forme juridice și administrative recunoscute de state. În interiorul VIVOS, el este recunoscut ca participant direct la o ordine comunitară vie.</span><span data-lang="da">Hvert VIVOS-medlem er et virkeligt, levende, bevidst og ansvarligt menneske. I den ydre verden interagerer de gennem juridiske og administrative former anerkendt af stater. Inden for VIVOS anerkendes de som direkte deltagere i en levende fællesskabsorden.</span><span data-lang="en">Every VIVOS member is a real, living, conscious and responsible person. In the outside world, they interact through legal and administrative forms recognised by states. Within VIVOS, they are recognised as a direct participant in a living community order.</span></p>
+        <p><span data-lang="ro">VIVOS nu neagă existența sistemelor juridice ale statelor și nici nu pretinde, prin simplă declarație, statut de stat recunoscut în sensul dreptului internațional. VIVOS propune însă un nivel superior de organizare comunitară: o ordine civică digitală autonomă, capabilă să funcționeze cu propriile sale reguli, instituții, mecanisme de încredere și memorie verificabilă.</span><span data-lang="da">VIVOS benægter ikke eksistensen af staternes retssystemer og hævder heller ikke ved simpel erklæring anerkendt statsstatus i folkerettens forstand. VIVOS foreslår dog et højere niveau af fællesskabsorganisering: en autonom digital borgerorden, der kan fungere med egne regler, institutioner, tillidsmekanismer og verificerbar hukommelse.</span><span data-lang="en">VIVOS does not deny the existence of states' legal systems, nor does it claim, by simple declaration, recognised state status in the sense of international law. VIVOS proposes, however, a higher level of community organisation: an autonomous digital civic order, capable of operating with its own rules, institutions, trust mechanisms, and verifiable memory.</span></p>
       </div>
-      <div class="quote">
-        <span data-lang="ro">VIVOS nu începe prin cucerirea unui teritoriu. VIVOS începe prin recunoașterea reciprocă a oamenilor vii, prin asumarea unei ordini comune și prin construirea unei infrastructuri de încredere care poate rezista în timp.</span>
-        <span data-lang="da">VIVOS begynder ikke med at erobre et territorium. VIVOS begynder med gensidig anerkendelse af levende mennesker, med at påtage sig en fælles orden og med at bygge en tillidsinfrastruktur, der kan stå tidens prøve.</span>
-        <span data-lang="en">VIVOS does not begin by conquering a territory. VIVOS begins through mutual recognition of living people, through the assumption of a common order, and through the building of a trust infrastructure that can endure over time.</span>
-      </div>
+      <div class="quote"><span data-lang="ro">VIVOS nu începe prin cucerirea unui teritoriu. VIVOS începe prin recunoașterea reciprocă a oamenilor vii, prin asumarea unei ordini comune și prin construirea unei infrastructuri de încredere care poate rezista în timp.</span><span data-lang="da">VIVOS begynder ikke med at erobre et territorium. VIVOS begynder med gensidig anerkendelse af levende mennesker, med at påtage sig en fælles orden og med at bygge en tillidsinfrastruktur, der kan stå tidens prøve.</span><span data-lang="en">VIVOS does not begin by conquering a territory. VIVOS begins through mutual recognition of living people, through the assumption of a common order, and through the building of a trust infrastructure that can endure over time.</span></div>
     </section>
 
-    <!-- II -->
     <section id="structura" class="card section-card">
-      <div class="section-head">
-        <div class="badge">II</div>
-        <div>
-          <h2>
-            <span data-lang="ro">Ce este VIVOS</span>
-            <span data-lang="da">Hvad er VIVOS</span>
-            <span data-lang="en">What is VIVOS</span>
-          </h2>
-          <p class="sub">
-            <span data-lang="ro">Nu un simplu site. Nu doar o aplicație. Ci o formă emergentă de comunitate autonomă online.</span>
-            <span data-lang="da">Ikke blot et website. Ikke bare en app. Men en fremvoksende form for autonomt onlinefællesskab.</span>
-            <span data-lang="en">Not just a website. Not just an app. But an emerging form of autonomous online community.</span>
-          </p>
-        </div>
-      </div>
+      <div class="section-head"><div class="badge">II</div><div>
+        <h2><span data-lang="ro">Ce este VIVOS</span><span data-lang="da">Hvad er VIVOS</span><span data-lang="en">What is VIVOS</span></h2>
+        <p class="sub"><span data-lang="ro">Nu un simplu site. Nu doar o aplicație. Ci o formă emergentă de comunitate autonomă online.</span><span data-lang="da">Ikke blot et website. Ikke bare en app. Men en fremvoksende form for autonomt onlinefællesskab.</span><span data-lang="en">Not just a website. Not just an app. But an emerging form of autonomous online community.</span></p>
+      </div></div>
       <div class="pill-list">
         <div class="pill"><span data-lang-inline="ro">comunitate civică digitală</span><span data-lang-inline="da">digitalt borgersamfund</span><span data-lang-inline="en">digital civic community</span></div>
         <div class="pill"><span data-lang-inline="ro">ordine internă autonomă</span><span data-lang-inline="da">autonom intern orden</span><span data-lang-inline="en">autonomous internal order</span></div>
@@ -348,256 +168,92 @@
         <div class="pill"><span data-lang-inline="ro">memorie ancorată blockchain</span><span data-lang-inline="da">blockchain-forankret hukommelse</span><span data-lang-inline="en">blockchain-anchored memory</span></div>
       </div>
       <div class="article">
-        <p>
-          <span data-lang="ro">VIVOS este o rețea de membri reali care aleg să participe la o ordine internă bazată pe reguli clare, responsabilitate reciprocă și dovezi verificabile. Ea funcționează online, dar este ancorată în viața reală a membrilor săi.</span>
-          <span data-lang="da">VIVOS er et netværk af virkelige medlemmer, der vælger at deltage i en intern orden baseret på klare regler, gensidig ansvarlighed og verificerbare beviser. Det fungerer online, men er forankret i medlemmernes virkelige liv.</span>
-          <span data-lang="en">VIVOS is a network of real members who choose to participate in an internal order based on clear rules, mutual accountability, and verifiable evidence. It operates online but is anchored in the real lives of its members.</span>
-        </p>
-        <p>
-          <span data-lang="ro">VIVOS nu este un „stat recunoscut" în sens formal. Dar poate funcționa, în interiorul propriei sale ordini, ca o structură cvasi-statală: cu identitate, reguli, economie, justiție internă, registre și procese de guvernanță.</span>
-          <span data-lang="da">VIVOS er ikke en "anerkendt stat" i formel forstand. Men det kan fungere inden for sin egen orden som en kvasi-statsstruktur: med identitet, regler, økonomi, intern retfærdighed, registre og styringsprocesser.</span>
-          <span data-lang="en">VIVOS is not a "recognised state" in a formal sense. But it can function, within its own order, as a quasi-state structure: with identity, rules, economy, internal justice, registers, and governance processes.</span>
-        </p>
+        <p><span data-lang="ro">VIVOS este o rețea de membri reali care aleg să participe la o ordine internă bazată pe reguli clare, responsabilitate reciprocă și dovezi verificabile. Ea funcționează online, dar este ancorată în viața reală a membrilor săi.</span><span data-lang="da">VIVOS er et netværk af virkelige medlemmer, der vælger at deltage i en intern orden baseret på klare regler, gensidig ansvarlighed og verificerbare beviser. Det fungerer online, men er forankret i medlemmernes virkelige liv.</span><span data-lang="en">VIVOS is a network of real members who choose to participate in an internal order based on clear rules, mutual accountability, and verifiable evidence. It operates online but is anchored in the real lives of its members.</span></p>
+        <p><span data-lang="ro">VIVOS nu este un „stat recunoscut" în sens formal. Dar poate funcționa, în interiorul propriei sale ordini, ca o structură cvasi-statală: cu identitate, reguli, economie, justiție internă, registre și procese de guvernanță.</span><span data-lang="da">VIVOS er ikke en "anerkendt stat" i formel forstand. Men det kan fungere inden for sin egen orden som en kvasi-statsstruktur: med identitet, regler, økonomi, intern retfærdighed, registre og styringsprocesser.</span><span data-lang="en">VIVOS is not a "recognised state" in a formal sense. But it can function, within its own order, as a quasi-state structure: with identity, rules, economy, internal justice, registers, and governance processes.</span></p>
       </div>
     </section>
 
-    <!-- III -->
     <section class="card section-card">
-      <div class="section-head">
-        <div class="badge">III</div>
-        <div>
-          <h2>
-            <span data-lang="ro">Statutul membrului viu</span>
-            <span data-lang="da">Det levende medlems status</span>
-            <span data-lang="en">Status of the living member</span>
-          </h2>
-          <p class="sub">
-            <span data-lang="ro">În VIVOS, persoana nu este redusă la un dosar administrativ, ci este recunoscută ca participant viu la ordinea comunitară.</span>
-            <span data-lang="da">I VIVOS reduceres personen ikke til en administrativ fil, men anerkendes som en levende deltager i fællesskabsordenen.</span>
-            <span data-lang="en">In VIVOS, the person is not reduced to an administrative file, but is recognised as a living participant in the community order.</span>
-          </p>
-        </div>
-      </div>
+      <div class="section-head"><div class="badge">III</div><div>
+        <h2><span data-lang="ro">Statutul membrului viu</span><span data-lang="da">Det levende medlems status</span><span data-lang="en">Status of the living member</span></h2>
+        <p class="sub"><span data-lang="ro">În VIVOS, persoana nu este redusă la un dosar administrativ, ci este recunoscută ca participant viu la ordinea comunitară.</span><span data-lang="da">I VIVOS reduceres personen ikke til en administrativ fil, men anerkendes som en levende deltager i fællesskabsordenen.</span><span data-lang="en">In VIVOS, the person is not reduced to an administrative file, but is recognised as a living participant in the community order.</span></p>
+      </div></div>
       <div class="articles">
-        <div class="article-item">
-          <h3><span data-lang-inline="ro">Articolul 1 — Membrul viu</span><span data-lang-inline="da">Artikel 1 — Det levende medlem</span><span data-lang-inline="en">Article 1 — The living member</span></h3>
-          <p><span data-lang="ro">Membrul VIVOS este o persoană reală, vie, prezentă și responsabilă, care aderă conștient la principiile, regulile și mecanismele comunității.</span><span data-lang="da">Et VIVOS-medlem er en virkelig, levende, nærværende og ansvarlig person, der bevidst tilslutter sig fællesskabets principper, regler og mekanismer.</span><span data-lang="en">A VIVOS member is a real, living, present, and responsible person who consciously adheres to the community's principles, rules, and mechanisms.</span></p>
-        </div>
-        <div class="article-item">
-          <h3><span data-lang-inline="ro">Articolul 2 — Dubla identitate</span><span data-lang-inline="da">Artikel 2 — Den dobbelte identitet</span><span data-lang-inline="en">Article 2 — Dual identity</span></h3>
-          <p><span data-lang="ro">În raport cu statele, membrul utilizează identitatea juridică recunoscută de lege. În raport cu VIVOS, el dobândește un statut comunitar propriu, cu drepturi și obligații interne distincte.</span><span data-lang="da">I forhold til stater bruger medlemmet den juridisk anerkendte identitet. I forhold til VIVOS erhverver det en egen fællesskabsstatus med særskilte interne rettigheder og forpligtelser.</span><span data-lang="en">In relation to states, the member uses the legally recognised identity. In relation to VIVOS, they acquire their own community status, with distinct internal rights and obligations.</span></p>
-        </div>
-        <div class="article-item">
-          <h3><span data-lang-inline="ro">Articolul 3 — Apartenența</span><span data-lang-inline="da">Artikel 3 — Tilhørsforholdet</span><span data-lang-inline="en">Article 3 — Belonging</span></h3>
-          <p><span data-lang="ro">Apartenența la VIVOS nu este doar tehnică. Ea presupune asumare, transparență în limitele stabilite de comunitate și participare la o ordine bazată pe încredere și reputație.</span><span data-lang="da">Tilhørsforholdet til VIVOS er ikke kun teknisk. Det forudsætter ansvar, gennemsigtighed inden for de grænser, fællesskabet har fastsat, og deltagelse i en orden baseret på tillid og omdømme.</span><span data-lang="en">Belonging to VIVOS is not merely technical. It implies assumption of responsibility, transparency within the limits set by the community, and participation in an order based on trust and reputation.</span></p>
-        </div>
+        <div class="article-item"><h3><span data-lang-inline="ro">Articolul 1 — Membrul viu</span><span data-lang-inline="da">Artikel 1 — Det levende medlem</span><span data-lang-inline="en">Article 1 — The living member</span></h3><p><span data-lang="ro">Membrul VIVOS este o persoană reală, vie, prezentă și responsabilă, care aderă conștient la principiile, regulile și mecanismele comunității.</span><span data-lang="da">Et VIVOS-medlem er en virkelig, levende, nærværende og ansvarlig person, der bevidst tilslutter sig fællesskabets principper, regler og mekanismer.</span><span data-lang="en">A VIVOS member is a real, living, present, and responsible person who consciously adheres to the community's principles, rules, and mechanisms.</span></p></div>
+        <div class="article-item"><h3><span data-lang-inline="ro">Articolul 2 — Dubla identitate</span><span data-lang-inline="da">Artikel 2 — Den dobbelte identitet</span><span data-lang-inline="en">Article 2 — Dual identity</span></h3><p><span data-lang="ro">În raport cu statele, membrul utilizează identitatea juridică recunoscută de lege. În raport cu VIVOS, el dobândește un statut comunitar propriu, cu drepturi și obligații interne distincte.</span><span data-lang="da">I forhold til stater bruger medlemmet den juridisk anerkendte identitet. I forhold til VIVOS erhverver det en egen fællesskabsstatus med særskilte interne rettigheder og forpligtelser.</span><span data-lang="en">In relation to states, the member uses the legally recognised identity. In relation to VIVOS, they acquire their own community status, with distinct internal rights and obligations.</span></p></div>
+        <div class="article-item"><h3><span data-lang-inline="ro">Articolul 3 — Apartenența</span><span data-lang-inline="da">Artikel 3 — Tilhørsforholdet</span><span data-lang-inline="en">Article 3 — Belonging</span></h3><p><span data-lang="ro">Apartenența la VIVOS nu este doar tehnică. Ea presupune asumare, transparență în limitele stabilite de comunitate și participare la o ordine bazată pe încredere și reputație.</span><span data-lang="da">Tilhørsforholdet til VIVOS er ikke kun teknisk. Det forudsætter ansvar, gennemsigtighed inden for de grænser, fællesskabet har fastsat, og deltagelse i en orden baseret på tillid og omdømme.</span><span data-lang="en">Belonging to VIVOS is not merely technical. It implies assumption of responsibility, transparency within the limits set by the community, and participation in an order based on trust and reputation.</span></p></div>
       </div>
     </section>
 
-    <!-- IV -->
     <section class="card section-card">
-      <div class="section-head">
-        <div class="badge">IV</div>
-        <div>
-          <h2>
-            <span data-lang="ro">Cele 5 instituții fundamentale ale VIVOS</span>
-            <span data-lang="da">VIVOS' 5 grundlæggende institutioner</span>
-            <span data-lang="en">VIVOS' 5 fundamental institutions</span>
-          </h2>
-          <p class="sub">
-            <span data-lang="ro">Orice comunitate durabilă are nevoie de instituții, nu doar de bune intenții.</span>
-            <span data-lang="da">Ethvert bæredygtigt fællesskab har brug for institutioner, ikke kun gode intentioner.</span>
-            <span data-lang="en">Any lasting community needs institutions, not just good intentions.</span>
-          </p>
-        </div>
-      </div>
+      <div class="section-head"><div class="badge">IV</div><div>
+        <h2><span data-lang="ro">Cele 5 instituții fundamentale ale VIVOS</span><span data-lang="da">VIVOS' 5 grundlæggende institutioner</span><span data-lang="en">VIVOS' 5 fundamental institutions</span></h2>
+        <p class="sub"><span data-lang="ro">Orice comunitate durabilă are nevoie de instituții, nu doar de bune intenții.</span><span data-lang="da">Ethvert bæredygtigt fællesskab har brug for institutioner, ikke kun gode intentioner.</span><span data-lang="en">Any lasting community needs institutions, not just good intentions.</span></p>
+      </div></div>
       <div class="principles">
-        <div class="principle">
-          <h3><span data-lang-inline="ro">1. Registrul identității comunitare</span><span data-lang-inline="da">1. Registret for fællesskabsidentitet</span><span data-lang-inline="en">1. Community identity register</span></h3>
-          <p><span data-lang="ro">Un sistem intern de apartenență, reputație și statut, diferit de registrele civile ale statelor, dar suficient de robust pentru viața comunitară.</span><span data-lang="da">Et internt system for tilhørsforhold, omdømme og status, forskelligt fra staternes civilregistre, men robust nok til fællesskabslivet.</span><span data-lang="en">An internal system of membership, reputation, and status, different from states' civil registers, but robust enough for community life.</span></p>
-        </div>
-        <div class="principle">
-          <h3><span data-lang-inline="ro">2. Constituția internă</span><span data-lang-inline="da">2. Den interne forfatning</span><span data-lang-inline="en">2. Internal constitution</span></h3>
-          <p><span data-lang="ro">Setul de principii, drepturi, obligații și proceduri prin care comunitatea se guvernează și se apără de arbitrar.</span><span data-lang="da">Sættet af principper, rettigheder, forpligtelser og procedurer, hvorigennem fællesskabet styrer sig selv og forsvarer sig mod vilkårlighed.</span><span data-lang="en">The set of principles, rights, obligations, and procedures through which the community governs itself and defends against arbitrariness.</span></p>
-        </div>
-        <div class="principle">
-          <h3><span data-lang-inline="ro">3. Economia mutuală</span><span data-lang-inline="da">3. Den gensidige økonomi</span><span data-lang-inline="en">3. Mutual economy</span></h3>
-          <p><span data-lang="ro">Un sistem de recunoaștere a contribuției, schimbului și sprijinului, bazat pe talant, registru intern și echilibru comunitar.</span><span data-lang="da">Et system til anerkendelse af bidrag, udveksling og støtte, baseret på talant, internt register og fællesskabsbalance.</span><span data-lang="en">A system of recognition of contribution, exchange, and support, based on talant, internal register, and community balance.</span></p>
-        </div>
-        <div class="principle">
-          <h3><span data-lang-inline="ro">4. Arbitrajul intern</span><span data-lang-inline="da">4. Den interne voldgift</span><span data-lang-inline="en">4. Internal arbitration</span></h3>
-          <p><span data-lang="ro">Mecanismul prin care conflictele se soluționează prin procedură, ascultare, decizie și memorie instituțională.</span><span data-lang="da">Den mekanisme, hvorigennem konflikter løses gennem procedure, lytning, beslutning og institutionel hukommelse.</span><span data-lang="en">The mechanism through which conflicts are resolved through procedure, listening, decision, and institutional memory.</span></p>
-        </div>
-        <div class="principle">
-          <h3><span data-lang-inline="ro">5. Memoria verificabilă</span><span data-lang-inline="da">5. Den verificerbare hukommelse</span><span data-lang-inline="en">5. Verifiable memory</span></h3>
-          <p><span data-lang="ro">O arhivă de decizii, acte, statuturi și snapshot-uri, ancorată prin blockchain, astfel încât comunitatea să nu depindă de amintirea sau bunăvoința unui centru unic.</span><span data-lang="da">Et arkiv af beslutninger, aktstykker, vedtægter og snapshots, forankret via blockchain, så fællesskabet ikke afhænger af et enkelt centers hukommelse eller velvilje.</span><span data-lang="en">An archive of decisions, acts, statutes, and snapshots, anchored via blockchain, so that the community does not depend on the memory or goodwill of a single centre.</span></p>
-        </div>
+        <div class="principle"><h3><span data-lang-inline="ro">1. Registrul identității comunitare</span><span data-lang-inline="da">1. Registret for fællesskabsidentitet</span><span data-lang-inline="en">1. Community identity register</span></h3><p><span data-lang="ro">Un sistem intern de apartenență, reputație și statut, diferit de registrele civile ale statelor, dar suficient de robust pentru viața comunitară.</span><span data-lang="da">Et internt system for tilhørsforhold, omdømme og status, forskelligt fra staternes civilregistre, men robust nok til fællesskabslivet.</span><span data-lang="en">An internal system of membership, reputation, and status, different from states' civil registers, but robust enough for community life.</span></p></div>
+        <div class="principle"><h3><span data-lang-inline="ro">2. Constituția internă</span><span data-lang-inline="da">2. Den interne forfatning</span><span data-lang-inline="en">2. Internal constitution</span></h3><p><span data-lang="ro">Setul de principii, drepturi, obligații și proceduri prin care comunitatea se guvernează și se apără de arbitrar.</span><span data-lang="da">Sættet af principper, rettigheder, forpligtelser og procedurer, hvorigennem fællesskabet styrer sig selv og forsvarer sig mod vilkårlighed.</span><span data-lang="en">The set of principles, rights, obligations, and procedures through which the community governs itself and defends against arbitrariness.</span></p></div>
+        <div class="principle"><h3><span data-lang-inline="ro">3. Economia mutuală</span><span data-lang-inline="da">3. Den gensidige økonomi</span><span data-lang-inline="en">3. Mutual economy</span></h3><p><span data-lang="ro">Un sistem de recunoaștere a contribuției, schimbului și sprijinului, bazat pe talant, registru intern și echilibru comunitar.</span><span data-lang="da">Et system til anerkendelse af bidrag, udveksling og støtte, baseret på talant, internt register og fællesskabsbalance.</span><span data-lang="en">A system of recognition of contribution, exchange, and support, based on talant, internal register, and community balance.</span></p></div>
+        <div class="principle"><h3><span data-lang-inline="ro">4. Arbitrajul intern</span><span data-lang-inline="da">4. Den interne voldgift</span><span data-lang-inline="en">4. Internal arbitration</span></h3><p><span data-lang="ro">Mecanismul prin care conflictele se soluționează prin procedură, ascultare, decizie și memorie instituțională.</span><span data-lang="da">Den mekanisme, hvorigennem konflikter løses gennem procedure, lytning, beslutning og institutionel hukommelse.</span><span data-lang="en">The mechanism through which conflicts are resolved through procedure, listening, decision, and institutional memory.</span></p></div>
+        <div class="principle"><h3><span data-lang-inline="ro">5. Memoria verificabilă</span><span data-lang-inline="da">5. Den verificerbare hukommelse</span><span data-lang-inline="en">5. Verifiable memory</span></h3><p><span data-lang="ro">O arhivă de decizii, acte, statuturi și snapshot-uri, ancorată prin blockchain, astfel încât comunitatea să nu depindă de amintirea sau bunăvoința unui centru unic.</span><span data-lang="da">Et arkiv af beslutninger, aktstykker, vedtægter og snapshots, forankret via blockchain, så fællesskabet ikke afhænger af et enkelt centers hukommelse eller velvilje.</span><span data-lang="en">An archive of decisions, acts, statutes, and snapshots, anchored via blockchain, so that the community does not depend on the memory or goodwill of a single centre.</span></p></div>
       </div>
     </section>
 
-    <!-- V -->
     <section class="card section-card">
-      <div class="section-head">
-        <div class="badge">V</div>
-        <div>
-          <h2>
-            <span data-lang="ro">Blockchain-ul ca memorie constituțională</span>
-            <span data-lang="da">Blockchain som konstitutionel hukommelse</span>
-            <span data-lang="en">Blockchain as constitutional memory</span>
-          </h2>
-          <p class="sub">
-            <span data-lang="ro">Blockchain-ul nu este magie juridică. Este infrastructură de dovadă, continuitate și verificabilitate.</span>
-            <span data-lang="da">Blockchain er ikke juridisk magi. Det er infrastruktur for bevis, kontinuitet og verificerbarhed.</span>
-            <span data-lang="en">Blockchain is not legal magic. It is infrastructure for proof, continuity, and verifiability.</span>
-          </p>
-        </div>
-      </div>
-      <div class="article">
-        <p><span data-lang="ro">VIVOS nu are nevoie să pună toată viața comunității pe chain. Are nevoie să ancoreze pe chain exact ceea ce nu trebuie falsificat, pierdut sau modificat pe ascuns.</span><span data-lang="da">VIVOS behøver ikke at lægge hele fællesskabslivet på chain. Det skal forankre præcis det på chain, som ikke må forfalskes, gå tabt eller ændres i det skjulte.</span><span data-lang="en">VIVOS does not need to put all community life on chain. It needs to anchor on chain precisely what must not be falsified, lost, or secretly modified.</span></p>
-      </div>
+      <div class="section-head"><div class="badge">V</div><div>
+        <h2><span data-lang="ro">Blockchain-ul ca memorie constituțională</span><span data-lang="da">Blockchain som konstitutionel hukommelse</span><span data-lang="en">Blockchain as constitutional memory</span></h2>
+        <p class="sub"><span data-lang="ro">Blockchain-ul nu este magie juridică. Este infrastructură de dovadă, continuitate și verificabilitate.</span><span data-lang="da">Blockchain er ikke juridisk magi. Det er infrastruktur for bevis, kontinuitet og verificerbarhed.</span><span data-lang="en">Blockchain is not legal magic. It is infrastructure for proof, continuity, and verifiability.</span></p>
+      </div></div>
+      <div class="article"><p><span data-lang="ro">VIVOS nu are nevoie să pună toată viața comunității pe chain. Are nevoie să ancoreze pe chain exact ceea ce nu trebuie falsificat, pierdut sau modificat pe ascuns.</span><span data-lang="da">VIVOS behøver ikke at lægge hele fællesskabslivet på chain. Det skal forankre præcis det på chain, som ikke må forfalskes, gå tabt eller ændres i det skjulte.</span><span data-lang="en">VIVOS does not need to put all community life on chain. It needs to anchor on chain precisely what must not be falsified, lost, or secretly modified.</span></p></div>
       <div class="articles">
-        <div class="article-item">
-          <h3><span data-lang-inline="ro">Ce se ancorează</span><span data-lang-inline="da">Hvad forankres</span><span data-lang-inline="en">What is anchored</span></h3>
-          <p><span data-lang="ro">Constituția VIVOS, hotărârile majore, registrele de apartenență în formă de snapshot, istoricul fondului mutual, versiuni ale documentelor fondatoare și precedentele instituționale.</span><span data-lang="da">VIVOS-forfatningen, større beslutninger, medlemskabsregistre som snapshots, historikken for den gensidige fond, versioner af stiftende dokumenter og institutionelle præcedenser.</span><span data-lang="en">The VIVOS constitution, major decisions, membership registers as snapshots, the mutual fund history, versions of founding documents, and institutional precedents.</span></p>
-        </div>
-        <div class="article-item">
-          <h3><span data-lang-inline="ro">Ce rămâne off-chain</span><span data-lang-inline="da">Hvad forbliver off-chain</span><span data-lang-inline="en">What stays off-chain</span></h3>
-          <p><span data-lang="ro">Conținutul curent al aplicației, conversațiile private, detaliile operaționale sensibile, datele personale neesențiale și fluxurile care cer viteză, flexibilitate sau protecția intimității.</span><span data-lang="da">Applikationens aktuelle indhold, private samtaler, følsomme operationelle detaljer, unødvendige personoplysninger og flows, der kræver hastighed, fleksibilitet eller privatlivsbeskyttelse.</span><span data-lang="en">The current application content, private conversations, sensitive operational details, non-essential personal data, and flows that require speed, flexibility, or privacy protection.</span></p>
-        </div>
-        <div class="article-item">
-          <h3><span data-lang-inline="ro">De ce contează</span><span data-lang-inline="da">Hvorfor det betyder noget</span><span data-lang-inline="en">Why it matters</span></h3>
-          <p><span data-lang="ro">Fără memorie verificabilă, orice ordine online riscă să devină dependentă de administratori, servere sau versiuni rescrise ale trecutului. Cu blockchain, VIVOS capătă continuitate procedurală.</span><span data-lang="da">Uden verificerbar hukommelse risikerer enhver onlineorden at blive afhængig af administratorer, servere eller omskrevne versioner af fortiden. Med blockchain opnår VIVOS procedurel kontinuitet.</span><span data-lang="en">Without verifiable memory, any online order risks becoming dependent on administrators, servers, or rewritten versions of the past. With blockchain, VIVOS gains procedural continuity.</span></p>
-        </div>
+        <div class="article-item"><h3><span data-lang-inline="ro">Ce se ancorează</span><span data-lang-inline="da">Hvad forankres</span><span data-lang-inline="en">What is anchored</span></h3><p><span data-lang="ro">Constituția VIVOS, hotărârile majore, registrele de apartenență în formă de snapshot, istoricul fondului mutual, versiuni ale documentelor fondatoare și precedentele instituționale.</span><span data-lang="da">VIVOS-forfatningen, større beslutninger, medlemskabsregistre som snapshots, historikken for den gensidige fond, versioner af stiftende dokumenter og institutionelle præcedenser.</span><span data-lang="en">The VIVOS constitution, major decisions, membership registers as snapshots, the mutual fund history, versions of founding documents, and institutional precedents.</span></p></div>
+        <div class="article-item"><h3><span data-lang-inline="ro">Ce rămâne off-chain</span><span data-lang-inline="da">Hvad forbliver off-chain</span><span data-lang-inline="en">What stays off-chain</span></h3><p><span data-lang="ro">Conținutul curent al aplicației, conversațiile private, detaliile operaționale sensibile, datele personale neesențiale și fluxurile care cer viteză, flexibilitate sau protecția intimității.</span><span data-lang="da">Applikationens aktuelle indhold, private samtaler, følsomme operationelle detaljer, unødvendige personoplysninger og flows, der kræver hastighed, fleksibilitet eller privatlivsbeskyttelse.</span><span data-lang="en">The current application content, private conversations, sensitive operational details, non-essential personal data, and flows that require speed, flexibility, or privacy protection.</span></p></div>
+        <div class="article-item"><h3><span data-lang-inline="ro">De ce contează</span><span data-lang-inline="da">Hvorfor det betyder noget</span><span data-lang-inline="en">Why it matters</span></h3><p><span data-lang="ro">Fără memorie verificabilă, orice ordine online riscă să devină dependentă de administratori, servere sau versiuni rescrise ale trecutului. Cu blockchain, VIVOS capătă continuitate procedurală.</span><span data-lang="da">Uden verificerbar hukommelse risikerer enhver onlineorden at blive afhængig af administratorer, servere eller omskrevne versioner af fortiden. Med blockchain opnår VIVOS procedurel kontinuitet.</span><span data-lang="en">Without verifiable memory, any online order risks becoming dependent on administrators, servers, or rewritten versions of the past. With blockchain, VIVOS gains procedural continuity.</span></p></div>
       </div>
     </section>
 
-    <!-- VI -->
     <section class="card section-card">
-      <div class="section-head">
-        <div class="badge">VI</div>
-        <div>
-          <h2>
-            <span data-lang="ro">Teritoriu, ancorare și rețea distribuită</span>
-            <span data-lang="da">Territorium, forankring og distribueret netværk</span>
-            <span data-lang="en">Territory, anchoring, and distributed network</span>
-          </h2>
-          <p class="sub">
-            <span data-lang="ro">VIVOS nu posedă un teritoriu suveran în sens clasic. Dar poate avea ancore reale în viața membrilor săi.</span>
-            <span data-lang="da">VIVOS besidder ikke et suverænt territorium i klassisk forstand. Men det kan have virkelige ankre i medlemmernes liv.</span>
-            <span data-lang="en">VIVOS does not possess a sovereign territory in the classical sense. But it can have real anchors in the lives of its members.</span>
-          </p>
-        </div>
-      </div>
+      <div class="section-head"><div class="badge">VI</div><div>
+        <h2><span data-lang="ro">Teritoriu, ancorare și rețea distribuită</span><span data-lang="da">Territorium, forankring og distribueret netværk</span><span data-lang="en">Territory, anchoring, and distributed network</span></h2>
+        <p class="sub"><span data-lang="ro">VIVOS nu posedă un teritoriu suveran în sens clasic. Dar poate avea ancore reale în viața membrilor săi.</span><span data-lang="da">VIVOS besidder ikke et suverænt territorium i klassisk forstand. Men det kan have virkelige ankre i medlemmernes liv.</span><span data-lang="en">VIVOS does not possess a sovereign territory in the classical sense. But it can have real anchors in the lives of its members.</span></p>
+      </div></div>
       <div class="article">
         <p><span data-lang="ro">Fiecare membru locuiește undeva, lucrează undeva, contribuie undeva și se întâlnește cu alții într-un spațiu concret. Aceste ancore reale nu transformă VIVOS într-un stat formal, dar construiesc o geografie comunitară distribuită.</span><span data-lang="da">Hvert medlem bor et sted, arbejder et sted, bidrager et sted og møder andre i et konkret rum. Disse virkelige ankre gør ikke VIVOS til en formel stat, men bygger en distribueret fællesskabsgeografi.</span><span data-lang="en">Every member lives somewhere, works somewhere, contributes somewhere, and meets others in a concrete space. These real anchors do not turn VIVOS into a formal state, but build a distributed community geography.</span></p>
         <p><span data-lang="ro">VIVOS nu trebuie să pretindă teritoriu statal pentru a deveni relevant. Este suficient să construiască o rețea de noduri umane reale, legate prin reguli, economie, memorie și loialitate comunitară.</span><span data-lang="da">VIVOS behøver ikke at gøre krav på statsligt territorium for at blive relevant. Det er tilstrækkeligt at bygge et netværk af virkelige menneskelige knudepunkter, forbundet gennem regler, økonomi, hukommelse og fællesskabsloyalitet.</span><span data-lang="en">VIVOS does not need to claim state territory to become relevant. It is sufficient to build a network of real human nodes, linked through rules, economy, memory, and community loyalty.</span></p>
       </div>
-      <div class="quote">
-        <span data-lang="ro">VIVOS nu este un teritoriu cucerit. VIVOS este un teritoriu de încredere distribuit între oameni care aleg să trăiască și să coopereze într-o ordine nouă.</span>
-        <span data-lang="da">VIVOS er ikke et erobret territorium. VIVOS er et tillidsbaseret territorium distribueret blandt mennesker, der vælger at leve og samarbejde i en ny orden.</span>
-        <span data-lang="en">VIVOS is not a conquered territory. VIVOS is a territory of trust distributed among people who choose to live and cooperate in a new order.</span>
-      </div>
+      <div class="quote"><span data-lang="ro">VIVOS nu este un teritoriu cucerit. VIVOS este un teritoriu de încredere distribuit între oameni care aleg să trăiască și să coopereze într-o ordine nouă.</span><span data-lang="da">VIVOS er ikke et erobret territorium. VIVOS er et tillidsbaseret territorium distribueret blandt mennesker, der vælger at leve og samarbejde i en ny orden.</span><span data-lang="en">VIVOS is not a conquered territory. VIVOS is a territory of trust distributed among people who choose to live and cooperate in a new order.</span></div>
     </section>
 
-    <!-- VII -->
     <section class="card section-card">
-      <div class="section-head">
-        <div class="badge">VII</div>
-        <div>
-          <h2>
-            <span data-lang="ro">Economie mutuală și talant</span>
-            <span data-lang="da">Gensidig økonomi og talant</span>
-            <span data-lang="en">Mutual economy and talant</span>
-          </h2>
-          <p class="sub">
-            <span data-lang="ro">Comunitatea nu devine liberă doar prin idei. Devine liberă când poate recunoaște, măsura și redistribui valoarea fără a se destrăma.</span>
-            <span data-lang="da">Fællesskabet bliver ikke frit udelukkende gennem ideer. Det bliver frit, når det kan anerkende, måle og omfordele værdi uden at falde fra hinanden.</span>
-            <span data-lang="en">The community does not become free through ideas alone. It becomes free when it can recognise, measure, and redistribute value without falling apart.</span>
-          </p>
-        </div>
-      </div>
+      <div class="section-head"><div class="badge">VII</div><div>
+        <h2><span data-lang="ro">Economie mutuală și talant</span><span data-lang="da">Gensidig økonomi og talant</span><span data-lang="en">Mutual economy and talant</span></h2>
+        <p class="sub"><span data-lang="ro">Comunitatea nu devine liberă doar prin idei. Devine liberă când poate recunoaște, măsura și redistribui valoarea fără a se destrăma.</span><span data-lang="da">Fællesskabet bliver ikke frit udelukkende gennem ideer. Det bliver frit, når det kan anerkende, måle og omfordele værdi uden at falde fra hinanden.</span><span data-lang="en">The community does not become free through ideas alone. It becomes free when it can recognise, measure, and redistribute value without falling apart.</span></p>
+      </div></div>
       <div class="articles">
-        <div class="article-item">
-          <h3><span data-lang-inline="ro">Talantul</span><span data-lang-inline="da">Talanten</span><span data-lang-inline="en">The talant</span></h3>
-          <p><span data-lang="ro">Talantul este unitatea internă de recunoaștere a contribuției și a schimbului. El nu trebuie tratat, la început, ca instrument speculativ, ci ca mecanism comunitar de echilibru și memorie economică.</span><span data-lang="da">Talanten er den interne enhed for anerkendelse af bidrag og udveksling. Det bør i begyndelsen ikke behandles som et spekulativt instrument, men som en fællesskabsmekanisme for balance og økonomisk hukommelse.</span><span data-lang="en">The talant is the internal unit of recognition of contribution and exchange. It should not be treated, at first, as a speculative instrument, but as a community mechanism of balance and economic memory.</span></p>
-        </div>
-        <div class="article-item">
-          <h3><span data-lang-inline="ro">Fondul mutual</span><span data-lang-inline="da">Den gensidige fond</span><span data-lang-inline="en">The mutual fund</span></h3>
-          <p><span data-lang="ro">Fondul mutual există pentru situații reale de nevoie, pentru continuitatea membrilor și pentru protecția reciprocă în interiorul comunității.</span><span data-lang="da">Den gensidige fond eksisterer for reelle behovssituationer, for medlemmernes kontinuitet og for gensidig beskyttelse inden for fællesskabet.</span><span data-lang="en">The mutual fund exists for real situations of need, for the continuity of members, and for mutual protection within the community.</span></p>
-        </div>
-        <div class="article-item">
-          <h3><span data-lang-inline="ro">Registrul economic</span><span data-lang-inline="da">Det økonomiske register</span><span data-lang-inline="en">The economic register</span></h3>
-          <p><span data-lang="ro">Orice schimb important, contribuție majoră sau sprijin relevant trebuie să lase urmă verificabilă, astfel încât economia internă să nu depindă de opacitate.</span><span data-lang="da">Enhver vigtig udveksling, større bidrag eller relevant støtte skal efterlade et verificerbart spor, så den interne økonomi ikke afhænger af uigennemsigtighed.</span><span data-lang="en">Any important exchange, major contribution, or relevant support must leave a verifiable trace, so that the internal economy does not depend on opacity.</span></p>
-        </div>
+        <div class="article-item"><h3><span data-lang-inline="ro">Talantul</span><span data-lang-inline="da">Talanten</span><span data-lang-inline="en">The talant</span></h3><p><span data-lang="ro">Talantul este unitatea internă de recunoaștere a contribuției și a schimbului. El nu trebuie tratat, la început, ca instrument speculativ, ci ca mecanism comunitar de echilibru și memorie economică.</span><span data-lang="da">Talanten er den interne enhed for anerkendelse af bidrag og udveksling. Det bør i begyndelsen ikke behandles som et spekulativt instrument, men som en fællesskabsmekanisme for balance og økonomisk hukommelse.</span><span data-lang="en">The talant is the internal unit of recognition of contribution and exchange. It should not be treated, at first, as a speculative instrument, but as a community mechanism of balance and economic memory.</span></p></div>
+        <div class="article-item"><h3><span data-lang-inline="ro">Fondul mutual</span><span data-lang-inline="da">Den gensidige fond</span><span data-lang-inline="en">The mutual fund</span></h3><p><span data-lang="ro">Fondul mutual există pentru situații reale de nevoie, pentru continuitatea membrilor și pentru protecția reciprocă în interiorul comunității.</span><span data-lang="da">Den gensidige fond eksisterer for reelle behovssituationer, for medlemmernes kontinuitet og for gensidig beskyttelse inden for fællesskabet.</span><span data-lang="en">The mutual fund exists for real situations of need, for the continuity of members, and for mutual protection within the community.</span></p></div>
+        <div class="article-item"><h3><span data-lang-inline="ro">Registrul economic</span><span data-lang-inline="da">Det økonomiske register</span><span data-lang-inline="en">The economic register</span></h3><p><span data-lang="ro">Orice schimb important, contribuție majoră sau sprijin relevant trebuie să lase urmă verificabilă, astfel încât economia internă să nu depindă de opacitate.</span><span data-lang="da">Enhver vigtig udveksling, større bidrag eller relevant støtte skal efterlade et verificerbart spor, så den interne økonomi ikke afhænger af uigennemsigtighed.</span><span data-lang="en">Any important exchange, major contribution, or relevant support must leave a verifiable trace, so that the internal economy does not depend on opacity.</span></p></div>
       </div>
     </section>
 
-    <!-- VIII -->
     <section class="card section-card">
-      <div class="section-head">
-        <div class="badge">VIII</div>
-        <div>
-          <h2>
-            <span data-lang="ro">Guvernanță și justiție internă</span>
-            <span data-lang="da">Styring og intern retfærdighed</span>
-            <span data-lang="en">Governance and internal justice</span>
-          </h2>
-          <p class="sub">
-            <span data-lang="ro">O comunitate autonomă fără procedură devine repede arbitrară. O comunitate autonomă cu instituții poate dura.</span>
-            <span data-lang="da">Et autonomt fællesskab uden procedure bliver hurtigt vilkårligt. Et autonomt fællesskab med institutioner kan vare.</span>
-            <span data-lang="en">An autonomous community without procedure quickly becomes arbitrary. An autonomous community with institutions can endure.</span>
-          </p>
-        </div>
-      </div>
+      <div class="section-head"><div class="badge">VIII</div><div>
+        <h2><span data-lang="ro">Guvernanță și justiție internă</span><span data-lang="da">Styring og intern retfærdighed</span><span data-lang="en">Governance and internal justice</span></h2>
+        <p class="sub"><span data-lang="ro">O comunitate autonomă fără procedură devine repede arbitrară. O comunitate autonomă cu instituții poate dura.</span><span data-lang="da">Et autonomt fællesskab uden procedure bliver hurtigt vilkårligt. Et autonomt fællesskab med institutioner kan vare.</span><span data-lang="en">An autonomous community without procedure quickly becomes arbitrary. An autonomous community with institutions can endure.</span></p>
+      </div></div>
       <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div>
-            <h3><span data-lang-inline="ro">Sesizare</span><span data-lang-inline="da">Indberetning</span><span data-lang-inline="en">Referral</span></h3>
-            <p><span data-lang="ro">Orice conflict, abuz, încălcare sau neclaritate trebuie să poată fi sesizată printr-un canal intern legitim.</span><span data-lang="da">Enhver konflikt, misbrug, overtrædelse eller uklarhed skal kunne indberettes via en legitim intern kanal.</span><span data-lang="en">Any conflict, abuse, violation, or ambiguity must be able to be referred through a legitimate internal channel.</span></p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div>
-            <h3><span data-lang-inline="ro">Mediere</span><span data-lang-inline="da">Mægling</span><span data-lang-inline="en">Mediation</span></h3>
-            <p><span data-lang="ro">Prima orientare trebuie să fie restaurativă, nu punitivă. Comunitatea câștigă când repară, nu doar când exclude.</span><span data-lang="da">Den første orientering skal være genoprettende, ikke straffende. Fællesskabet vinder, når det reparerer, ikke kun når det ekskluderer.</span><span data-lang="en">The first orientation must be restorative, not punitive. The community wins when it repairs, not only when it excludes.</span></p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div>
-            <h3><span data-lang-inline="ro">Arbitraj</span><span data-lang-inline="da">Voldgift</span><span data-lang-inline="en">Arbitration</span></h3>
-            <p><span data-lang="ro">Când medierea eșuează, o structură legitimă decide, argumentat și procedural, pe baza regulilor VIVOS.</span><span data-lang="da">Når mægling mislykkes, beslutter en legitim struktur argumenteret og proceduralt på grundlag af VIVOS' regler.</span><span data-lang="en">When mediation fails, a legitimate structure decides, argued and procedurally, on the basis of VIVOS rules.</span></p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div>
-            <h3><span data-lang-inline="ro">Memorie și precedent</span><span data-lang-inline="da">Hukommelse og præcedens</span><span data-lang-inline="en">Memory and precedent</span></h3>
-            <p><span data-lang="ro">Deciziile importante trebuie păstrate, clasificate și ancorate, pentru ca ordinea internă să învețe și să nu repete aceleași derapaje.</span><span data-lang="da">Vigtige beslutninger skal opbevares, klassificeres og forankres, så den interne orden kan lære og ikke gentage de samme fejl.</span><span data-lang="en">Important decisions must be preserved, classified, and anchored, so that the internal order can learn and not repeat the same mistakes.</span></p>
-          </div>
-        </div>
+        <div class="step"><div class="step-num">1</div><div><h3><span data-lang-inline="ro">Sesizare</span><span data-lang-inline="da">Indberetning</span><span data-lang-inline="en">Referral</span></h3><p><span data-lang="ro">Orice conflict, abuz, încălcare sau neclaritate trebuie să poată fi sesizată printr-un canal intern legitim.</span><span data-lang="da">Enhver konflikt, misbrug, overtrædelse eller uklarhed skal kunne indberettes via en legitim intern kanal.</span><span data-lang="en">Any conflict, abuse, violation, or ambiguity must be able to be referred through a legitimate internal channel.</span></p></div></div>
+        <div class="step"><div class="step-num">2</div><div><h3><span data-lang-inline="ro">Mediere</span><span data-lang-inline="da">Mægling</span><span data-lang-inline="en">Mediation</span></h3><p><span data-lang="ro">Prima orientare trebuie să fie restaurativă, nu punitivă. Comunitatea câștigă când repară, nu doar când exclude.</span><span data-lang="da">Den første orientering skal være genoprettende, ikke straffende. Fællesskabet vinder, når det reparerer, ikke kun når det ekskluderer.</span><span data-lang="en">The first orientation must be restorative, not punitive. The community wins when it repairs, not only when it excludes.</span></p></div></div>
+        <div class="step"><div class="step-num">3</div><div><h3><span data-lang-inline="ro">Arbitraj</span><span data-lang-inline="da">Voldgift</span><span data-lang-inline="en">Arbitration</span></h3><p><span data-lang="ro">Când medierea eșuează, o structură legitimă decide, argumentat și procedural, pe baza regulilor VIVOS.</span><span data-lang="da">Når mægling mislykkes, beslutter en legitim struktur argumenteret og proceduralt på grundlag af VIVOS' regler.</span><span data-lang="en">When mediation fails, a legitimate structure decides, argued and procedurally, on the basis of VIVOS rules.</span></p></div></div>
+        <div class="step"><div class="step-num">4</div><div><h3><span data-lang-inline="ro">Memorie și precedent</span><span data-lang-inline="da">Hukommelse og præcedens</span><span data-lang-inline="en">Memory and precedent</span></h3><p><span data-lang="ro">Deciziile importante trebuie păstrate, clasificate și ancorate, pentru ca ordinea internă să învețe și să nu repete aceleași derapaje.</span><span data-lang="da">Vigtige beslutninger skal opbevares, klassificeres og forankres, så den interne orden kan lære og ikke gentage de samme fejl.</span><span data-lang="en">Important decisions must be preserved, classified, and anchored, so that the internal order can learn and not repeat the same mistakes.</span></p></div></div>
       </div>
     </section>
 
-    <!-- IX -->
     <section class="card section-card">
-      <div class="section-head">
-        <div class="badge">IX</div>
-        <div>
-          <h2>
-            <span data-lang="ro">Raportul cu lumea legală existentă</span>
-            <span data-lang="da">Forholdet til den eksisterende juridiske verden</span>
-            <span data-lang="en">Relation to the existing legal world</span>
-          </h2>
-          <p class="sub">
-            <span data-lang="ro">VIVOS nu se izolează de realitate. O depășește prin construcție, nu prin negare oarbă.</span>
-            <span data-lang="da">VIVOS isolerer sig ikke fra virkeligheden. Det overgår den gennem konstruktion, ikke blind fornægtelse.</span>
-            <span data-lang="en">VIVOS does not isolate itself from reality. It transcends it through construction, not blind denial.</span>
-          </p>
-        </div>
-      </div>
+      <div class="section-head"><div class="badge">IX</div><div>
+        <h2><span data-lang="ro">Raportul cu lumea legală existentă</span><span data-lang="da">Forholdet til den eksisterende juridiske verden</span><span data-lang="en">Relation to the existing legal world</span></h2>
+        <p class="sub"><span data-lang="ro">VIVOS nu se izolează de realitate. O depășește prin construcție, nu prin negare oarbă.</span><span data-lang="da">VIVOS isolerer sig ikke fra virkeligheden. Det overgår den gennem konstruktion, ikke blind fornægtelse.</span><span data-lang="en">VIVOS does not isolate itself from reality. It transcends it through construction, not blind denial.</span></p>
+      </div></div>
       <div class="article">
         <p><span data-lang="ro">În exterior, membrii VIVOS rămân supuși legislațiilor statelor în care trăiesc. În interior, ei aleg să construiască o ordine complementară, superioară prin conștiință, asumare și infrastructură de încredere.</span><span data-lang="da">Udadtil forbliver VIVOS-medlemmer underlagt lovgivningen i de stater, de bor i. Indadtil vælger de at bygge en komplementær orden, der er overlegen i bevidsthed, ansvar og tillidsinfrastruktur.</span><span data-lang="en">Externally, VIVOS members remain subject to the legislation of the states in which they live. Internally, they choose to build a complementary order, superior in consciousness, responsibility, and trust infrastructure.</span></p>
         <p><span data-lang="ro">Pentru a acționa în lumea juridică externă, VIVOS are nevoie de o punte: o entitate legală recunoscută, minimă și funcțională, capabilă să reprezinte comunitatea în raport cu contracte, hosting, plăți, infrastructură și terți.</span><span data-lang="da">For at handle i den ydre juridiske verden har VIVOS brug for en bro: en anerkendt, minimal og funktionel juridisk enhed, der kan repræsentere fællesskabet i forhold til kontrakter, hosting, betalinger, infrastruktur og tredjeparter.</span><span data-lang="en">To act in the external legal world, VIVOS needs a bridge: a recognised, minimal, and functional legal entity, capable of representing the community in relation to contracts, hosting, payments, infrastructure, and third parties.</span></p>
@@ -605,23 +261,11 @@
       </div>
     </section>
 
-    <!-- X -->
     <section class="card section-card">
-      <div class="section-head">
-        <div class="badge">X</div>
-        <div>
-          <h2>
-            <span data-lang="ro">Scopul final</span>
-            <span data-lang="da">Det endelige formål</span>
-            <span data-lang="en">The final purpose</span>
-          </h2>
-          <p class="sub">
-            <span data-lang="ro">Nu o utopie fără structură. Nu un protest fără continuitate. Ci o ordine nouă care poate funcționa.</span>
-            <span data-lang="da">Ikke en utopi uden struktur. Ikke en protest uden kontinuitet. Men en ny orden, der kan fungere.</span>
-            <span data-lang="en">Not a utopia without structure. Not a protest without continuity. But a new order that can work.</span>
-          </p>
-        </div>
-      </div>
+      <div class="section-head"><div class="badge">X</div><div>
+        <h2><span data-lang="ro">Scopul final</span><span data-lang="da">Det endelige formål</span><span data-lang="en">The final purpose</span></h2>
+        <p class="sub"><span data-lang="ro">Nu o utopie fără structură. Nu un protest fără continuitate. Ci o ordine nouă care poate funcționa.</span><span data-lang="da">Ikke en utopi uden struktur. Ikke en protest uden kontinuitet. Men en ny orden, der kan fungere.</span><span data-lang="en">Not a utopia without structure. Not a protest without continuity. But a new order that can work.</span></p>
+      </div></div>
       <div class="article">
         <p><span data-lang="ro">Scopul VIVOS este să demonstreze că oamenii reali se pot organiza din nou în jurul unei ordini bazate pe încredere, responsabilitate, memorie și mutualitate. Nu împotriva vieții, ci pentru refacerea ei.</span><span data-lang="da">VIVOS' formål er at demonstrere, at virkelige mennesker igen kan organisere sig omkring en orden baseret på tillid, ansvar, hukommelse og gensidighed. Ikke imod livet, men for at genopbygge det.</span><span data-lang="en">The purpose of VIVOS is to demonstrate that real people can organise themselves once again around an order based on trust, responsibility, memory, and mutuality. Not against life, but for its renewal.</span></p>
         <p><span data-lang="ro">Dacă suficienți membri aderă, contribuie, își transferă loialitatea practică și își asumă instituțiile VIVOS, comunitatea poate deveni o putere socială reală, capabilă să influențeze, să transforme și, în timp, să reconfigureze ordinea politică existentă.</span><span data-lang="da">Hvis nok medlemmer tilslutter sig, bidrager, overfører deres praktiske loyalitet og overtager VIVOS' institutioner, kan fællesskabet blive en reel social magt, der er i stand til at påvirke, transformere og med tiden rekonfigurere den eksisterende politiske orden.</span><span data-lang="en">If enough members join, contribute, transfer their practical loyalty, and take on VIVOS institutions, the community can become a real social force, capable of influencing, transforming, and, in time, reconfiguring the existing political order.</span></p>
@@ -629,21 +273,12 @@
       </div>
     </section>
 
-    <!-- End -->
     <section class="manifest-end">
-      <h2>
-        <span data-lang="ro">Formula de încheiere</span>
-        <span data-lang="da">Afslutningsformlen</span>
-        <span data-lang="en">Closing formula</span>
-      </h2>
+      <h2><span data-lang="ro">Formula de încheiere</span><span data-lang="da">Afslutningsformlen</span><span data-lang="en">Closing formula</span></h2>
       <p><span data-lang="ro">Noi, membrii VIVOS, afirmăm că omul viu nu trebuie redus la identitatea administrativă prin care sistemele îl gestionează. Afirmăm că o comunitate autentică poate crea statut intern, memorie, economie, justiție și guvernanță fără a-și pierde caracterul uman. Afirmăm că blockchain-ul, registrul, reputația și contribuția reală pot susține o ordine nouă, online, distribuită și persistentă.</span><span data-lang="da">Vi, VIVOS-medlemmerne, bekræfter, at det levende menneske ikke må reduceres til den administrative identitet, som systemerne styrer det med. Vi bekræfter, at et autentisk fællesskab kan skabe intern status, hukommelse, økonomi, retfærdighed og styring uden at miste sin menneskelige karakter. Vi bekræfter, at blockchain, register, omdømme og reelt bidrag kan understøtte en ny, online, distribueret og vedvarende orden.</span><span data-lang="en">We, the members of VIVOS, affirm that the living person must not be reduced to the administrative identity through which systems manage them. We affirm that an authentic community can create internal status, memory, economy, justice, and governance without losing its human character. We affirm that blockchain, the register, reputation, and real contribution can sustain a new, online, distributed, and persistent order.</span></p>
       <p><span data-lang="ro">VIVOS este începutul unei civilizații comunitare digitale: nu prin declarație goală, ci prin construcție, continuitate și adevăr verificabil.</span><span data-lang="da">VIVOS er begyndelsen på en digital fællesskabscivilisation: ikke gennem tom erklæring, men gennem konstruktion, kontinuitet og verificerbar sandhed.</span><span data-lang="en">VIVOS is the beginning of a digital community civilisation: not through empty declaration, but through construction, continuity, and verifiable truth.</span></p>
       <div class="signature">
-        <strong>
-          <span data-lang-inline="ro">Manifestul VIVOS</span>
-          <span data-lang-inline="da">VIVOS-manifestet</span>
-          <span data-lang-inline="en">The VIVOS Manifest</span>
-        </strong><br />
+        <strong><span data-lang-inline="ro">Manifestul VIVOS</span><span data-lang-inline="da">VIVOS-manifestet</span><span data-lang-inline="en">The VIVOS Manifest</span></strong><br />
         <span data-lang-inline="ro">versiune pentru publicare online · document de poziționare fondatoare</span>
         <span data-lang-inline="da">version til onlinepublicering · grundlæggende positioneringsdokument</span>
         <span data-lang-inline="en">version for online publication · founding positioning document</span>
@@ -653,13 +288,11 @@
   </div>
 </main>
 
-<footer>
-  <div class="wrap">
-    <span data-lang-inline="ro">Document HTML pregătit pentru publicare online · VIVOS</span>
-    <span data-lang-inline="da">HTML-dokument forberedt til onlinepublicering · VIVOS</span>
-    <span data-lang-inline="en">HTML document prepared for online publication · VIVOS</span>
-  </div>
-</footer>
+<footer><div class="wrap">
+  <span data-lang-inline="ro">Document HTML pregătit pentru publicare online · VIVOS</span>
+  <span data-lang-inline="da">HTML-dokument forberedt til onlinepublicering · VIVOS</span>
+  <span data-lang-inline="en">HTML document prepared for online publication · VIVOS</span>
+</div></footer>
 
 <script>
   const STORAGE_KEY = 'vivos_manifest_lang';
@@ -670,26 +303,18 @@
   }
 
   function applyLang(lang) {
-    // Update html lang attribute
     document.documentElement.lang = lang === 'da' ? 'da' : lang === 'en' ? 'en' : 'ro';
-
-    // Block elements
     document.querySelectorAll('[data-lang]').forEach(el => {
       el.classList.toggle('visible', el.getAttribute('data-lang') === lang);
     });
-
-    // Inline elements
     document.querySelectorAll('[data-lang-inline]').forEach(el => {
       el.classList.toggle('visible', el.getAttribute('data-lang-inline') === lang);
     });
-
-    // Buttons
     document.querySelectorAll('.lang-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-target') === lang);
     });
   }
 
-  // Init
   const saved = localStorage.getItem(STORAGE_KEY);
   const browserLang = navigator.language.toLowerCase();
   let initLang = 'ro';

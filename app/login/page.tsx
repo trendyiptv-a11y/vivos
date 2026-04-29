@@ -8,9 +8,58 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
+import { useI18n } from "@/lib/i18n/provider"
+
+type AppLang = "ro" | "da" | "en"
+
+const loginTexts: Record<AppLang, Record<string, string>> = {
+  ro: {
+    platform: "Platforma comunitară",
+    title: "Intră în VIVOS",
+    email: "Email",
+    password: "Parolă",
+    emailPlaceholder: "nume@email.com",
+    passwordPlaceholder: "Parola ta",
+    forgotPassword: "Ai uitat parola?",
+    login: "Login",
+    createAccount: "Creează cont",
+    loading: "Se conectează...",
+    success: "Autentificare reușită.",
+  },
+  da: {
+    platform: "Fællesskabsplatform",
+    title: "Log ind i VIVOS",
+    email: "E-mail",
+    password: "Adgangskode",
+    emailPlaceholder: "navn@email.com",
+    passwordPlaceholder: "Din adgangskode",
+    forgotPassword: "Glemt adgangskoden?",
+    login: "Log ind",
+    createAccount: "Opret konto",
+    loading: "Logger ind...",
+    success: "Login gennemført.",
+  },
+  en: {
+    platform: "Community platform",
+    title: "Log in to VIVOS",
+    email: "Email",
+    password: "Password",
+    emailPlaceholder: "name@email.com",
+    passwordPlaceholder: "Your password",
+    forgotPassword: "Forgot password?",
+    login: "Log in",
+    createAccount: "Create account",
+    loading: "Signing in...",
+    success: "Login successful.",
+  },
+}
 
 export default function LoginPage() {
   const router = useRouter()
+  const { language } = useI18n()
+  const lang = (language === "da" || language === "en" ? language : "ro") as AppLang
+  const text = loginTexts[lang]
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -32,7 +81,7 @@ export default function LoginPage() {
       return
     }
 
-    setMessage("Autentificare reușită.")
+    setMessage(text.success)
     router.push("/")
     router.refresh()
   }
@@ -51,18 +100,18 @@ export default function LoginPage() {
           </div>
 
           <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-            Platforma comunitară
+            {text.platform}
           </p>
-          <CardTitle className="mt-2 text-2xl">Intră în VIVOS</CardTitle>
+          <CardTitle className="mt-2 text-2xl">{text.title}</CardTitle>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
+              <label className="text-sm font-medium">{text.email}</label>
               <Input
                 type="email"
-                placeholder="nume@email.com"
+                placeholder={text.emailPlaceholder}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="rounded-2xl"
@@ -71,10 +120,10 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Parolă</label>
+              <label className="text-sm font-medium">{text.password}</label>
               <Input
                 type="password"
-                placeholder="Parola ta"
+                placeholder={text.passwordPlaceholder}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="rounded-2xl"
@@ -87,7 +136,7 @@ export default function LoginPage() {
                 href="/forgot-password"
                 className="text-sm text-slate-500 underline underline-offset-4 hover:text-slate-700"
               >
-                Ai uitat parola?
+                {text.forgotPassword}
               </Link>
             </div>
 
@@ -107,7 +156,7 @@ export default function LoginPage() {
               }}
               disabled={loading}
             >
-              {loading ? "Se conectează..." : "Login"}
+              {loading ? text.loading : text.login}
             </Button>
 
             <Button
@@ -116,7 +165,7 @@ export default function LoginPage() {
               className="w-full rounded-2xl"
               onClick={() => router.push("/signup")}
             >
-              Creează cont
+              {text.createAccount}
             </Button>
           </form>
         </CardContent>

@@ -8,6 +8,63 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Bell } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
+import { useI18n } from "@/lib/i18n/provider"
+
+type AppLang = "ro" | "da" | "en"
+
+const messagesTexts: Record<AppLang, Record<string, string>> = {
+  ro: {
+    platform: "Platforma comunitară",
+    title: "Mesaje",
+    profile: "Profil",
+    manifest: "Manifest VIVOS",
+    settings: "Setări",
+    about: "Despre",
+    logout: "Logout",
+    login: "Login",
+    conversations: "Conversații",
+    loading: "Se încarcă mesajele...",
+    empty: "Nu există încă conversații. Începe una din piață, fond sau profilul unui membru.",
+    memberFallback: "Membru",
+    noMessages: "Fără mesaje încă",
+  },
+  da: {
+    platform: "Fællesskabsplatform",
+    title: "Beskeder",
+    profile: "Profil",
+    manifest: "VIVOS-manifest",
+    settings: "Indstillinger",
+    about: "Om",
+    logout: "Log ud",
+    login: "Log ind",
+    conversations: "Samtaler",
+    loading: "Indlæser beskeder...",
+    empty: "Der er endnu ingen samtaler. Start en fra markedet, fonden eller et medlems profil.",
+    memberFallback: "Medlem",
+    noMessages: "Ingen beskeder endnu",
+  },
+  en: {
+    platform: "Community platform",
+    title: "Messages",
+    profile: "Profile",
+    manifest: "VIVOS Manifest",
+    settings: "Settings",
+    about: "About",
+    logout: "Logout",
+    login: "Login",
+    conversations: "Conversations",
+    loading: "Loading messages...",
+    empty: "No conversations yet. Start one from the marketplace, fund, or a member's profile.",
+    memberFallback: "Member",
+    noMessages: "No messages yet",
+  },
+}
+
+function localeFromLanguage(language: string) {
+  if (language === "da") return "da-DK"
+  if (language === "en") return "en-US"
+  return "ro-RO"
+}
 
 type ConversationRow = {
   id: string
@@ -57,6 +114,11 @@ type ConversationCard = {
 
 export default function MessagesPage() {
   const router = useRouter()
+  const { language } = useI18n()
+  const lang = (language === "da" || language === "en" ? language : "ro") as AppLang
+  const text = messagesTexts[lang]
+  const locale = localeFromLanguage(lang)
+
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -319,13 +381,13 @@ export default function MessagesPage() {
           other?.name?.trim() ||
           other?.alias?.trim() ||
           other?.email?.trim() ||
-          "Membru"
+          text.memberFallback
 
         return {
           id: conv.id,
           name: displayName,
           email: other?.email?.trim() || null,
-          preview: latest?.body || "Fără mesaje încă",
+          preview: latest?.body || text.noMessages,
           date: latest?.created_at || conv.created_at,
           hasUnread: unreadCountForConversation > 0,
           unreadCount: unreadCountForConversation,
@@ -337,7 +399,7 @@ export default function MessagesPage() {
         }
         return new Date(b.date).getTime() - new Date(a.date).getTime()
       })
-  }, [conversations, conversationMembers, latestMessages, unreadConversationCounts, userId])
+  }, [conversations, conversationMembers, latestMessages, unreadConversationCounts, userId, text])
 
   const showUnreadBadge = !!userEmail && unreadCount > 0
   const showPublicBadge = !userEmail && publicPulseCount > 0
@@ -361,13 +423,13 @@ export default function MessagesPage() {
               className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
               style={{ color: "rgba(255,255,255,0.68)" }}
             >
-              Platforma comunitară
+              {text.platform}
             </p>
             <h1
               className="truncate text-lg font-semibold sm:text-2xl"
               style={{ color: vivosTheme.colors.white }}
             >
-              Mesaje
+              {text.title}
             </h1>
           </div>
 
@@ -459,7 +521,7 @@ export default function MessagesPage() {
                           window.location.href = "/profile"
                         }}
                       >
-                        Profil
+                        {text.profile}
                       </button>
 
                       <button
@@ -469,7 +531,7 @@ export default function MessagesPage() {
                           window.location.href = "/downloads/manifest.html"
                         }}
                       >
-                        Manifest VIVOS
+                        {text.manifest}
                       </button>
 
                       <button
@@ -479,7 +541,7 @@ export default function MessagesPage() {
                           window.location.href = "/?tab=settings"
                         }}
                       >
-                        Setări
+                        {text.settings}
                       </button>
 
                       <button
@@ -489,7 +551,7 @@ export default function MessagesPage() {
                           window.location.href = "/?tab=about"
                         }}
                       >
-                        Despre
+                        {text.about}
                       </button>
 
                       <button
@@ -500,7 +562,7 @@ export default function MessagesPage() {
                           window.location.href = "/"
                         }}
                       >
-                        Logout
+                        {text.logout}
                       </button>
                     </div>
                   )}
@@ -518,7 +580,7 @@ export default function MessagesPage() {
                   window.location.href = "/login"
                 }}
               >
-                Login
+                {text.login}
               </Button>
             )}
           </div>
@@ -528,16 +590,16 @@ export default function MessagesPage() {
       <div className="mx-auto max-w-5xl space-y-6 px-4 py-4 sm:px-6 sm:py-6">
         <Card className="rounded-3xl border-0 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl">Conversații</CardTitle>
+            <CardTitle className="text-xl">{text.conversations}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 pb-24">
             {loading ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Se încarcă mesajele...
+                {text.loading}
               </div>
             ) : conversationCards.length === 0 ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">
-                Nu există încă conversații. Începe una din piață, fond sau profilul unui membru.
+                {text.empty}
               </div>
             ) : (
               conversationCards.map((item) => (
@@ -570,7 +632,7 @@ export default function MessagesPage() {
 
                     <div className="flex shrink-0 flex-col items-end gap-2">
                       <p className="text-xs text-slate-500">
-                        {new Date(item.date).toLocaleString("ro-RO", {
+                        {new Date(item.date).toLocaleString(locale, {
                           year: "numeric",
                           month: "2-digit",
                           day: "2-digit",

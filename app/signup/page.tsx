@@ -7,9 +7,55 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme } from "@/lib/theme/vivos-theme"
+import { useI18n } from "@/lib/i18n/provider"
+
+type AppLang = "ro" | "da" | "en"
+
+const signupTexts: Record<AppLang, Record<string, string>> = {
+  ro: {
+    platform: "Platforma comunitară",
+    title: "Creează cont VIVOS",
+    email: "Email",
+    emailPlaceholder: "nume@email.com",
+    password: "Parolă",
+    passwordPlaceholder: "Alege o parolă",
+    loading: "Se creează...",
+    submit: "Sign up",
+    alreadyHaveAccount: "Am deja cont",
+    success: "Cererea a fost procesată. Dacă emailul este nou, verifică inbox-ul pentru confirmare. Dacă ai deja cont, folosește Login.",
+  },
+  da: {
+    platform: "Fællesskabsplatform",
+    title: "Opret VIVOS-konto",
+    email: "E-mail",
+    emailPlaceholder: "navn@email.com",
+    password: "Adgangskode",
+    passwordPlaceholder: "Vælg en adgangskode",
+    loading: "Opretter...",
+    submit: "Tilmeld",
+    alreadyHaveAccount: "Jeg har allerede en konto",
+    success: "Anmodningen er behandlet. Hvis e-mailen er ny, skal du tjekke din indbakke for bekræftelse. Hvis du allerede har en konto, brug Login.",
+  },
+  en: {
+    platform: "Community platform",
+    title: "Create VIVOS account",
+    email: "Email",
+    emailPlaceholder: "name@email.com",
+    password: "Password",
+    passwordPlaceholder: "Choose a password",
+    loading: "Creating...",
+    submit: "Sign up",
+    alreadyHaveAccount: "I already have an account",
+    success: "Request processed. If the email is new, check your inbox for confirmation. If you already have an account, use Login.",
+  },
+}
 
 export default function SignupPage() {
   const router = useRouter()
+  const { language } = useI18n()
+  const lang = (language === "da" || language === "en" ? language : "ro") as AppLang
+  const text = signupTexts[lang]
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -34,7 +80,7 @@ export default function SignupPage() {
       return
     }
 
-    setMessage("Cererea a fost procesată. Dacă emailul este nou, verifică inbox-ul pentru confirmare. Dacă ai deja cont, folosește Login.")
+    setMessage(text.success)
     setLoading(false)
   }
 
@@ -52,18 +98,18 @@ export default function SignupPage() {
           </div>
 
           <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-            Platforma comunitară
+            {text.platform}
           </p>
-          <CardTitle className="mt-2 text-2xl">Creează cont VIVOS</CardTitle>
+          <CardTitle className="mt-2 text-2xl">{text.title}</CardTitle>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
+              <label className="text-sm font-medium">{text.email}</label>
               <Input
                 type="email"
-                placeholder="nume@email.com"
+                placeholder={text.emailPlaceholder}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="rounded-2xl"
@@ -72,10 +118,10 @@ export default function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Parolă</label>
+              <label className="text-sm font-medium">{text.password}</label>
               <Input
                 type="password"
-                placeholder="Alege o parolă"
+                placeholder={text.passwordPlaceholder}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="rounded-2xl"
@@ -99,7 +145,7 @@ export default function SignupPage() {
               }}
               disabled={loading}
             >
-              {loading ? "Se creează..." : "Sign up"}
+              {loading ? text.loading : text.submit}
             </Button>
 
             <Button
@@ -108,7 +154,7 @@ export default function SignupPage() {
               className="w-full rounded-2xl"
               onClick={() => router.push("/login")}
             >
-              Am deja cont
+              {text.alreadyHaveAccount}
             </Button>
           </form>
         </CardContent>

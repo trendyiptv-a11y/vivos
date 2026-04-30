@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js"
 type UpdateExternalPaymentBody = {
   orderId?: string
   nextExternalPaymentStatus?: "pending" | "sent" | "confirmed" | "disputed" | "cancelled"
+  disputeReason?: string
 }
 
 type ExternalPaymentStatus = "pending" | "sent" | "confirmed" | "disputed" | "cancelled"
@@ -17,6 +18,9 @@ type OrderRow = {
   payment_status: "unpaid" | "held" | "paid" | "refunded" | "cancelled"
   external_payment_method: string | null
   external_payment_status: ExternalPaymentStatus
+  external_payment_dispute_reason: string | null
+  external_payment_disputed_at: string | null
+  external_payment_disputed_by: string | null
 }
 
 const VALID_EXTERNAL_STATUSES: ExternalPaymentStatus[] = ["pending", "sent", "confirmed", "disputed", "cancelled"]
@@ -93,14 +97,19 @@ export async function POST(request: Request) {
     const body = (await request.json()) as UpdateExternalPaymentBody
     const orderId = body.orderId?.trim()
     const nextExternalPaymentStatus = body.nextExternalPaymentStatus
+    const disputeReason = body.disputeReason?.trim() || null
 
     if (!orderId || !nextExternalPaymentStatus || !VALID_EXTERNAL_STATUSES.includes(nextExternalPaymentStatus)) {
       return NextResponse.json({ error: "Date invalide pentru actualizarea plății externe." }, { status: 400 })
     }
 
+    if (nextExternalPaymentStatus === "disputed" && !disputeReason) {
+      return NextResponse.json({ error: "Trebuie să completezi un motiv pentru dispută." }, { status: 400 })
+    }
+
     const { data: order, error: orderError } = await supabase
       .from("merchant_orders")
-      .select("id, buyer_user_id, merchant_user_id, title, status, payment_status, external_payment_method, external_payment_status")
+      .select("id, buyer_user_id, merchant_user_id, title, status, payment_status, external_payment_method, external_payment_status, external_payment_dispute_reason, external_payment_disputed_at, external_payment_disputed_by")
       .eq("id", orderId)
       .single()
 
@@ -115,7 +124,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Tranziție nepermisă pentru plata externă." }, { status: 400 })
     }
 
-    const patch: Record<string, string> = {
+    const patch: Record<string, string | null> = {
       external_payment_status: nextExternalPaymentStatus,
       updated_at: new Date().toISOString(),
     }
@@ -126,6 +135,12 @@ export async function POST(request: Request) {
 
     if (nextExternalPaymentStatus === "confirmed") {
       patch.external_payment_confirmed_at = new Date().toISOString()
+    }
+
+    if (nextExternalPaymentStatus === "disputed") {
+      patch.external_payment_disputed_at = new Date().toISOString()
+      patch.external_payment_disputed_by = actorId
+      patch.external_payment_dispute_reason = disputeReason
     }
 
     const { error: updateError } = await supabase
@@ -145,19 +160,25 @@ export async function POST(request: Request) {
         : nextExternalPaymentStatus === "confirmed"
           ? `Comerciantul a confirmat plata MobilePay pentru ${currentOrder.title}.`
           : nextExternalPaymentStatus === "disputed"
-            ? `Plata MobilePay pentru ${currentOrder.title} a fost marcată în dispută.`
+            ? `Plata MobilePay pentru ${currentOrder.title} a fost marcată în dispută. Motiv: ${disputeReason}.`
             : `Plata externă pentru ${currentOrder.title} a fost anulată.`
 
     await supabase.from("notifications").insert({
       user_id: recipientUserId,
       event_type: "merchant_order_external_payment_updated",
-      title: "Status plată externă actualizat",
+      title: nextExternalPaymentStatus === "disputed" ? "Dispută deschisă pentru plată externă" : "Status plată externă actualizat",
       body: bodyText,
       ref_id: orderId,
       is_read: false,
     })
 
-    return NextResponse.json({ ok: true, externalPaymentStatus: nextExternalPaymentStatus })
+    return NextResponse.json({
+      ok: true,
+      externalPaymentStatus: nextExternalPaymentStatus,
+      disputeReason,
+      disputedAt: patch.external_payment_disputed_at,
+      disputedBy: patch.external_payment_disputed_by,
+    })
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Eroare internă la actualizarea plății externe." },

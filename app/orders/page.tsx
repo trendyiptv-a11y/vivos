@@ -21,6 +21,10 @@ type MerchantOrder = {
   delivery_needed: boolean
   status: "new" | "accepted" | "preparing" | "ready" | "in_delivery" | "delivered" | "completed" | "cancelled"
   payment_status: "unpaid" | "held" | "paid" | "refunded" | "cancelled"
+  external_payment_method: string | null
+  external_payment_status: "pending" | "sent" | "confirmed" | "disputed" | "cancelled"
+  external_payment_sent_at: string | null
+  external_payment_confirmed_at: string | null
   delivery_request_id: string | null
   created_at: string
   updated_at: string
@@ -41,6 +45,8 @@ type MerchantProfileLite = {
 }
 
 type OrderFilter = "all" | "buying" | "selling"
+
+type ExternalPaymentStatus = MerchantOrder["external_payment_status"]
 
 const TALANT_TO_DKK = 100
 
@@ -80,6 +86,14 @@ function paymentStatusLabel(status: MerchantOrder["payment_status"]) {
   return "Neplătit"
 }
 
+function externalPaymentStatusLabel(status: MerchantOrder["external_payment_status"]) {
+  if (status === "sent") return "Trimisă"
+  if (status === "confirmed") return "Confirmată"
+  if (status === "disputed") return "În dispută"
+  if (status === "cancelled") return "Anulată"
+  return "În așteptare"
+}
+
 function displayProfile(profile: ProfileLite | null, fallback: string) {
   return profile?.alias?.trim() || profile?.name?.trim() || profile?.email?.split("@")[0] || fallback
 }
@@ -89,6 +103,10 @@ function displayMerchant(profile: MerchantProfileLite | null, userProfile: Profi
 }
 
 function nextMerchantStatuses(order: MerchantOrder): MerchantOrder["status"][] {
+  if (order.external_payment_status !== "confirmed") {
+    return order.status === "new" ? ["cancelled"] : []
+  }
+
   if (order.status === "new") return ["accepted", "cancelled"]
   if (order.status === "accepted") return ["preparing", "cancelled"]
   if (order.status === "preparing") return ["ready", "cancelled"]
@@ -102,6 +120,14 @@ function nextBuyerStatuses(order: MerchantOrder): MerchantOrder["status"][] {
   if (order.status === "new") return ["cancelled"]
   if (order.status === "delivered") return ["completed"]
   return []
+}
+
+function externalBadgeClass(status: ExternalPaymentStatus) {
+  if (status === "confirmed") return "bg-emerald-100 text-emerald-900 hover:bg-emerald-100"
+  if (status === "sent") return "bg-sky-100 text-sky-900 hover:bg-sky-100"
+  if (status === "disputed") return "bg-orange-100 text-orange-900 hover:bg-orange-100"
+  if (status === "cancelled") return "bg-slate-100 text-slate-700 hover:bg-slate-100"
+  return "bg-amber-100 text-amber-900 hover:bg-amber-100"
 }
 
 export default function OrdersPage() {
@@ -133,7 +159,7 @@ export default function OrdersPage() {
 
       const { data, error } = await supabase
         .from("merchant_orders")
-        .select("id, market_post_id, merchant_user_id, buyer_user_id, title, quantity, unit_price_talanti, total_talanti, notes, delivery_needed, status, payment_status, delivery_request_id, created_at, updated_at")
+        .select("id, market_post_id, merchant_user_id, buyer_user_id, title, quantity, unit_price_talanti, total_talanti, notes, delivery_needed, status, payment_status, external_payment_method, external_payment_status, external_payment_sent_at, external_payment_confirmed_at, delivery_request_id, created_at, updated_at")
         .order("created_at", { ascending: false })
 
       if (error) {
@@ -232,6 +258,7 @@ export default function OrdersPage() {
                 ...item,
                 status: (result?.status as MerchantOrder["status"]) || nextStatus,
                 payment_status: (result?.paymentStatus as MerchantOrder["payment_status"]) || item.payment_status,
+                external_payment_status: (result?.externalPaymentStatus as MerchantOrder["external_payment_status"]) || item.external_payment_status,
                 updated_at: new Date().toISOString(),
               }
             : item
@@ -254,6 +281,68 @@ export default function OrdersPage() {
     } catch (error: any) {
       console.error("Order status update error:", error)
       setMessage(error?.message || "Statusul nu a putut fi actualizat.")
+      setBusyOrderId(null)
+    }
+  }
+
+  async function handleExternalPaymentChange(order: MerchantOrder, nextExternalPaymentStatus: ExternalPaymentStatus) {
+    setBusyOrderId(order.id)
+    setMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        setMessage("Sesiunea nu este validă. Reautentifică-te.")
+        setBusyOrderId(null)
+        return
+      }
+
+      const response = await fetch("/api/orders/update-external-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ orderId: order.id, nextExternalPaymentStatus }),
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        setMessage(result?.error || "Statusul plății externe nu a putut fi actualizat.")
+        setBusyOrderId(null)
+        return
+      }
+
+      setOrders((prev) =>
+        prev.map((item) =>
+          item.id === order.id
+            ? {
+                ...item,
+                external_payment_status: (result?.externalPaymentStatus as ExternalPaymentStatus) || nextExternalPaymentStatus,
+                external_payment_sent_at: nextExternalPaymentStatus === "sent" ? new Date().toISOString() : item.external_payment_sent_at,
+                external_payment_confirmed_at: nextExternalPaymentStatus === "confirmed" ? new Date().toISOString() : item.external_payment_confirmed_at,
+                updated_at: new Date().toISOString(),
+              }
+            : item
+        )
+      )
+
+      if (nextExternalPaymentStatus === "sent") {
+        setMessage("Plata externă a fost marcată ca trimisă. Merchantul poate confirma acum MobilePay.")
+      } else if (nextExternalPaymentStatus === "confirmed") {
+        setMessage("Merchantul a confirmat plata externă. Comanda poate avansa acum în fluxul normal.")
+      } else if (nextExternalPaymentStatus === "disputed") {
+        setMessage("Comanda a fost marcată în dispută pentru plata externă.")
+      }
+
+      setBusyOrderId(null)
+    } catch (error: any) {
+      console.error("External payment update error:", error)
+      setMessage(error?.message || "Statusul plății externe nu a putut fi actualizat.")
       setBusyOrderId(null)
     }
   }
@@ -312,7 +401,7 @@ export default function OrdersPage() {
                 const isBuyer = currentUserId === order.buyer_user_id
                 const otherPartyId = isBuyer ? order.merchant_user_id : order.buyer_user_id
                 const otherParty = profilesMap[otherPartyId] || null
-                const otherMerchantProfile = isBuyer ? merchantProfilesMap[order.merchant_user_id] || null : merchantProfilesMap[order.merchant_user_id] || null
+                const otherMerchantProfile = merchantProfilesMap[order.merchant_user_id] || null
                 const actionStatuses = isBuyer ? nextBuyerStatuses(order) : nextMerchantStatuses(order)
                 const otherPartyLabel = isBuyer
                   ? displayMerchant(otherMerchantProfile, otherParty, "Merchant")
@@ -320,12 +409,16 @@ export default function OrdersPage() {
                 const mobilePayPhone = otherMerchantProfile?.phone?.trim() || null
                 const unitDkk = talantiToDkk(order.unit_price_talanti)
                 const totalDkk = talantiToDkk(order.total_talanti)
+                const canBuyerMarkSent = isBuyer && order.external_payment_status === "pending" && !!mobilePayPhone && order.status !== "cancelled" && order.status !== "completed"
+                const canMerchantConfirm = !isBuyer && order.external_payment_status === "sent" && order.status !== "cancelled" && order.status !== "completed"
+                const canOpenDispute = order.external_payment_status === "sent" || order.external_payment_status === "confirmed"
 
                 return (
                   <div key={order.id} className="rounded-2xl border p-4">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
                       <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">{orderStatusLabel(order.status)}</Badge>
                       <Badge variant="outline" className="rounded-xl">Plată internă: {paymentStatusLabel(order.payment_status)}</Badge>
+                      <Badge className={`rounded-xl ${externalBadgeClass(order.external_payment_status)}`}>MobilePay: {externalPaymentStatusLabel(order.external_payment_status)}</Badge>
                       {order.delivery_needed ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Cu livrare</Badge> : <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Fără livrare</Badge>}
                       {isBuyer ? <Badge variant="outline" className="rounded-xl">Cumpărător</Badge> : <Badge variant="outline" className="rounded-xl">Merchant</Badge>}
                     </div>
@@ -347,6 +440,9 @@ export default function OrdersPage() {
                     <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                       <p>{isBuyer ? "Merchant" : "Cumpărător"}: <span className="font-medium text-slate-900">{otherPartyLabel}</span></p>
                       <p className="mt-1">Detalii: <span className="font-medium text-slate-900">{order.notes?.trim() || "Fără detalii suplimentare"}</span></p>
+                      <p className="mt-1">Metodă externă: <span className="font-medium text-slate-900">{order.external_payment_method?.toUpperCase() || "—"}</span></p>
+                      {order.external_payment_sent_at ? <p className="mt-1">Plată marcată ca trimisă la: <span className="font-medium text-slate-900">{new Date(order.external_payment_sent_at).toLocaleString("ro-RO")}</span></p> : null}
+                      {order.external_payment_confirmed_at ? <p className="mt-1">Plată confirmată la: <span className="font-medium text-slate-900">{new Date(order.external_payment_confirmed_at).toLocaleString("ro-RO")}</span></p> : null}
                     </div>
 
                     {isBuyer && mobilePayPhone ? (
@@ -359,6 +455,30 @@ export default function OrdersPage() {
                           <Button type="button" variant="outline" className="rounded-2xl" onClick={() => handleCopyMobilePay(mobilePayPhone)}>
                             Copiază nr. MobilePay
                           </Button>
+                          {canBuyerMarkSent ? (
+                            <Button type="button" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleExternalPaymentChange(order, "sent")}>
+                              {busyOrderId === order.id ? "Se actualizează..." : "Am trimis prin MobilePay"}
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {!isBuyer ? (
+                      <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-slate-700">
+                        <p className="font-medium text-slate-900">Control plată externă merchant</p>
+                        <p className="mt-1">Comanda nu poate avansa în fluxul normal până când plata MobilePay nu este confirmată de comerciant.</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {canMerchantConfirm ? (
+                            <Button type="button" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleExternalPaymentChange(order, "confirmed")}>
+                              {busyOrderId === order.id ? "Se actualizează..." : "Confirm plata MobilePay"}
+                            </Button>
+                          ) : null}
+                          {canOpenDispute && order.external_payment_status !== "disputed" ? (
+                            <Button type="button" variant="outline" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleExternalPaymentChange(order, "disputed")}>
+                              Marchează dispută
+                            </Button>
+                          ) : null}
                         </div>
                       </div>
                     ) : null}
@@ -366,6 +486,9 @@ export default function OrdersPage() {
                     {actionStatuses.length ? (
                       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
                         <p className="text-sm font-medium text-slate-900">Acțiuni disponibile</p>
+                        {order.external_payment_status !== "confirmed" && order.status !== "cancelled" && order.status !== "completed" ? (
+                          <p className="mt-2 text-xs text-slate-500">Fluxul comenzii este blocat temporar până la confirmarea plății externe MobilePay.</p>
+                        ) : null}
                         <div className="mt-3 flex flex-wrap gap-2">
                           {actionStatuses.map((nextStatus) => (
                             <Button key={nextStatus} type="button" variant="outline" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleStatusChange(order, nextStatus)}>

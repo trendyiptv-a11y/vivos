@@ -27,6 +27,14 @@ type SelectedOrderItem = {
 
 type ProductListFilter = "all" | "in_stock"
 
+type MerchantPaymentProfile = {
+  display_name: string | null
+  business_name: string | null
+  phone: string | null
+}
+
+const TALANT_TO_DKK = 100
+
 function parseInitialPrice(value: string | null) {
   if (!value) return 0
   const normalized = value.replace(/,/g, ".")
@@ -34,6 +42,19 @@ function parseInitialPrice(value: string | null) {
   if (!match) return 0
   const parsed = Number(match[0])
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+function talantiToDkk(value: number) {
+  return Number(value || 0) * TALANT_TO_DKK
+}
+
+function formatDkk(value: number) {
+  return new Intl.NumberFormat("da-DK", {
+    style: "currency",
+    currency: "DKK",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0))
 }
 
 function MarketOrderPageInner() {
@@ -57,6 +78,7 @@ function MarketOrderPageInner() {
   const [linkedItemsLoading, setLinkedItemsLoading] = useState(true)
   const [productSearchTerm, setProductSearchTerm] = useState("")
   const [productListFilter, setProductListFilter] = useState<ProductListFilter>("all")
+  const [merchantPaymentProfile, setMerchantPaymentProfile] = useState<MerchantPaymentProfile | null>(null)
 
   const hasLinkedItems = linkedItems.length > 0
 
@@ -90,6 +112,8 @@ function MarketOrderPageInner() {
     const computed = Number(quantity || 0) * Number(unitPrice || 0)
     return Number.isFinite(computed) ? computed : 0
   }, [hasLinkedItems, linkedItems, quantity, selectedItems, unitPrice])
+
+  const totalDkk = useMemo(() => talantiToDkk(total), [total])
 
   useEffect(() => {
     if (!marketPostId || !merchantUserId) {
@@ -129,11 +153,46 @@ function MarketOrderPageInner() {
     loadLinkedItems()
   }, [marketPostId])
 
+  useEffect(() => {
+    async function loadMerchantPaymentProfile() {
+      if (!merchantUserId) {
+        setMerchantPaymentProfile(null)
+        return
+      }
+
+      const { data } = await supabase
+        .from("merchant_profiles")
+        .select("display_name, business_name, phone")
+        .eq("user_id", merchantUserId)
+        .eq("is_active", true)
+        .maybeSingle()
+
+      setMerchantPaymentProfile((data as MerchantPaymentProfile | null) ?? null)
+    }
+
+    loadMerchantPaymentProfile()
+  }, [merchantUserId])
+
   function handleItemQuantityChange(itemId: string, nextQuantity: number) {
     setSelectedQuantities((prev) => ({
       ...prev,
       [itemId]: Math.max(0, Number.isFinite(nextQuantity) ? nextQuantity : 0),
     }))
+  }
+
+  async function handleCopyMobilePayNumber() {
+    const phone = merchantPaymentProfile?.phone?.trim()
+    if (!phone) {
+      setMessage("Merchantul nu are încă număr MobilePay salvat în profil.")
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(phone)
+      setMessage(`Numărul MobilePay a fost copiat: ${phone}`)
+    } catch {
+      setMessage(`Nu am putut copia automat. Folosește manual numărul: ${phone}`)
+    }
   }
 
   async function handleCreateOrder(e: React.FormEvent) {
@@ -215,18 +274,22 @@ function MarketOrderPageInner() {
               .map((selectedItem) => {
                 const item = linkedItems.find((row) => row.id === selectedItem.catalogItemId)
                 if (!item) return null
-                return `- ${item.title} × ${selectedItem.quantity} = ${(Number(item.price_talanti) * selectedItem.quantity).toFixed(2)} talanți`
+                return `- ${item.title} × ${selectedItem.quantity} = ${(Number(item.price_talanti) * selectedItem.quantity).toFixed(2)} talanți (≈ ${formatDkk(talantiToDkk(Number(item.price_talanti) * selectedItem.quantity))})`
               })
               .filter(Boolean)
           : []
+
+        const mobilePayPhone = merchantPaymentProfile?.phone?.trim() || null
+        const mobilePayReceiver = merchantPaymentProfile?.display_name?.trim() || merchantPaymentProfile?.business_name?.trim() || "merchant"
 
         const summaryLines = [
           `Comandă nouă: ${titleFromQuery}`,
           hasLinkedItems ? "Produse selectate:" : `Cantitate: ${quantity}`,
           ...selectedSummary,
-          !hasLinkedItems ? `Preț unitar: ${unitPrice} talanți` : null,
-          `Total: ${total.toFixed(2)} talanți`,
-          `Plată rezervată: da`,
+          !hasLinkedItems ? `Preț unitar: ${unitPrice} talanți (≈ ${formatDkk(talantiToDkk(unitPrice))})` : null,
+          `Total: ${total.toFixed(2)} talanți (≈ ${formatDkk(totalDkk)})`,
+          `Plată rezervată intern: da`,
+          mobilePayPhone ? `Plată externă recomandată: MobilePay la ${mobilePayPhone} (${mobilePayReceiver})` : null,
           `Livrare necesară: ${deliveryNeeded ? "da" : "nu"}`,
           notes.trim() ? `Detalii: ${notes.trim()}` : null,
           `Order ID: ${orderId}`,
@@ -244,7 +307,7 @@ function MarketOrderPageInner() {
           user_id: merchantUserId,
           event_type: "merchant_order_created",
           title: "Ai primit o comandă nouă",
-          body: `${titleFromQuery} · ${hasLinkedItems ? `${selectedItems.length} produse` : `${quantity} buc.`} · ${total.toFixed(2)} talanți`,
+          body: `${titleFromQuery} · ${hasLinkedItems ? `${selectedItems.length} produse` : `${quantity} buc.`} · ${total.toFixed(2)} talanți · ≈ ${formatDkk(totalDkk)}`,
           ref_id: orderId,
           is_read: false,
         })
@@ -299,9 +362,21 @@ function MarketOrderPageInner() {
                 <p className="mt-1 text-lg font-semibold text-slate-900">{titleFromQuery}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {valueTextFromQuery ? <Badge variant="outline" className="rounded-xl">{valueTextFromQuery}</Badge> : null}
+                  {parseInitialPrice(valueTextFromQuery) > 0 ? <Badge variant="outline" className="rounded-xl">≈ {formatDkk(talantiToDkk(parseInitialPrice(valueTextFromQuery)))}</Badge> : null}
                   {deliveryAvailable ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Livrare disponibilă</Badge> : null}
                 </div>
               </div>
+
+              {merchantPaymentProfile?.phone?.trim() ? (
+                <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700">
+                  <p className="font-medium text-slate-900">Decontare fiat practică în Danemarca</p>
+                  <p className="mt-1">În VIVOS, comanda rămâne exprimată în talanți. Pentru orientare și uz practic, afișăm și echivalentul în DKK la ancora <strong>1 talant = 100 DKK</strong>.</p>
+                  <p className="mt-2">MobilePay comerciant: <strong>{merchantPaymentProfile.phone}</strong></p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" className="rounded-2xl" onClick={handleCopyMobilePayNumber}>Copiază nr. MobilePay</Button>
+                  </div>
+                </div>
+              ) : null}
 
               {linkedItemsLoading ? (
                 <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă produsele din anunț...</div>
@@ -329,6 +404,7 @@ function MarketOrderPageInner() {
                               <div className="mb-2 flex flex-wrap gap-2">
                                 <Badge variant="outline" className="rounded-xl">{item.category || "General"}</Badge>
                                 <Badge className="rounded-xl bg-indigo-100 text-indigo-900 hover:bg-indigo-100">{Number(item.price_talanti).toFixed(2)} talanți / {item.unit_label || "buc"}</Badge>
+                                <Badge variant="outline" className="rounded-xl">≈ {formatDkk(talantiToDkk(Number(item.price_talanti)))}</Badge>
                               </div>
                               <p className="font-semibold text-slate-900">{item.title}</p>
                               <p className="mt-1 text-sm text-slate-600">{item.description?.trim() || "Fără descriere"}</p>
@@ -353,6 +429,7 @@ function MarketOrderPageInner() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Preț unitar în talanți</label>
                     <Input type="number" min={0} step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(Math.max(0, Number(e.target.value || 0)))} className="rounded-2xl" />
+                    <p className="text-xs text-slate-500">≈ {formatDkk(talantiToDkk(unitPrice))}</p>
                   </div>
                 </div>
               )}
@@ -370,7 +447,8 @@ function MarketOrderPageInner() {
               <div className="rounded-2xl border bg-slate-50 p-4">
                 <p className="text-sm text-slate-500">Total estimat</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-900">{total.toFixed(2)} talanți</p>
-                <p className="mt-2 text-sm text-slate-600">La creare se rezervă suma în wallet sub formă de hold.</p>
+                <p className="mt-1 text-sm font-medium text-slate-700">≈ {formatDkk(totalDkk)}</p>
+                <p className="mt-2 text-sm text-slate-600">La creare se rezervă suma în wallet sub formă de hold. Echivalentul în DKK este afișat doar ca punte practică pentru Danemarca.</p>
               </div>
 
               {message ? <div className="rounded-2xl border p-3 text-sm text-slate-600">{message}</div> : null}

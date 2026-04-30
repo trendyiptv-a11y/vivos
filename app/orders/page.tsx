@@ -28,6 +28,9 @@ type MerchantOrder = {
   external_payment_proof_path: string | null
   external_payment_proof_uploaded_at: string | null
   external_payment_proof_uploaded_by: string | null
+  external_payment_dispute_reason: string | null
+  external_payment_disputed_at: string | null
+  external_payment_disputed_by: string | null
   delivery_request_id: string | null
   created_at: string
   updated_at: string
@@ -51,6 +54,14 @@ type OrderFilter = "all" | "buying" | "selling"
 type ExternalPaymentStatus = MerchantOrder["external_payment_status"]
 
 const TALANT_TO_DKK = 100
+
+const DISPUTE_REASON_OPTIONS = [
+  "Nu am primit plata",
+  "Suma nu corespunde",
+  "Dovada este neclară",
+  "Plata a fost trimisă către alt număr",
+  "Alt motiv",
+]
 
 function formatTalanti(value: number) {
   return Number(value || 0).toFixed(2)
@@ -100,7 +111,11 @@ function displayProfile(profile: ProfileLite | null, fallback: string) {
   return profile?.alias?.trim() || profile?.name?.trim() || profile?.email?.split("@")[0] || fallback
 }
 
-function displayMerchant(profile: MerchantProfileLite | null, userProfile: ProfileLite | null, fallback: string) {
+function displayMerchant(
+  profile: MerchantProfileLite | null,
+  userProfile: ProfileLite | null,
+  fallback: string
+) {
   return profile?.display_name?.trim() || profile?.business_name?.trim() || displayProfile(userProfile, fallback)
 }
 
@@ -136,6 +151,14 @@ function proofBadgeClass() {
   return "bg-violet-100 text-violet-900 hover:bg-violet-100"
 }
 
+function getDisputeActorLabel(order: MerchantOrder, currentUserId: string | null) {
+  if (!order.external_payment_disputed_by) return "Necunoscut"
+  if (order.external_payment_disputed_by === order.buyer_user_id) return "Cumpărător"
+  if (order.external_payment_disputed_by === order.merchant_user_id) return "Merchant"
+  if (currentUserId && order.external_payment_disputed_by === currentUserId) return "Tu"
+  return "Membru"
+}
+
 export default function OrdersPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -147,6 +170,8 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState<OrderFilter>("all")
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null)
   const [selectedProofFiles, setSelectedProofFiles] = useState<Record<string, File | null>>({})
+  const [disputeDrafts, setDisputeDrafts] = useState<Record<string, string>>({})
+  const [disputeComposerOpen, setDisputeComposerOpen] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     async function loadOrders() {
@@ -166,7 +191,9 @@ export default function OrdersPage() {
 
       const { data, error } = await supabase
         .from("merchant_orders")
-        .select("id, market_post_id, merchant_user_id, buyer_user_id, title, quantity, unit_price_talanti, total_talanti, notes, delivery_needed, status, payment_status, external_payment_method, external_payment_status, external_payment_sent_at, external_payment_confirmed_at, external_payment_proof_path, external_payment_proof_uploaded_at, external_payment_proof_uploaded_by, delivery_request_id, created_at, updated_at")
+        .select(
+          "id, market_post_id, merchant_user_id, buyer_user_id, title, quantity, unit_price_talanti, total_talanti, notes, delivery_needed, status, payment_status, external_payment_method, external_payment_status, external_payment_sent_at, external_payment_confirmed_at, external_payment_proof_path, external_payment_proof_uploaded_at, external_payment_proof_uploaded_by, external_payment_dispute_reason, external_payment_disputed_at, external_payment_disputed_by, delivery_request_id, created_at, updated_at"
+        )
         .order("created_at", { ascending: false })
 
       if (error) {
@@ -182,9 +209,7 @@ export default function OrdersPage() {
       const userIds = Array.from(
         new Set(loadedOrders.flatMap((item) => [item.buyer_user_id, item.merchant_user_id]).filter(Boolean))
       )
-      const merchantUserIds = Array.from(
-        new Set(loadedOrders.map((item) => item.merchant_user_id).filter(Boolean))
-      )
+      const merchantUserIds = Array.from(new Set(loadedOrders.map((item) => item.merchant_user_id).filter(Boolean)))
 
       if (!userIds.length) {
         setProfilesMap({})
@@ -311,7 +336,8 @@ export default function OrdersPage() {
 
   async function handleExternalPaymentChange(
     order: MerchantOrder,
-    nextExternalPaymentStatus: ExternalPaymentStatus
+    nextExternalPaymentStatus: ExternalPaymentStatus,
+    disputeReason?: string
   ) {
     setBusyOrderId(order.id)
     setMessage("")
@@ -333,7 +359,11 @@ export default function OrdersPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ orderId: order.id, nextExternalPaymentStatus }),
+        body: JSON.stringify({
+          orderId: order.id,
+          nextExternalPaymentStatus,
+          disputeReason: disputeReason?.trim() || undefined,
+        }),
       })
 
       const result = await response.json().catch(() => null)
@@ -359,6 +389,18 @@ export default function OrdersPage() {
                   nextExternalPaymentStatus === "confirmed"
                     ? new Date().toISOString()
                     : item.external_payment_confirmed_at,
+                external_payment_dispute_reason:
+                  nextExternalPaymentStatus === "disputed"
+                    ? result?.disputeReason || disputeReason || item.external_payment_dispute_reason
+                    : item.external_payment_dispute_reason,
+                external_payment_disputed_at:
+                  nextExternalPaymentStatus === "disputed"
+                    ? result?.disputedAt || new Date().toISOString()
+                    : item.external_payment_disputed_at,
+                external_payment_disputed_by:
+                  nextExternalPaymentStatus === "disputed"
+                    ? result?.disputedBy || currentUserId
+                    : item.external_payment_disputed_by,
                 updated_at: new Date().toISOString(),
               }
             : item
@@ -370,7 +412,9 @@ export default function OrdersPage() {
       } else if (nextExternalPaymentStatus === "confirmed") {
         setMessage("Merchantul a confirmat plata externă. Comanda poate avansa acum în fluxul normal.")
       } else if (nextExternalPaymentStatus === "disputed") {
-        setMessage("Comanda a fost marcată în dispută pentru plata externă.")
+        setMessage("Comanda a fost marcată în dispută și fluxul rămâne blocat până la clarificare.")
+        setDisputeComposerOpen((prev) => ({ ...prev, [order.id]: false }))
+        setDisputeDrafts((prev) => ({ ...prev, [order.id]: "" }))
       }
 
       setBusyOrderId(null)
@@ -379,6 +423,17 @@ export default function OrdersPage() {
       setMessage(error?.message || "Statusul plății externe nu a putut fi actualizat.")
       setBusyOrderId(null)
     }
+  }
+
+  async function handleOpenDispute(order: MerchantOrder) {
+    const reason = (disputeDrafts[order.id] || "").trim()
+
+    if (!reason) {
+      setMessage("Completează motivul disputei înainte să continui.")
+      return
+    }
+
+    await handleExternalPaymentChange(order, "disputed", reason)
   }
 
   async function handleCopyMobilePay(phone: string) {
@@ -630,6 +685,8 @@ export default function OrdersPage() {
                     order.external_payment_status === "disputed")
 
                 const selectedProofFile = selectedProofFiles[order.id] || null
+                const disputeValue = disputeDrafts[order.id] || ""
+                const disputeOpen = Boolean(disputeComposerOpen[order.id])
 
                 return (
                   <div key={order.id} className="rounded-2xl border p-4">
@@ -734,6 +791,27 @@ export default function OrdersPage() {
                             {new Date(order.external_payment_proof_uploaded_at).toLocaleString("ro-RO")}
                           </span>
                         </p>
+                      ) : null}
+                      {order.external_payment_disputed_at ? (
+                        <p className="mt-1">
+                          Dispută deschisă la:{" "}
+                          <span className="font-medium text-slate-900">
+                            {new Date(order.external_payment_disputed_at).toLocaleString("ro-RO")}
+                          </span>
+                        </p>
+                      ) : null}
+                      {order.external_payment_disputed_by ? (
+                        <p className="mt-1">
+                          Dispută deschisă de:{" "}
+                          <span className="font-medium text-slate-900">
+                            {getDisputeActorLabel(order, currentUserId)}
+                          </span>
+                        </p>
+                      ) : null}
+                      {order.external_payment_dispute_reason ? (
+                        <div className="mt-3 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-900">
+                          <span className="font-semibold">Motiv dispută:</span> {order.external_payment_dispute_reason}
+                        </div>
                       ) : null}
                       {proofIsAvailable ? (
                         <div className="mt-3">
@@ -846,7 +924,9 @@ export default function OrdersPage() {
                         <p className="mt-1">
                           {order.external_payment_status === "confirmed"
                             ? "Plata MobilePay a fost confirmată. Comanda poate continua în fluxul normal."
-                            : "Comanda nu poate avansa în fluxul normal până când plata MobilePay nu este confirmată de comerciant."}
+                            : order.external_payment_status === "disputed"
+                              ? "Plata externă este în dispută. Comanda rămâne blocată până la clarificare."
+                              : "Comanda nu poate avansa în fluxul normal până când plata MobilePay nu este confirmată de comerciant."}
                         </p>
 
                         {proofIsAvailable ? (
@@ -864,6 +944,51 @@ export default function OrdersPage() {
                           </div>
                         ) : null}
 
+                        {canOpenDispute && !order.external_payment_dispute_reason ? (
+                          <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50/80 p-3">
+                            <p className="text-sm font-medium text-orange-900">Deschide dispută</p>
+                            <p className="mt-1 text-xs text-orange-800">
+                              Alege sau scrie motivul clar pentru care blochezi plata externă.
+                            </p>
+
+                            <select
+                              value={DISPUTE_REASON_OPTIONS.includes(disputeValue) ? disputeValue : ""}
+                              onChange={(e) => {
+                                const value = e.target.value
+                                setDisputeDrafts((prev) => ({ ...prev, [order.id]: value }))
+                              }}
+                              className="mt-3 w-full rounded-xl border border-orange-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none"
+                            >
+                              <option value="">Alege un motiv presetat</option>
+                              {DISPUTE_REASON_OPTIONS.map((reason) => (
+                                <option key={reason} value={reason}>
+                                  {reason}
+                                </option>
+                              ))}
+                            </select>
+
+                            <textarea
+                              value={disputeValue}
+                              onChange={(e) => setDisputeDrafts((prev) => ({ ...prev, [order.id]: e.target.value }))}
+                              placeholder="Scrie motivul disputei..."
+                              rows={3}
+                              className="mt-3 w-full rounded-xl border border-orange-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none"
+                            />
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="rounded-2xl"
+                                disabled={busyOrderId === order.id || !disputeValue.trim()}
+                                onClick={() => handleOpenDispute(order)}
+                              >
+                                {busyOrderId === order.id ? "Se actualizează..." : "Confirmă disputa"}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
+
                         <div className="mt-3 flex flex-wrap gap-2">
                           {canMerchantConfirm ? (
                             <Button
@@ -875,18 +1000,94 @@ export default function OrdersPage() {
                               {busyOrderId === order.id ? "Se actualizează..." : "Confirm plata MobilePay"}
                             </Button>
                           ) : null}
-                          {canOpenDispute && order.external_payment_status !== "disputed" ? (
+                          {canOpenDispute && !order.external_payment_dispute_reason ? (
                             <Button
                               type="button"
                               variant="outline"
                               className="rounded-2xl"
                               disabled={busyOrderId === order.id}
-                              onClick={() => handleExternalPaymentChange(order, "disputed")}
+                              onClick={() =>
+                                setDisputeComposerOpen((prev) => ({ ...prev, [order.id]: !prev[order.id] }))
+                              }
                             >
-                              Marchează dispută
+                              {disputeOpen ? "Ascunde disputa" : "Marchează dispută"}
                             </Button>
                           ) : null}
                         </div>
+                      </div>
+                    ) : null}
+
+                    {isBuyer && canOpenDispute && !order.external_payment_dispute_reason ? (
+                      <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50/80 p-4 text-sm text-slate-700">
+                        <p className="font-medium text-orange-900">Deschide dispută</p>
+                        <p className="mt-1 text-xs text-orange-800">
+                          Folosește disputa doar dacă plata externă sau confirmarea nu corespund.
+                        </p>
+
+                        {disputeOpen ? (
+                          <>
+                            <select
+                              value={DISPUTE_REASON_OPTIONS.includes(disputeValue) ? disputeValue : ""}
+                              onChange={(e) => {
+                                const value = e.target.value
+                                setDisputeDrafts((prev) => ({ ...prev, [order.id]: value }))
+                              }}
+                              className="mt-3 w-full rounded-xl border border-orange-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none"
+                            >
+                              <option value="">Alege un motiv presetat</option>
+                              {DISPUTE_REASON_OPTIONS.map((reason) => (
+                                <option key={reason} value={reason}>
+                                  {reason}
+                                </option>
+                              ))}
+                            </select>
+
+                            <textarea
+                              value={disputeValue}
+                              onChange={(e) => setDisputeDrafts((prev) => ({ ...prev, [order.id]: e.target.value }))}
+                              placeholder="Scrie motivul disputei..."
+                              rows={3}
+                              className="mt-3 w-full rounded-xl border border-orange-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none"
+                            />
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="rounded-2xl"
+                                disabled={busyOrderId === order.id || !disputeValue.trim()}
+                                onClick={() => handleOpenDispute(order)}
+                              >
+                                {busyOrderId === order.id ? "Se actualizează..." : "Confirmă disputa"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="rounded-2xl"
+                                disabled={busyOrderId === order.id}
+                                onClick={() =>
+                                  setDisputeComposerOpen((prev) => ({ ...prev, [order.id]: false }))
+                                }
+                              >
+                                Renunță
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="mt-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="rounded-2xl"
+                              disabled={busyOrderId === order.id}
+                              onClick={() =>
+                                setDisputeComposerOpen((prev) => ({ ...prev, [order.id]: true }))
+                              }
+                            >
+                              Marchează dispută
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ) : null}
 

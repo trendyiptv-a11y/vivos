@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { ChangeEvent, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,6 +25,9 @@ type MerchantOrder = {
   external_payment_status: "pending" | "sent" | "confirmed" | "disputed" | "cancelled"
   external_payment_sent_at: string | null
   external_payment_confirmed_at: string | null
+  external_payment_proof_path: string | null
+  external_payment_proof_uploaded_at: string | null
+  external_payment_proof_uploaded_by: string | null
   delivery_request_id: string | null
   created_at: string
   updated_at: string
@@ -140,6 +143,7 @@ export default function OrdersPage() {
   const [merchantProfilesMap, setMerchantProfilesMap] = useState<Record<string, MerchantProfileLite>>({})
   const [filter, setFilter] = useState<OrderFilter>("all")
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null)
+  const [selectedProofFiles, setSelectedProofFiles] = useState<Record<string, File | null>>({})
 
   useEffect(() => {
     async function loadOrders() {
@@ -159,7 +163,7 @@ export default function OrdersPage() {
 
       const { data, error } = await supabase
         .from("merchant_orders")
-        .select("id, market_post_id, merchant_user_id, buyer_user_id, title, quantity, unit_price_talanti, total_talanti, notes, delivery_needed, status, payment_status, external_payment_method, external_payment_status, external_payment_sent_at, external_payment_confirmed_at, delivery_request_id, created_at, updated_at")
+        .select("id, market_post_id, merchant_user_id, buyer_user_id, title, quantity, unit_price_talanti, total_talanti, notes, delivery_needed, status, payment_status, external_payment_method, external_payment_status, external_payment_sent_at, external_payment_confirmed_at, external_payment_proof_path, external_payment_proof_uploaded_at, external_payment_proof_uploaded_by, delivery_request_id, created_at, updated_at")
         .order("created_at", { ascending: false })
 
       if (error) {
@@ -356,6 +360,114 @@ export default function OrdersPage() {
     }
   }
 
+  function handleProofFileChange(orderId: string, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] || null
+    setSelectedProofFiles((prev) => ({ ...prev, [orderId]: file }))
+  }
+
+  async function handleUploadProof(order: MerchantOrder) {
+    const selectedFile = selectedProofFiles[order.id]
+    if (!selectedFile) {
+      setMessage("Selectează mai întâi un screenshot pentru dovadă.")
+      return
+    }
+
+    setBusyOrderId(order.id)
+    setMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        setMessage("Sesiunea nu este validă. Reautentifică-te.")
+        setBusyOrderId(null)
+        return
+      }
+
+      const formData = new FormData()
+      formData.append("orderId", order.id)
+      formData.append("file", selectedFile)
+
+      const response = await fetch("/api/orders/upload-external-payment-proof", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        setMessage(result?.error || "Dovada nu a putut fi încărcată.")
+        setBusyOrderId(null)
+        return
+      }
+
+      setOrders((prev) =>
+        prev.map((item) =>
+          item.id === order.id
+            ? {
+                ...item,
+                external_payment_proof_path: result?.proofPath || item.external_payment_proof_path,
+                external_payment_proof_uploaded_at: new Date().toISOString(),
+                external_payment_proof_uploaded_by: currentUserId,
+                updated_at: new Date().toISOString(),
+              }
+            : item
+        )
+      )
+      setSelectedProofFiles((prev) => ({ ...prev, [order.id]: null }))
+      setMessage("Dovada plății externe a fost încărcată. Merchantul o poate verifica acum.")
+      setBusyOrderId(null)
+    } catch (error: any) {
+      console.error("Upload proof error:", error)
+      setMessage(error?.message || "Dovada nu a putut fi încărcată.")
+      setBusyOrderId(null)
+    }
+  }
+
+  async function handleViewProof(orderId: string) {
+    setBusyOrderId(orderId)
+    setMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        setMessage("Sesiunea nu este validă. Reautentifică-te.")
+        setBusyOrderId(null)
+        return
+      }
+
+      const response = await fetch(`/api/orders/get-external-payment-proof-url?orderId=${encodeURIComponent(orderId)}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.signedUrl) {
+        setMessage(result?.error || "Dovada nu a putut fi deschisă.")
+        setBusyOrderId(null)
+        return
+      }
+
+      window.open(result.signedUrl, "_blank", "noopener,noreferrer")
+      setBusyOrderId(null)
+    } catch (error: any) {
+      console.error("View proof error:", error)
+      setMessage(error?.message || "Dovada nu a putut fi deschisă.")
+      setBusyOrderId(null)
+    }
+  }
+
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       if (!currentUserId) return false
@@ -412,6 +524,9 @@ export default function OrdersPage() {
                 const canBuyerMarkSent = isBuyer && order.external_payment_status === "pending" && !!mobilePayPhone && order.status !== "cancelled" && order.status !== "completed"
                 const canMerchantConfirm = !isBuyer && order.external_payment_status === "sent" && order.status !== "cancelled" && order.status !== "completed"
                 const canOpenDispute = order.external_payment_status === "sent" || order.external_payment_status === "confirmed"
+                const proofIsAvailable = Boolean(order.external_payment_proof_path)
+                const canBuyerUploadProof = isBuyer && order.status !== "cancelled" && order.status !== "completed" && (order.external_payment_status === "sent" || order.external_payment_status === "confirmed" || order.external_payment_status === "disputed")
+                const selectedProofFile = selectedProofFiles[order.id] || null
 
                 return (
                   <div key={order.id} className="rounded-2xl border p-4">
@@ -443,6 +558,14 @@ export default function OrdersPage() {
                       <p className="mt-1">Metodă externă: <span className="font-medium text-slate-900">{order.external_payment_method?.toUpperCase() || "—"}</span></p>
                       {order.external_payment_sent_at ? <p className="mt-1">Plată marcată ca trimisă la: <span className="font-medium text-slate-900">{new Date(order.external_payment_sent_at).toLocaleString("ro-RO")}</span></p> : null}
                       {order.external_payment_confirmed_at ? <p className="mt-1">Plată confirmată la: <span className="font-medium text-slate-900">{new Date(order.external_payment_confirmed_at).toLocaleString("ro-RO")}</span></p> : null}
+                      {order.external_payment_proof_uploaded_at ? <p className="mt-1">Dovadă încărcată la: <span className="font-medium text-slate-900">{new Date(order.external_payment_proof_uploaded_at).toLocaleString("ro-RO")}</span></p> : null}
+                      {proofIsAvailable ? (
+                        <div className="mt-3">
+                          <Button type="button" variant="outline" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleViewProof(order.id)}>
+                            {busyOrderId === order.id ? "Se deschide..." : "Vezi dovada"}
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
 
                     {isBuyer && mobilePayPhone ? (
@@ -461,13 +584,37 @@ export default function OrdersPage() {
                             </Button>
                           ) : null}
                         </div>
+
+                        {canBuyerUploadProof ? (
+                          <div className="mt-4 rounded-2xl border border-sky-100 bg-white/70 p-3">
+                            <p className="text-sm font-medium text-slate-900">Încarcă dovada plății</p>
+                            <p className="mt-1 text-xs text-slate-500">Acceptat: JPG, PNG sau WEBP, maxim 5 MB. Merchantul va putea vedea imaginea prin link securizat.</p>
+                            <input type="file" accept="image/png,image/jpeg,image/webp" className="mt-3 block w-full text-sm" onChange={(event) => handleProofFileChange(order.id, event)} />
+                            {selectedProofFile ? <p className="mt-2 text-xs text-slate-600">Selectat: {selectedProofFile.name}</p> : null}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <Button type="button" className="rounded-2xl" disabled={busyOrderId === order.id || !selectedProofFile} onClick={() => handleUploadProof(order)}>
+                                {busyOrderId === order.id ? "Se încarcă..." : proofIsAvailable ? "Înlocuiește dovada" : "Încarcă dovada"}
+                              </Button>
+                              {proofIsAvailable ? (
+                                <Button type="button" variant="outline" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleViewProof(order.id)}>
+                                  Vezi dovada curentă
+                                </Button>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
 
                     {!isBuyer ? (
                       <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-slate-700">
                         <p className="font-medium text-slate-900">Control plată externă merchant</p>
-                        <p className="mt-1">Comanda nu poate avansa în fluxul normal până când plata MobilePay nu este confirmată de comerciant.</p>
+                        <p className="mt-1">
+                          {order.external_payment_status === "confirmed"
+                            ? "Plata MobilePay a fost confirmată. Comanda poate continua în fluxul normal."
+                            : "Comanda nu poate avansa în fluxul normal până când plata MobilePay nu este confirmată de comerciant."}
+                        </p>
+                        {proofIsAvailable ? <p className="mt-2 text-xs text-slate-500">Există o dovadă încărcată de cumpărător. O poți deschide din cardul de detalii.</p> : null}
                         <div className="mt-3 flex flex-wrap gap-2">
                           {canMerchantConfirm ? (
                             <Button type="button" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleExternalPaymentChange(order, "confirmed")}>

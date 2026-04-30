@@ -27,6 +27,7 @@ type OrderRow = {
   total_talanti: number
   status: ValidStatus
   payment_status: "unpaid" | "held" | "paid" | "refunded" | "cancelled"
+  external_payment_status: "pending" | "sent" | "confirmed" | "disputed" | "cancelled"
 }
 
 function getServerSupabase() {
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
 
     const { data: order, error: orderError } = await supabase
       .from("merchant_orders")
-      .select("id, buyer_user_id, merchant_user_id, title, total_talanti, status, payment_status")
+      .select("id, buyer_user_id, merchant_user_id, title, total_talanti, status, payment_status, external_payment_status")
       .eq("id", orderId)
       .single()
 
@@ -91,6 +92,17 @@ export async function POST(request: Request) {
 
     if (actorId !== currentOrder.buyer_user_id && actorId !== currentOrder.merchant_user_id) {
       return NextResponse.json({ error: "Nu ai acces la această comandă." }, { status: 403 })
+    }
+
+    if (
+      nextStatus !== "cancelled" &&
+      currentOrder.external_payment_status !== "confirmed" &&
+      currentOrder.payment_status === "held"
+    ) {
+      return NextResponse.json(
+        { error: "Comanda nu poate avansa până când plata externă MobilePay nu este confirmată." },
+        { status: 400 }
+      )
     }
 
     let nextPaymentStatus = currentOrder.payment_status
@@ -207,20 +219,31 @@ export async function POST(request: Request) {
       nextPaymentStatus = "cancelled"
     }
 
+    const orderPatch: Record<string, string> = {
+      status: nextStatus,
+      payment_status: nextPaymentStatus,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (nextStatus === "cancelled") {
+      orderPatch.external_payment_status = "cancelled"
+    }
+
     const { error: updateOrderError } = await supabase
       .from("merchant_orders")
-      .update({
-        status: nextStatus,
-        payment_status: nextPaymentStatus,
-        updated_at: new Date().toISOString(),
-      })
+      .update(orderPatch)
       .eq("id", orderId)
 
     if (updateOrderError) {
       return NextResponse.json({ error: updateOrderError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true, status: nextStatus, paymentStatus: nextPaymentStatus })
+    return NextResponse.json({
+      ok: true,
+      status: nextStatus,
+      paymentStatus: nextPaymentStatus,
+      externalPaymentStatus: nextStatus === "cancelled" ? "cancelled" : currentOrder.external_payment_status,
+    })
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Eroare internă la actualizarea statusului." },

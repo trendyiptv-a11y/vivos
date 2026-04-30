@@ -94,6 +94,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nu poți încărca dovadă pentru o comandă închisă." }, { status: 400 })
     }
 
+    if (currentOrder.external_payment_status === "confirmed") {
+      return NextResponse.json({ error: "Dovada nu mai poate fi modificată după confirmarea plății MobilePay." }, { status: 400 })
+    }
+
     const fileBuffer = Buffer.from(await file.arrayBuffer())
     const extension = file.name.split(".").pop()?.toLowerCase() || (file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg")
     const safeName = sanitizeFileName(file.name || `proof.${extension}`)

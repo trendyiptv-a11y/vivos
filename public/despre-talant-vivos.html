@@ -24,6 +24,44 @@
       gap: 12px;
     }
 
+    /* LANG SWITCHER */
+    .lang-bar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: rgba(207,224,238,0.96);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .lang-brand {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0d1f38;
+      letter-spacing: -0.01em;
+    }
+    .lang-btns { display: flex; gap: 6px; }
+    .lang-btn {
+      padding: 5px 13px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: transparent;
+      color: #6a85a8;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    .lang-btn:hover { background: rgba(255,255,255,0.6); color: #0d1f38; }
+    .lang-btn.active { background: #2060c8; color: #fff; border-color: #2060c8; }
+
     /* HERO */
     .hero {
       background: linear-gradient(160deg, #2060c8 0%, #1a4fa8 55%, #163e8a 100%);
@@ -209,6 +247,12 @@
     .mobile-nav a:active, .mobile-nav a.active { color: #2060c8; }
     .mobile-nav svg { width: 20px; height: 20px; }
 
+    /* i18n */
+    [data-lang] { display: none; }
+    [data-lang].visible { display: block; }
+    [data-lang-inline] { display: none; }
+    [data-lang-inline].visible { display: inline; }
+
     @media (max-width: 400px) {
       .principles { grid-template-columns: 1fr; }
       .hero { padding: 22px 16px 20px; }
@@ -217,208 +261,452 @@
   </style>
 </head>
 <body>
+
+  <div class="lang-bar">
+    <span class="lang-brand">VIVOS</span>
+    <div class="lang-btns">
+      <button class="lang-btn" data-target="ro" onclick="setLang('ro')">RO</button>
+      <button class="lang-btn" data-target="da" onclick="setLang('da')">DA</button>
+      <button class="lang-btn" data-target="en" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+
   <main class="wrap">
 
     <section class="hero">
-      <div class="hero-label">Despre · VIVOS</div>
-      <h1>Talantul VIVOS</h1>
-      <p>Talantul este unitatea internă de valoare a comunității VIVOS — nu o monedă speculativă, ci expresia coerentă a contribuției umane, a utilității reale și a schimbului viu dintre membri.</p>
-      <div class="formula-bar">1 talant = 15 min contribuție standard</div>
+      <div class="hero-label">
+        <span data-lang-inline="ro">Despre · VIVOS</span>
+        <span data-lang-inline="da">Om · VIVOS</span>
+        <span data-lang-inline="en">About · VIVOS</span>
+      </div>
+      <h1>
+        <span data-lang="ro">Talantul VIVOS</span>
+        <span data-lang="da">VIVOS-talanten</span>
+        <span data-lang="en">The VIVOS Talant</span>
+      </h1>
+      <p>
+        <span data-lang="ro">Talantul este unitatea internă de valoare a comunității VIVOS — nu o monedă speculativă, ci expresia coerentă a contribuției umane, a utilității reale și a schimbului viu dintre membri.</span>
+        <span data-lang="da">Talanten er VIVOS-fællesskabets interne værdienhed — ikke en spekulativ valuta, men det kohærente udtryk for menneskelig bidrag, reel nytte og levende udveksling mellem medlemmer.</span>
+        <span data-lang="en">The talant is the internal unit of value of the VIVOS community — not a speculative currency, but the coherent expression of human contribution, real utility, and living exchange between members.</span>
+      </p>
+      <div class="formula-bar">
+        <span data-lang-inline="ro">1 talant = 15 min contribuție standard</span>
+        <span data-lang-inline="da">1 talant = 15 min standardbidrag</span>
+        <span data-lang-inline="en">1 talant = 15 min standard contribution</span>
+      </div>
     </section>
 
     <article class="card">
-      <div class="card-label">Definiție</div>
-      <h2>Ce este talantul</h2>
-      <p>Talantul este o <strong>unitate comunitară de măsură a valorii</strong>. El există pentru a exprima:</p>
+      <div class="card-label">
+        <span data-lang-inline="ro">Definiție</span>
+        <span data-lang-inline="da">Definition</span>
+        <span data-lang-inline="en">Definition</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Ce este talantul</span>
+        <span data-lang="da">Hvad er talanten</span>
+        <span data-lang="en">What is the talant</span>
+      </h2>
+      <p>
+        <span data-lang="ro">Talantul este o <strong>unitate comunitară de măsură a valorii</strong>. El există pentru a exprima:</span>
+        <span data-lang="da">Talanten er en <strong>fællesskabsenhed til måling af værdi</strong>. Den eksisterer for at udtrykke:</span>
+        <span data-lang="en">The talant is a <strong>community unit of value measurement</strong>. It exists to express:</span>
+      </p>
       <ul>
-        <li>contribuția umană</li>
-        <li>utilitatea reală</li>
-        <li>timpul oferit comunității</li>
-        <li>sprijinul mutual</li>
-        <li>schimbul viu dintre membri</li>
+        <li><span data-lang-inline="ro">contribuția umană</span><span data-lang-inline="da">menneskelige bidrag</span><span data-lang-inline="en">human contribution</span></li>
+        <li><span data-lang-inline="ro">utilitatea reală</span><span data-lang-inline="da">reel nytte</span><span data-lang-inline="en">real utility</span></li>
+        <li><span data-lang-inline="ro">timpul oferit comunității</span><span data-lang-inline="da">tid givet til fællesskabet</span><span data-lang-inline="en">time given to the community</span></li>
+        <li><span data-lang-inline="ro">sprijinul mutual</span><span data-lang-inline="da">gensidig støtte</span><span data-lang-inline="en">mutual support</span></li>
+        <li><span data-lang-inline="ro">schimbul viu dintre membri</span><span data-lang-inline="da">levende udveksling mellem medlemmer</span><span data-lang-inline="en">living exchange between members</span></li>
       </ul>
-      <div class="highlight">Talantul nu este scopul. El este instrumentul prin care comunitatea recunoaște, circulă și păstrează valoarea reală.</div>
-    </article>
-
-    <article class="card">
-      <div class="card-label">Formula de lansare</div>
-      <h2>Repere de timp</h2>
-      <div class="list">
-        <div class="list-item"><strong>1 talant</strong><p class="muted">≈ 15 minute de contribuție standard</p></div>
-        <div class="list-item"><strong>4 talanți</strong><p class="muted">≈ 1 oră de contribuție standard</p></div>
-        <div class="list-item"><strong>8 talanți</strong><p class="muted">≈ 2 ore de contribuție standard</p></div>
-        <div class="list-item"><strong>16 talanți</strong><p class="muted">≈ 4 ore de contribuție standard</p></div>
+      <div class="highlight">
+        <span data-lang="ro">Talantul nu este scopul. El este instrumentul prin care comunitatea recunoaște, circulă și păstrează valoarea reală.</span>
+        <span data-lang="da">Talanten er ikke målet. Den er det instrument, hvorigennem fællesskabet anerkender, cirkulerer og bevarer reel værdi.</span>
+        <span data-lang="en">The talant is not the goal. It is the instrument through which the community recognises, circulates, and preserves real value.</span>
       </div>
     </article>
 
     <article class="card">
-      <div class="card-label">Logica valorii</div>
-      <h2>Cum se calculează</h2>
-      <p>Valoarea nu pornește de la bancă, ci de la aportul real al omului în comunitate.</p>
-      <div class="list">
-        <div class="list-item"><span class="pill">Timp</span><p class="muted">Cât timp real a fost oferit.</p></div>
-        <div class="list-item"><span class="pill">Utilitate</span><p class="muted">Cât de folositoare este contribuția pentru o nevoie concretă.</p></div>
-        <div class="list-item"><span class="pill">Dificultate</span><p class="muted">Câtă pricepere, efort sau responsabilitate cere activitatea.</p></div>
-        <div class="list-item"><span class="pill">Impact comunitar</span><p class="muted">Ce efect real produce în relațiile și echilibrul comunității.</p></div>
+      <div class="card-label">
+        <span data-lang-inline="ro">Formula de lansare</span>
+        <span data-lang-inline="da">Startformel</span>
+        <span data-lang-inline="en">Launch formula</span>
       </div>
-      <div class="success-box">Valoarea în talanți = timp + utilitate + dificultate + impact comunitar.</div>
+      <h2>
+        <span data-lang="ro">Repere de timp</span>
+        <span data-lang="da">Tidsreferencer</span>
+        <span data-lang="en">Time references</span>
+      </h2>
+      <div class="list">
+        <div class="list-item"><strong>1 <span data-lang-inline="ro">talant</span><span data-lang-inline="da">talant</span><span data-lang-inline="en">talant</span></strong><p class="muted">≈ 15 <span data-lang-inline="ro">minute de contribuție standard</span><span data-lang-inline="da">minutters standardbidrag</span><span data-lang-inline="en">minutes of standard contribution</span></p></div>
+        <div class="list-item"><strong>4 <span data-lang-inline="ro">talanți</span><span data-lang-inline="da">talanti</span><span data-lang-inline="en">talanti</span></strong><p class="muted">≈ 1 <span data-lang-inline="ro">oră de contribuție standard</span><span data-lang-inline="da">times standardbidrag</span><span data-lang-inline="en">hour of standard contribution</span></p></div>
+        <div class="list-item"><strong>8 <span data-lang-inline="ro">talanți</span><span data-lang-inline="da">talanti</span><span data-lang-inline="en">talanti</span></strong><p class="muted">≈ 2 <span data-lang-inline="ro">ore de contribuție standard</span><span data-lang-inline="da">timers standardbidrag</span><span data-lang-inline="en">hours of standard contribution</span></p></div>
+        <div class="list-item"><strong>16 <span data-lang-inline="ro">talanți</span><span data-lang-inline="da">talanti</span><span data-lang-inline="en">talanti</span></strong><p class="muted">≈ 4 <span data-lang-inline="ro">ore de contribuție standard</span><span data-lang-inline="da">timers standardbidrag</span><span data-lang-inline="en">hours of standard contribution</span></p></div>
+      </div>
     </article>
 
     <article class="card">
-      <div class="card-label">Principiu</div>
-      <h2>De ce nu e legat rigid de bani</h2>
-      <p>VIVOS nu reduce valoarea exclusiv la monedă fiat. Talantul nu are un echivalent bancar fix în DKK, EUR sau RON.</p>
-      <div class="quote">Talantul rămâne o unitate comunitară de valoare. Banii pot fi folosiți doar ca reper orientativ local, nu ca definiție a lui.</div>
-      <p><strong>1 talant rămâne 1 talant.</strong> Doar ancora locală de orientare poate varia.</p>
+      <div class="card-label">
+        <span data-lang-inline="ro">Logica valorii</span>
+        <span data-lang-inline="da">Værdiens logik</span>
+        <span data-lang-inline="en">Value logic</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Cum se calculează</span>
+        <span data-lang="da">Hvordan beregnes det</span>
+        <span data-lang="en">How it is calculated</span>
+      </h2>
+      <p>
+        <span data-lang="ro">Valoarea nu pornește de la bancă, ci de la aportul real al omului în comunitate.</span>
+        <span data-lang="da">Værdien starter ikke fra banken, men fra menneskets reelle bidrag til fællesskabet.</span>
+        <span data-lang="en">Value does not start from the bank, but from the person's real contribution to the community.</span>
+      </p>
+      <div class="list">
+        <div class="list-item"><span class="pill"><span data-lang-inline="ro">Timp</span><span data-lang-inline="da">Tid</span><span data-lang-inline="en">Time</span></span><p class="muted"><span data-lang="ro">Cât timp real a fost oferit.</span><span data-lang="da">Hvor meget reel tid der blev givet.</span><span data-lang="en">How much real time was given.</span></p></div>
+        <div class="list-item"><span class="pill"><span data-lang-inline="ro">Utilitate</span><span data-lang-inline="da">Nytte</span><span data-lang-inline="en">Utility</span></span><p class="muted"><span data-lang="ro">Cât de folositoare este contribuția pentru o nevoie concretă.</span><span data-lang="da">Hvor nyttigt bidraget er for et konkret behov.</span><span data-lang="en">How useful the contribution is for a concrete need.</span></p></div>
+        <div class="list-item"><span class="pill"><span data-lang-inline="ro">Dificultate</span><span data-lang-inline="da">Sværhedsgrad</span><span data-lang-inline="en">Difficulty</span></span><p class="muted"><span data-lang="ro">Câtă pricepere, efort sau responsabilitate cere activitatea.</span><span data-lang="da">Hvor meget dygtighed, indsats eller ansvar aktiviteten kræver.</span><span data-lang="en">How much skill, effort, or responsibility the activity requires.</span></p></div>
+        <div class="list-item"><span class="pill"><span data-lang-inline="ro">Impact comunitar</span><span data-lang-inline="da">Fællesskabspåvirkning</span><span data-lang-inline="en">Community impact</span></span><p class="muted"><span data-lang="ro">Ce efect real produce în relațiile și echilibrul comunității.</span><span data-lang="da">Hvilken reel effekt det producerer i fællesskabets relationer og balance.</span><span data-lang="en">What real effect it produces in the community's relationships and balance.</span></p></div>
+      </div>
+      <div class="success-box">
+        <span data-lang="ro">Valoarea în talanți = timp + utilitate + dificultate + impact comunitar.</span>
+        <span data-lang="da">Værdien i talanti = tid + nytte + sværhedsgrad + fællesskabspåvirkning.</span>
+        <span data-lang="en">Value in talanti = time + utility + difficulty + community impact.</span>
+      </div>
     </article>
 
     <article class="card">
-      <div class="card-label">Ancore locale</div>
-      <h2>Repere de orientare</h2>
-      <p>Nu am întrebat „cât face 1 talant la schimb", ci <strong>ce greutate practică trebuie să aibă</strong> într-o comunitate reală.</p>
+      <div class="card-label">
+        <span data-lang-inline="ro">Principiu</span>
+        <span data-lang-inline="da">Princip</span>
+        <span data-lang-inline="en">Principle</span>
+      </div>
+      <h2>
+        <span data-lang="ro">De ce nu e legat rigid de bani</span>
+        <span data-lang="da">Hvorfor det ikke er stift knyttet til penge</span>
+        <span data-lang="en">Why it is not rigidly tied to money</span>
+      </h2>
+      <p>
+        <span data-lang="ro">VIVOS nu reduce valoarea exclusiv la monedă fiat. Talantul nu are un echivalent bancar fix în DKK, EUR sau RON.</span>
+        <span data-lang="da">VIVOS reducerer ikke værdi udelukkende til fiatvaluta. Talanten har ikke en fast bankækvivalent i DKK, EUR eller RON.</span>
+        <span data-lang="en">VIVOS does not reduce value exclusively to fiat currency. The talant does not have a fixed bank equivalent in DKK, EUR, or RON.</span>
+      </p>
+      <div class="quote">
+        <span data-lang="ro">Talantul rămâne o unitate comunitară de valoare. Banii pot fi folosiți doar ca reper orientativ local, nu ca definiție a lui.</span>
+        <span data-lang="da">Talanten forbliver en fællesskabsenhed af værdi. Penge kan kun bruges som lokal referencepunkt, ikke som dens definition.</span>
+        <span data-lang="en">The talant remains a community unit of value. Money can only be used as a local reference point, not as its definition.</span>
+      </div>
+      <p>
+        <span data-lang="ro"><strong>1 talant rămâne 1 talant.</strong> Doar ancora locală de orientare poate varia.</span>
+        <span data-lang="da"><strong>1 talant forbliver 1 talant.</strong> Kun det lokale referencepunkt kan variere.</span>
+        <span data-lang="en"><strong>1 talant remains 1 talant.</strong> Only the local orientation anchor can vary.</span>
+      </p>
+    </article>
+
+    <article class="card">
+      <div class="card-label">
+        <span data-lang-inline="ro">Ancore locale</span>
+        <span data-lang-inline="da">Lokale ankre</span>
+        <span data-lang-inline="en">Local anchors</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Repere de orientare</span>
+        <span data-lang="da">Orienteringsreferencer</span>
+        <span data-lang="en">Orientation references</span>
+      </h2>
+      <p>
+        <span data-lang="ro">Nu am întrebat „cât face 1 talant la schimb", ci <strong>ce greutate practică trebuie să aibă</strong> într-o comunitate reală.</span>
+        <span data-lang="da">Vi spurgte ikke "hvad er 1 talant værd i bytte", men <strong>hvilken praktisk vægt den skal have</strong> i et virkeligt fællesskab.</span>
+        <span data-lang="en">We did not ask "what is 1 talant worth in exchange", but <strong>what practical weight it should have</strong> in a real community.</span>
+      </p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Țară</th><th>Ancoră</th><th>Logică</th></tr></thead>
+          <thead><tr>
+            <th><span data-lang-inline="ro">Țară</span><span data-lang-inline="da">Land</span><span data-lang-inline="en">Country</span></th>
+            <th><span data-lang-inline="ro">Ancoră</span><span data-lang-inline="da">Anker</span><span data-lang-inline="en">Anchor</span></th>
+            <th><span data-lang-inline="ro">Logică</span><span data-lang-inline="da">Logik</span><span data-lang-inline="en">Logic</span></th>
+          </tr></thead>
           <tbody>
-            <tr><td><strong>România</strong></td><td><strong>≈ 30 lei</strong></td><td>Valoare medie, realistă pentru schimburi mici și servicii de bază.</td></tr>
-            <tr><td><strong>Danemarca</strong></td><td><strong>≈ 100 DKK</strong></td><td>Cost de trai mai ridicat — ancora mai sus pentru aceeași greutate practică.</td></tr>
+            <tr>
+              <td><strong><span data-lang-inline="ro">România</span><span data-lang-inline="da">Rumænien</span><span data-lang-inline="en">Romania</span></strong></td>
+              <td><strong>≈ 30 lei</strong></td>
+              <td><span data-lang="ro">Valoare medie, realistă pentru schimburi mici și servicii de bază.</span><span data-lang="da">Gennemsnitlig, realistisk værdi for små udvekslinger og basistjenester.</span><span data-lang="en">Average, realistic value for small exchanges and basic services.</span></td>
+            </tr>
+            <tr>
+              <td><strong><span data-lang-inline="ro">Danemarca</span><span data-lang-inline="da">Danmark</span><span data-lang-inline="en">Denmark</span></strong></td>
+              <td><strong>≈ 100 DKK</strong></td>
+              <td><span data-lang="ro">Cost de trai mai ridicat — ancora mai sus pentru aceeași greutate practică.</span><span data-lang="da">Højere leveomkostninger — ankeret højere for samme praktiske vægt.</span><span data-lang="en">Higher cost of living — anchor set higher for the same practical weight.</span></td>
+            </tr>
           </tbody>
         </table>
       </div>
-      <p class="small-note">Diferența nu schimbă talantul în sine — arată că aceeași unitate comunitară are nevoie de orientare locală diferită în contexte economice diferite.</p>
+      <p class="small-note">
+        <span data-lang="ro">Diferența nu schimbă talantul în sine — arată că aceeași unitate comunitară are nevoie de orientare locală diferită în contexte economice diferite.</span>
+        <span data-lang="da">Forskellen ændrer ikke talanten i sig selv — den viser, at den samme fællesskabsenhed har brug for forskellig lokal orientering i forskellige økonomiske kontekster.</span>
+        <span data-lang="en">The difference does not change the talant itself — it shows that the same community unit needs different local orientation in different economic contexts.</span>
+      </p>
     </article>
 
     <article class="card">
-      <div class="card-label">Clarificare</div>
-      <h2>Ce NU este talantul</h2>
+      <div class="card-label">
+        <span data-lang-inline="ro">Clarificare</span>
+        <span data-lang-inline="da">Afklaring</span>
+        <span data-lang-inline="en">Clarification</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Ce NU este talantul</span>
+        <span data-lang="da">Hvad talanten IKKE er</span>
+        <span data-lang="en">What the talant is NOT</span>
+      </h2>
       <ul>
-        <li>nu este salariu clasic</li>
-        <li>nu este monedă fiat mascată</li>
-        <li>nu este instrument speculativ</li>
-        <li>nu este mecanism de control</li>
-        <li>nu este un preț rece pus peste relațiile vii</li>
+        <li><span data-lang-inline="ro">nu este salariu clasic</span><span data-lang-inline="da">ikke en klassisk løn</span><span data-lang-inline="en">not a classic salary</span></li>
+        <li><span data-lang-inline="ro">nu este monedă fiat mascată</span><span data-lang-inline="da">ikke en skjult fiatvaluta</span><span data-lang-inline="en">not a disguised fiat currency</span></li>
+        <li><span data-lang-inline="ro">nu este instrument speculativ</span><span data-lang-inline="da">ikke et spekulativt instrument</span><span data-lang-inline="en">not a speculative instrument</span></li>
+        <li><span data-lang-inline="ro">nu este mecanism de control</span><span data-lang-inline="da">ikke en kontrolmekanisme</span><span data-lang-inline="en">not a control mechanism</span></li>
+        <li><span data-lang-inline="ro">nu este un preț rece pus peste relațiile vii</span><span data-lang-inline="da">ikke en kold pris lagt over levende relationer</span><span data-lang-inline="en">not a cold price placed over living relationships</span></li>
       </ul>
     </article>
 
     <article class="card">
-      <div class="card-label">Evaluarea contribuției</div>
-      <h2>Repere pe tipuri de muncă</h2>
+      <div class="card-label">
+        <span data-lang-inline="ro">Evaluarea contribuției</span>
+        <span data-lang-inline="da">Vurdering af bidrag</span>
+        <span data-lang-inline="en">Contribution evaluation</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Repere pe tipuri de muncă</span>
+        <span data-lang="da">Referencer efter arbejdstype</span>
+        <span data-lang="en">References by work type</span>
+      </h2>
       <div class="list">
         <div class="list-item">
-          <span class="pill">Contribuție standard</span>
-          <h3>4 talanți / oră</h3>
-          <p class="muted">Transport local, ajutor practic, curățenie, sprijin logistic, activități de rutină.</p>
+          <span class="pill"><span data-lang-inline="ro">Contribuție standard</span><span data-lang-inline="da">Standardbidrag</span><span data-lang-inline="en">Standard contribution</span></span>
+          <h3>4 <span data-lang-inline="ro">talanți / oră</span><span data-lang-inline="da">talanti / time</span><span data-lang-inline="en">talanti / hour</span></h3>
+          <p class="muted"><span data-lang="ro">Transport local, ajutor practic, curățenie, sprijin logistic, activități de rutină.</span><span data-lang="da">Lokal transport, praktisk hjælp, rengøring, logistisk støtte, rutineaktiviteter.</span><span data-lang="en">Local transport, practical help, cleaning, logistic support, routine activities.</span></p>
         </div>
         <div class="list-item">
-          <span class="pill">Contribuție tehnică</span>
-          <h3>8 talanți / oră</h3>
-          <p class="muted">Ajutor IT, reparații, suport tehnic, configurare digitală, organizare tehnică.</p>
+          <span class="pill"><span data-lang-inline="ro">Contribuție tehnică</span><span data-lang-inline="da">Teknisk bidrag</span><span data-lang-inline="en">Technical contribution</span></span>
+          <h3>8 <span data-lang-inline="ro">talanți / oră</span><span data-lang-inline="da">talanti / time</span><span data-lang-inline="en">talanti / hour</span></h3>
+          <p class="muted"><span data-lang="ro">Ajutor IT, reparații, suport tehnic, configurare digitală, organizare tehnică.</span><span data-lang="da">IT-hjælp, reparationer, teknisk support, digital konfiguration, teknisk organisering.</span><span data-lang="en">IT help, repairs, technical support, digital configuration, technical organisation.</span></p>
         </div>
         <div class="list-item">
-          <span class="pill">Contribuție specializată</span>
-          <h3>12+ talanți / oră</h3>
-          <p class="muted">Lucrări complexe, consiliere specializată, proiectare, intervenții cu impact ridicat.</p>
+          <span class="pill"><span data-lang-inline="ro">Contribuție specializată</span><span data-lang-inline="da">Specialiseret bidrag</span><span data-lang-inline="en">Specialised contribution</span></span>
+          <h3>12+ <span data-lang-inline="ro">talanți / oră</span><span data-lang-inline="da">talanti / time</span><span data-lang-inline="en">talanti / hour</span></h3>
+          <p class="muted"><span data-lang="ro">Lucrări complexe, consiliere specializată, proiectare, intervenții cu impact ridicat.</span><span data-lang="da">Komplekst arbejde, specialiseret rådgivning, design, indgreb med høj påvirkning.</span><span data-lang="en">Complex work, specialised consulting, design, high-impact interventions.</span></p>
         </div>
       </div>
     </article>
 
     <article class="card">
-      <div class="card-label">Scară practică</div>
-      <h2>Valori orientative</h2>
+      <div class="card-label">
+        <span data-lang-inline="ro">Scară practică</span>
+        <span data-lang-inline="da">Praktisk skala</span>
+        <span data-lang-inline="en">Practical scale</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Valori orientative</span>
+        <span data-lang="da">Vejledende værdier</span>
+        <span data-lang="en">Indicative values</span>
+      </h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Nivel</th><th>Talanți</th><th>Exemple</th></tr></thead>
+          <thead><tr>
+            <th><span data-lang-inline="ro">Nivel</span><span data-lang-inline="da">Niveau</span><span data-lang-inline="en">Level</span></th>
+            <th><span data-lang-inline="ro">Talanți</span><span data-lang-inline="da">Talanti</span><span data-lang-inline="en">Talanti</span></th>
+            <th><span data-lang-inline="ro">Exemple</span><span data-lang-inline="da">Eksempler</span><span data-lang-inline="en">Examples</span></th>
+          </tr></thead>
           <tbody>
-            <tr><td>Foarte mic</td><td><strong>0.5</strong></td><td>gest, ajutor simbolic, sprijin scurt</td></tr>
-            <tr><td>Mic</td><td><strong>1</strong></td><td>ajutor de bază, sarcină scurtă</td></tr>
-            <tr><td>Util</td><td><strong>2–3</strong></td><td>serviciu standard, produs mic, transport scurt</td></tr>
-            <tr><td>Consistent</td><td><strong>5</strong></td><td>muncă clară, bun util, ajutor concret</td></tr>
-            <tr><td>Important</td><td><strong>10</strong></td><td>muncă serioasă, intervenție tehnică</td></tr>
-            <tr><td>Mare</td><td><strong>20</strong></td><td>sprijin major, bun substanțial</td></tr>
-            <tr><td>Major</td><td><strong>50+</strong></td><td>caz special, contribuție de impact</td></tr>
+            <tr><td><span data-lang-inline="ro">Foarte mic</span><span data-lang-inline="da">Meget lille</span><span data-lang-inline="en">Very small</span></td><td><strong>0.5</strong></td><td><span data-lang="ro">gest, ajutor simbolic, sprijin scurt</span><span data-lang="da">gestus, symbolsk hjælp, kort støtte</span><span data-lang="en">gesture, symbolic help, brief support</span></td></tr>
+            <tr><td><span data-lang-inline="ro">Mic</span><span data-lang-inline="da">Lille</span><span data-lang-inline="en">Small</span></td><td><strong>1</strong></td><td><span data-lang="ro">ajutor de bază, sarcină scurtă</span><span data-lang="da">grundlæggende hjælp, kort opgave</span><span data-lang="en">basic help, short task</span></td></tr>
+            <tr><td><span data-lang-inline="ro">Util</span><span data-lang-inline="da">Nyttigt</span><span data-lang-inline="en">Useful</span></td><td><strong>2–3</strong></td><td><span data-lang="ro">serviciu standard, produs mic, transport scurt</span><span data-lang="da">standardservice, lille produkt, kort transport</span><span data-lang="en">standard service, small product, short transport</span></td></tr>
+            <tr><td><span data-lang-inline="ro">Consistent</span><span data-lang-inline="da">Konsistent</span><span data-lang-inline="en">Consistent</span></td><td><strong>5</strong></td><td><span data-lang="ro">muncă clară, bun util, ajutor concret</span><span data-lang="da">klart arbejde, nyttig vare, konkret hjælp</span><span data-lang="en">clear work, useful good, concrete help</span></td></tr>
+            <tr><td><span data-lang-inline="ro">Important</span><span data-lang-inline="da">Vigtigt</span><span data-lang-inline="en">Important</span></td><td><strong>10</strong></td><td><span data-lang="ro">muncă serioasă, intervenție tehnică</span><span data-lang="da">seriøst arbejde, teknisk indgreb</span><span data-lang="en">serious work, technical intervention</span></td></tr>
+            <tr><td><span data-lang-inline="ro">Mare</span><span data-lang-inline="da">Stort</span><span data-lang-inline="en">Large</span></td><td><strong>20</strong></td><td><span data-lang="ro">sprijin major, bun substanțial</span><span data-lang="da">større støtte, væsentlig vare</span><span data-lang="en">major support, substantial good</span></td></tr>
+            <tr><td><span data-lang-inline="ro">Major</span><span data-lang-inline="da">Større</span><span data-lang-inline="en">Major</span></td><td><strong>50+</strong></td><td><span data-lang="ro">caz special, contribuție de impact</span><span data-lang="da">særligt tilfælde, bidrag med stor påvirkning</span><span data-lang="en">special case, high-impact contribution</span></td></tr>
           </tbody>
         </table>
       </div>
     </article>
 
     <article class="card">
-      <div class="card-label">Exemple reale</div>
-      <h2>Folosire în practică</h2>
+      <div class="card-label">
+        <span data-lang-inline="ro">Exemple reale</span>
+        <span data-lang-inline="da">Virkelige eksempler</span>
+        <span data-lang-inline="en">Real examples</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Folosire în practică</span>
+        <span data-lang="da">Brug i praksis</span>
+        <span data-lang="en">Use in practice</span>
+      </h2>
       <div class="list">
-        <div class="list-item"><strong>1 talant</strong><p class="muted">ajutor de bază, drum foarte scurt, mic sprijin practic</p></div>
-        <div class="list-item"><strong>2–3 talanți</strong><p class="muted">serviciu util standard, produs mic, suport punctual</p></div>
-        <div class="list-item"><strong>5 talanți</strong><p class="muted">muncă consistentă, bun util, ajutor clar pentru o nevoie</p></div>
-        <div class="list-item"><strong>10 talanți</strong><p class="muted">intervenție serioasă, muncă specializată, produs valoros</p></div>
+        <div class="list-item"><strong>1 talant</strong><p class="muted"><span data-lang="ro">ajutor de bază, drum foarte scurt, mic sprijin practic</span><span data-lang="da">grundlæggende hjælp, meget kort tur, lille praktisk støtte</span><span data-lang="en">basic help, very short trip, small practical support</span></p></div>
+        <div class="list-item"><strong>2–3 talanti</strong><p class="muted"><span data-lang="ro">serviciu util standard, produs mic, suport punctual</span><span data-lang="da">nyttigt standardservice, lille produkt, punktuel støtte</span><span data-lang="en">useful standard service, small product, punctual support</span></p></div>
+        <div class="list-item"><strong>5 talanti</strong><p class="muted"><span data-lang="ro">muncă consistentă, bun util, ajutor clar pentru o nevoie</span><span data-lang="da">konsistent arbejde, nyttig vare, klar hjælp til et behov</span><span data-lang="en">consistent work, useful good, clear help for a need</span></p></div>
+        <div class="list-item"><strong>10 talanti</strong><p class="muted"><span data-lang="ro">intervenție serioasă, muncă specializată, produs valoros</span><span data-lang="da">seriøst indgreb, specialiseret arbejde, værdifuldt produkt</span><span data-lang="en">serious intervention, specialised work, valuable product</span></p></div>
       </div>
     </article>
 
     <article class="card-blue">
-      <div class="card-label">Interpretare</div>
-      <h2>Interpretare sănătoasă</h2>
-      <p>Talantul nu trebuie folosit mecanic. El trebuie păstrat viu — raportat permanent la realitatea concretă a comunității.</p>
-      <p>Când apar diferențe, ele se explică prin timp, utilitate, dificultate și impact — nu se impun arbitrar.</p>
+      <div class="card-label">
+        <span data-lang-inline="ro">Interpretare</span>
+        <span data-lang-inline="da">Fortolkning</span>
+        <span data-lang-inline="en">Interpretation</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Interpretare sănătoasă</span>
+        <span data-lang="da">Sund fortolkning</span>
+        <span data-lang="en">Healthy interpretation</span>
+      </h2>
+      <p>
+        <span data-lang="ro">Talantul nu trebuie folosit mecanic. El trebuie păstrat viu — raportat permanent la realitatea concretă a comunității.</span>
+        <span data-lang="da">Talanten må ikke bruges mekanisk. Den skal holdes levende — konstant relateret til fællesskabets konkrete virkelighed.</span>
+        <span data-lang="en">The talant must not be used mechanically. It must be kept alive — permanently related to the concrete reality of the community.</span>
+      </p>
+      <p>
+        <span data-lang="ro">Când apar diferențe, ele se explică prin timp, utilitate, dificultate și impact — nu se impun arbitrar.</span>
+        <span data-lang="da">Når der opstår forskelle, forklares de gennem tid, nytte, sværhedsgrad og påvirkning — de pålægges ikke vilkårligt.</span>
+        <span data-lang="en">When differences arise, they are explained through time, utility, difficulty, and impact — they are not imposed arbitrarily.</span>
+      </p>
     </article>
 
     <article class="card">
-      <div class="card-label">Principiile VIVOS</div>
-      <h2>Valorile din spate</h2>
+      <div class="card-label">
+        <span data-lang-inline="ro">Principiile VIVOS</span>
+        <span data-lang-inline="da">VIVOS-principper</span>
+        <span data-lang-inline="en">VIVOS principles</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Valorile din spate</span>
+        <span data-lang="da">Værdierne bag</span>
+        <span data-lang="en">The values behind</span>
+      </h2>
       <div class="principles">
-        <div class="principle"><strong>Claritate</strong><span>Regulile de evaluare ușor de înțeles.</span></div>
-        <div class="principle"><strong>Echitate</strong><span>Contribuțiile reale recunoscute proporțional.</span></div>
-        <div class="principle"><strong>Transparență</strong><span>Diferențele de evaluare pot fi explicate.</span></div>
-        <div class="principle"><strong>Utilitate reală</strong><span>Valoarea vine din timp, efect și sens concret.</span></div>
-        <div class="principle"><strong>Echilibru</strong><span>Circulație sănătoasă, nu dominare.</span></div>
-        <div class="principle"><strong>Demnitate</strong><span>Contribuția umană recunoscută cu respect.</span></div>
+        <div class="principle"><strong><span data-lang-inline="ro">Claritate</span><span data-lang-inline="da">Klarhed</span><span data-lang-inline="en">Clarity</span></strong><span><span data-lang="ro">Regulile de evaluare ușor de înțeles.</span><span data-lang="da">Vurderingsregler let at forstå.</span><span data-lang="en">Evaluation rules easy to understand.</span></span></div>
+        <div class="principle"><strong><span data-lang-inline="ro">Echitate</span><span data-lang-inline="da">Retfærdighed</span><span data-lang-inline="en">Equity</span></strong><span><span data-lang="ro">Contribuțiile reale recunoscute proporțional.</span><span data-lang="da">Reelle bidrag anerkendt proportionalt.</span><span data-lang="en">Real contributions recognised proportionally.</span></span></div>
+        <div class="principle"><strong><span data-lang-inline="ro">Transparență</span><span data-lang-inline="da">Gennemsigtighed</span><span data-lang-inline="en">Transparency</span></strong><span><span data-lang="ro">Diferențele de evaluare pot fi explicate.</span><span data-lang="da">Vurderingsforskelle kan forklares.</span><span data-lang="en">Evaluation differences can be explained.</span></span></div>
+        <div class="principle"><strong><span data-lang-inline="ro">Utilitate reală</span><span data-lang-inline="da">Reel nytte</span><span data-lang-inline="en">Real utility</span></strong><span><span data-lang="ro">Valoarea vine din timp, efect și sens concret.</span><span data-lang="da">Værdien kommer fra tid, effekt og konkret mening.</span><span data-lang="en">Value comes from time, effect, and concrete meaning.</span></span></div>
+        <div class="principle"><strong><span data-lang-inline="ro">Echilibru</span><span data-lang-inline="da">Balance</span><span data-lang-inline="en">Balance</span></strong><span><span data-lang="ro">Circulație sănătoasă, nu dominare.</span><span data-lang="da">Sund cirkulation, ikke dominans.</span><span data-lang="en">Healthy circulation, not domination.</span></span></div>
+        <div class="principle"><strong><span data-lang-inline="ro">Demnitate</span><span data-lang-inline="da">Værdighed</span><span data-lang-inline="en">Dignity</span></strong><span><span data-lang="ro">Contribuția umană recunoscută cu respect.</span><span data-lang="da">Menneskelige bidrag anerkendt med respekt.</span><span data-lang="en">Human contribution recognised with respect.</span></span></div>
       </div>
     </article>
 
     <article class="card">
-      <div class="card-label">Platformă</div>
-      <h2>Wallet-ul în talanți</h2>
-      <p>Instrumentul intern prin care talanții circulă între membri. Permite:</p>
+      <div class="card-label">
+        <span data-lang-inline="ro">Platformă</span>
+        <span data-lang-inline="da">Platform</span>
+        <span data-lang-inline="en">Platform</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Wallet-ul în talanți</span>
+        <span data-lang="da">Wallet i talanti</span>
+        <span data-lang="en">The talant wallet</span>
+      </h2>
+      <p>
+        <span data-lang="ro">Instrumentul intern prin care talanții circulă între membri. Permite:</span>
+        <span data-lang="da">Det interne instrument, hvorigennem talanti cirkulerer mellem medlemmer. Tillader:</span>
+        <span data-lang="en">The internal instrument through which talanti circulate between members. Enables:</span>
+      </p>
       <ul>
-        <li>transferuri clare</li>
-        <li>istoric al schimburilor</li>
-        <li>vizibilitate asupra circulației valorii</li>
-        <li>încredere și trasabilitate în comunitate</li>
+        <li><span data-lang-inline="ro">transferuri clare</span><span data-lang-inline="da">klare overførsler</span><span data-lang-inline="en">clear transfers</span></li>
+        <li><span data-lang-inline="ro">istoric al schimburilor</span><span data-lang-inline="da">historik over udvekslinger</span><span data-lang-inline="en">history of exchanges</span></li>
+        <li><span data-lang-inline="ro">vizibilitate asupra circulației valorii</span><span data-lang-inline="da">synlighed over værdiens cirkulation</span><span data-lang-inline="en">visibility over value circulation</span></li>
+        <li><span data-lang-inline="ro">încredere și trasabilitate în comunitate</span><span data-lang-inline="da">tillid og sporbarhed i fællesskabet</span><span data-lang-inline="en">trust and traceability in the community</span></li>
       </ul>
-      <div class="highlight">Wallet-ul nu schimbă sensul talantului. El doar îl face operabil în platformă.</div>
+      <div class="highlight">
+        <span data-lang="ro">Wallet-ul nu schimbă sensul talantului. El doar îl face operabil în platformă.</span>
+        <span data-lang="da">Wallet'en ændrer ikke talantens betydning. Den gør den blot operationel på platformen.</span>
+        <span data-lang="en">The wallet does not change the meaning of the talant. It simply makes it operable on the platform.</span>
+      </div>
     </article>
 
     <article class="card">
-      <div class="card-label">Rezumat</div>
-      <h2>Pe scurt</h2>
-      <p><strong>Talantul este unitatea internă de valoare a comunității VIVOS.</strong></p>
-      <p><strong>1 talant = aproximativ 15 minute de contribuție standard.</strong></p>
-      <p class="muted">Valoarea concretă se stabilește în funcție de timp, utilitate, dificultate, responsabilitate și specializare. Reperele locale în RON sau DKK sunt doar orientative.</p>
+      <div class="card-label">
+        <span data-lang-inline="ro">Rezumat</span>
+        <span data-lang-inline="da">Resumé</span>
+        <span data-lang-inline="en">Summary</span>
+      </div>
+      <h2>
+        <span data-lang="ro">Pe scurt</span>
+        <span data-lang="da">Kort sagt</span>
+        <span data-lang="en">In brief</span>
+      </h2>
+      <p>
+        <span data-lang="ro"><strong>Talantul este unitatea internă de valoare a comunității VIVOS.</strong></span>
+        <span data-lang="da"><strong>Talanten er den interne værdienhed i VIVOS-fællesskabet.</strong></span>
+        <span data-lang="en"><strong>The talant is the internal unit of value of the VIVOS community.</strong></span>
+      </p>
+      <p>
+        <span data-lang="ro"><strong>1 talant = aproximativ 15 minute de contribuție standard.</strong></span>
+        <span data-lang="da"><strong>1 talant = cirka 15 minutters standardbidrag.</strong></span>
+        <span data-lang="en"><strong>1 talant = approximately 15 minutes of standard contribution.</strong></span>
+      </p>
+      <p class="muted">
+        <span data-lang="ro">Valoarea concretă se stabilește în funcție de timp, utilitate, dificultate, responsabilitate și specializare. Reperele locale în RON sau DKK sunt doar orientative.</span>
+        <span data-lang="da">Den konkrete værdi fastsættes ud fra tid, nytte, sværhedsgrad, ansvar og specialisering. Lokale referencer i RON eller DKK er kun vejledende.</span>
+        <span data-lang="en">The concrete value is determined based on time, utility, difficulty, responsibility, and specialisation. Local references in RON or DKK are only indicative.</span>
+      </p>
     </article>
 
-    <p class="footer-note">VIVOS · Ordine vie, schimb și sprijin mutual</p>
+    <p class="footer-note">VIVOS · <span data-lang-inline="ro">Ordine vie, schimb și sprijin mutual</span><span data-lang-inline="da">Levende orden, bytte og gensidig støtte</span><span data-lang-inline="en">Living order, exchange and mutual support</span></p>
   </main>
 
   <nav class="mobile-nav">
     <div class="mobile-nav-inner">
       <a href="/">
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Acasă
+        <span data-lang-inline="ro">Acasă</span><span data-lang-inline="da">Hjem</span><span data-lang-inline="en">Home</span>
       </a>
       <a href="/?tab=members">
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-        Membri
+        <span data-lang-inline="ro">Membri</span><span data-lang-inline="da">Medlemmer</span><span data-lang-inline="en">Members</span>
       </a>
       <a href="/messages">
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        Mesaje
+        <span data-lang-inline="ro">Mesaje</span><span data-lang-inline="da">Beskeder</span><span data-lang-inline="en">Messages</span>
       </a>
       <a href="/market">
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-        Piață
+        <span data-lang-inline="ro">Piață</span><span data-lang-inline="da">Marked</span><span data-lang-inline="en">Market</span>
       </a>
       <a href="/fund/new">
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-        Fond
+        <span data-lang-inline="ro">Fond</span><span data-lang-inline="da">Fond</span><span data-lang-inline="en">Fund</span>
       </a>
     </div>
   </nav>
+
+  <script>
+    const STORAGE_KEY = 'vivos_talant_lang';
+
+    function setLang(lang) {
+      localStorage.setItem(STORAGE_KEY, lang);
+      applyLang(lang);
+    }
+
+    function applyLang(lang) {
+      document.documentElement.lang = lang === 'da' ? 'da' : lang === 'en' ? 'en' : 'ro';
+      document.querySelectorAll('[data-lang]').forEach(el => {
+        el.classList.toggle('visible', el.getAttribute('data-lang') === lang);
+      });
+      document.querySelectorAll('[data-lang-inline]').forEach(el => {
+        el.classList.toggle('visible', el.getAttribute('data-lang-inline') === lang);
+      });
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-target') === lang);
+      });
+    }
+
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const browserLang = navigator.language.toLowerCase();
+    let initLang = 'ro';
+    if (saved === 'ro' || saved === 'da' || saved === 'en') {
+      initLang = saved;
+    } else if (browserLang.startsWith('da')) {
+      initLang = 'da';
+    } else if (browserLang.startsWith('en')) {
+      initLang = 'en';
+    }
+    applyLang(initLang);
+  </script>
 </body>
 </html>

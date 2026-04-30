@@ -31,6 +31,9 @@ type MerchantOrder = {
   external_payment_dispute_reason: string | null
   external_payment_disputed_at: string | null
   external_payment_disputed_by: string | null
+  external_payment_dispute_resolved_at: string | null
+  external_payment_dispute_resolved_by: string | null
+  external_payment_dispute_resolution: string | null
   delivery_request_id: string | null
   created_at: string
   updated_at: string
@@ -120,17 +123,19 @@ function displayMerchant(
 }
 
 function nextMerchantStatuses(order: MerchantOrder): MerchantOrder["status"][] {
+  if (order.status === "cancelled" || order.status === "completed") return []
+
   if (order.external_payment_status !== "confirmed") {
-    return order.status === "new" ? ["cancelled"] : []
+    return ["cancelled"]
   }
 
   if (order.status === "new") return ["accepted", "cancelled"]
   if (order.status === "accepted") return ["preparing", "cancelled"]
   if (order.status === "preparing") return ["ready", "cancelled"]
   if (order.status === "ready") return order.delivery_needed ? ["in_delivery", "cancelled"] : ["delivered", "cancelled"]
-  if (order.status === "in_delivery") return ["delivered"]
+  if (order.status === "in_delivery") return ["delivered", "cancelled"]
   if (order.status === "delivered") return ["completed"]
-  return []
+  return ["cancelled"]
 }
 
 function nextBuyerStatuses(order: MerchantOrder): MerchantOrder["status"][] {
@@ -192,7 +197,7 @@ export default function OrdersPage() {
       const { data, error } = await supabase
         .from("merchant_orders")
         .select(
-          "id, market_post_id, merchant_user_id, buyer_user_id, title, quantity, unit_price_talanti, total_talanti, notes, delivery_needed, status, payment_status, external_payment_method, external_payment_status, external_payment_sent_at, external_payment_confirmed_at, external_payment_proof_path, external_payment_proof_uploaded_at, external_payment_proof_uploaded_by, external_payment_dispute_reason, external_payment_disputed_at, external_payment_disputed_by, delivery_request_id, created_at, updated_at"
+          "id, market_post_id, merchant_user_id, buyer_user_id, title, quantity, unit_price_talanti, total_talanti, notes, delivery_needed, status, payment_status, external_payment_method, external_payment_status, external_payment_sent_at, external_payment_confirmed_at, external_payment_proof_path, external_payment_proof_uploaded_at, external_payment_proof_uploaded_by, external_payment_dispute_reason, external_payment_disputed_at, external_payment_disputed_by, external_payment_dispute_resolved_at, external_payment_dispute_resolved_by, external_payment_dispute_resolution, delivery_request_id, created_at, updated_at"
         )
         .order("created_at", { ascending: false })
 
@@ -317,14 +322,18 @@ export default function OrdersPage() {
         currentUserId === order.buyer_user_id ? order.merchant_user_id : order.buyer_user_id
       const statusText = orderStatusLabel(nextStatus)
 
-      await supabase.from("notifications").insert({
-        user_id: recipientUserId,
-        event_type: "merchant_order_status_changed",
-        title: "Status comandă actualizat",
-        body: `${order.title} · ${statusText}`,
-        ref_id: order.id,
-        is_read: false,
-      })
+      try {
+        await supabase.from("notifications").insert({
+          user_id: recipientUserId,
+          event_type: "merchant_order_status_changed",
+          title: "Status comandă actualizat",
+          body: `${order.title} · ${statusText}`,
+          ref_id: order.id,
+          is_read: false,
+        })
+      } catch (error) {
+        console.error("Notification insert error:", error)
+      }
 
       setBusyOrderId(null)
     } catch (error: any) {
@@ -434,6 +443,65 @@ export default function OrdersPage() {
     }
 
     await handleExternalPaymentChange(order, "disputed", reason)
+  }
+
+  async function handleResolveDispute(order: MerchantOrder) {
+    setBusyOrderId(order.id)
+    setMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        setMessage("Sesiunea nu este validă. Reautentifică-te.")
+        setBusyOrderId(null)
+        return
+      }
+
+      const response = await fetch("/api/orders/resolve-external-payment-dispute", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          orderId: order.id,
+          resolutionNote: "Disputa a fost închisă de una dintre părți.",
+        }),
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        setMessage(result?.error || "Disputa nu a putut fi închisă.")
+        setBusyOrderId(null)
+        return
+      }
+
+      setOrders((prev) =>
+        prev.map((item) =>
+          item.id === order.id
+            ? {
+                ...item,
+                external_payment_status: result?.restoredStatus || item.external_payment_status,
+                external_payment_dispute_resolved_at: result?.resolvedAt || new Date().toISOString(),
+                external_payment_dispute_resolved_by: result?.resolvedBy || currentUserId,
+                external_payment_dispute_resolution: result?.resolutionNote || "Disputa a fost închisă.",
+                updated_at: new Date().toISOString(),
+              }
+            : item
+        )
+      )
+
+      setMessage("Disputa a fost închisă și comanda a revenit în fluxul normal.")
+      setBusyOrderId(null)
+    } catch (error: any) {
+      console.error("Resolve dispute error:", error)
+      setMessage(error?.message || "Disputa nu a putut fi închisă.")
+      setBusyOrderId(null)
+    }
   }
 
   async function handleCopyMobilePay(phone: string) {
@@ -813,6 +881,19 @@ export default function OrdersPage() {
                           <span className="font-semibold">Motiv dispută:</span> {order.external_payment_dispute_reason}
                         </div>
                       ) : null}
+                      {order.external_payment_dispute_resolved_at ? (
+                        <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                          <span className="font-semibold">Dispută închisă la:</span>{" "}
+                          {new Date(order.external_payment_dispute_resolved_at).toLocaleString("ro-RO")}
+                          {order.external_payment_dispute_resolution ? (
+                            <>
+                              <br />
+                              <span className="font-semibold">Rezolvare:</span>{" "}
+                              {order.external_payment_dispute_resolution}
+                            </>
+                          ) : null}
+                        </div>
+                      ) : null}
                       {proofIsAvailable ? (
                         <div className="mt-3">
                           <Button
@@ -944,7 +1025,44 @@ export default function OrdersPage() {
                           </div>
                         ) : null}
 
-                        {canOpenDispute && !order.external_payment_dispute_reason ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {canMerchantConfirm ? (
+                            <Button
+                              type="button"
+                              className="rounded-2xl"
+                              disabled={busyOrderId === order.id}
+                              onClick={() => handleExternalPaymentChange(order, "confirmed")}
+                            >
+                              {busyOrderId === order.id ? "Se actualizează..." : "Confirm plata MobilePay"}
+                            </Button>
+                          ) : null}
+                          {canOpenDispute && !order.external_payment_dispute_reason ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="rounded-2xl"
+                              disabled={busyOrderId === order.id}
+                              onClick={() =>
+                                setDisputeComposerOpen((prev) => ({ ...prev, [order.id]: !prev[order.id] }))
+                              }
+                            >
+                              {disputeOpen ? "Ascunde disputa" : "Marchează dispută"}
+                            </Button>
+                          ) : null}
+                          {order.external_payment_status === "disputed" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="rounded-2xl"
+                              disabled={busyOrderId === order.id}
+                              onClick={() => handleResolveDispute(order)}
+                            >
+                              {busyOrderId === order.id ? "Se actualizează..." : "Închide disputa"}
+                            </Button>
+                          ) : null}
+                        </div>
+
+                        {canOpenDispute && !order.external_payment_dispute_reason && disputeOpen ? (
                           <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50/80 p-3">
                             <p className="text-sm font-medium text-orange-900">Deschide dispută</p>
                             <p className="mt-1 text-xs text-orange-800">
@@ -988,32 +1106,6 @@ export default function OrdersPage() {
                             </div>
                           </div>
                         ) : null}
-
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {canMerchantConfirm ? (
-                            <Button
-                              type="button"
-                              className="rounded-2xl"
-                              disabled={busyOrderId === order.id}
-                              onClick={() => handleExternalPaymentChange(order, "confirmed")}
-                            >
-                              {busyOrderId === order.id ? "Se actualizează..." : "Confirm plata MobilePay"}
-                            </Button>
-                          ) : null}
-                          {canOpenDispute && !order.external_payment_dispute_reason ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="rounded-2xl"
-                              disabled={busyOrderId === order.id}
-                              onClick={() =>
-                                setDisputeComposerOpen((prev) => ({ ...prev, [order.id]: !prev[order.id] }))
-                              }
-                            >
-                              {disputeOpen ? "Ascunde disputa" : "Marchează dispută"}
-                            </Button>
-                          ) : null}
-                        </div>
                       </div>
                     ) : null}
 
@@ -1091,6 +1183,26 @@ export default function OrdersPage() {
                       </div>
                     ) : null}
 
+                    {isBuyer && order.external_payment_status === "disputed" ? (
+                      <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-slate-700">
+                        <p className="font-medium text-emerald-900">Rezolvare dispută</p>
+                        <p className="mt-1 text-xs text-emerald-800">
+                          Dacă situația s-a clarificat între timp, poți închide disputa și comanda revine în fluxul anterior.
+                        </p>
+                        <div className="mt-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="rounded-2xl"
+                            disabled={busyOrderId === order.id}
+                            onClick={() => handleResolveDispute(order)}
+                          >
+                            {busyOrderId === order.id ? "Se actualizează..." : "Închide disputa"}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+
                     {actionStatuses.length ? (
                       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
                         <p className="text-sm font-medium text-slate-900">Acțiuni disponibile</p>
@@ -1098,8 +1210,7 @@ export default function OrdersPage() {
                         order.status !== "cancelled" &&
                         order.status !== "completed" ? (
                           <p className="mt-2 text-xs text-slate-500">
-                            Fluxul comenzii este blocat temporar până la confirmarea plății externe
-                            MobilePay.
+                            Fluxul comenzii este blocat temporar până la confirmarea plății externe MobilePay.
                           </p>
                         ) : null}
                         <div className="mt-3 flex flex-wrap gap-2">

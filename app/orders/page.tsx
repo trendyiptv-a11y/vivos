@@ -37,9 +37,29 @@ type MerchantProfileLite = {
   user_id: string
   display_name: string | null
   business_name: string | null
+  phone: string | null
 }
 
 type OrderFilter = "all" | "buying" | "selling"
+
+const TALANT_TO_DKK = 100
+
+function formatTalanti(value: number) {
+  return Number(value || 0).toFixed(2)
+}
+
+function formatDkk(value: number) {
+  return new Intl.NumberFormat("da-DK", {
+    style: "currency",
+    currency: "DKK",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0))
+}
+
+function talantiToDkk(value: number) {
+  return Number(value || 0) * TALANT_TO_DKK
+}
 
 function orderStatusLabel(status: MerchantOrder["status"]) {
   if (status === "accepted") return "Acceptată"
@@ -139,7 +159,7 @@ export default function OrdersPage() {
       const [profilesResult, merchantProfilesResult] = await Promise.all([
         supabase.from("profiles").select("id, name, alias, email").in("id", userIds),
         merchantUserIds.length
-          ? supabase.from("merchant_profiles").select("user_id, display_name, business_name").in("user_id", merchantUserIds).eq("is_active", true)
+          ? supabase.from("merchant_profiles").select("user_id, display_name, business_name, phone").in("user_id", merchantUserIds).eq("is_active", true)
           : Promise.resolve({ data: [], error: null }),
       ])
 
@@ -238,6 +258,15 @@ export default function OrdersPage() {
     }
   }
 
+  async function handleCopyMobilePay(phone: string) {
+    try {
+      await navigator.clipboard.writeText(phone)
+      setMessage(`Numărul MobilePay a fost copiat: ${phone}`)
+    } catch {
+      setMessage(`Nu am putut copia automat. Folosește manual numărul: ${phone}`)
+    }
+  }
+
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       if (!currentUserId) return false
@@ -283,17 +312,20 @@ export default function OrdersPage() {
                 const isBuyer = currentUserId === order.buyer_user_id
                 const otherPartyId = isBuyer ? order.merchant_user_id : order.buyer_user_id
                 const otherParty = profilesMap[otherPartyId] || null
-                const otherMerchantProfile = isBuyer ? merchantProfilesMap[order.merchant_user_id] || null : null
+                const otherMerchantProfile = isBuyer ? merchantProfilesMap[order.merchant_user_id] || null : merchantProfilesMap[order.merchant_user_id] || null
                 const actionStatuses = isBuyer ? nextBuyerStatuses(order) : nextMerchantStatuses(order)
                 const otherPartyLabel = isBuyer
                   ? displayMerchant(otherMerchantProfile, otherParty, "Merchant")
                   : displayProfile(otherParty, "Membru")
+                const mobilePayPhone = otherMerchantProfile?.phone?.trim() || null
+                const unitDkk = talantiToDkk(order.unit_price_talanti)
+                const totalDkk = talantiToDkk(order.total_talanti)
 
                 return (
                   <div key={order.id} className="rounded-2xl border p-4">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
                       <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">{orderStatusLabel(order.status)}</Badge>
-                      <Badge variant="outline" className="rounded-xl">Plată: {paymentStatusLabel(order.payment_status)}</Badge>
+                      <Badge variant="outline" className="rounded-xl">Plată internă: {paymentStatusLabel(order.payment_status)}</Badge>
                       {order.delivery_needed ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Cu livrare</Badge> : <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Fără livrare</Badge>}
                       {isBuyer ? <Badge variant="outline" className="rounded-xl">Cumpărător</Badge> : <Badge variant="outline" className="rounded-xl">Merchant</Badge>}
                     </div>
@@ -301,8 +333,14 @@ export default function OrdersPage() {
                     <p className="text-lg font-semibold">{order.title}</p>
                     <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
                       <p>Cantitate: <span className="font-medium text-slate-900">{order.quantity}</span></p>
-                      <p>Preț unitar: <span className="font-medium text-slate-900">{Number(order.unit_price_talanti).toFixed(2)} talanți</span></p>
-                      <p>Total: <span className="font-medium text-slate-900">{Number(order.total_talanti).toFixed(2)} talanți</span></p>
+                      <p>
+                        Preț unitar: <span className="font-medium text-slate-900">{formatTalanti(order.unit_price_talanti)} talanți</span>
+                        <span className="mt-1 block text-xs text-slate-500">≈ {formatDkk(unitDkk)}</span>
+                      </p>
+                      <p>
+                        Total: <span className="font-medium text-slate-900">{formatTalanti(order.total_talanti)} talanți</span>
+                        <span className="mt-1 block text-xs text-slate-500">≈ {formatDkk(totalDkk)}</span>
+                      </p>
                       <p>Creată: <span className="font-medium text-slate-900">{new Date(order.created_at).toLocaleString("ro-RO")}</span></p>
                     </div>
 
@@ -310,6 +348,20 @@ export default function OrdersPage() {
                       <p>{isBuyer ? "Merchant" : "Cumpărător"}: <span className="font-medium text-slate-900">{otherPartyLabel}</span></p>
                       <p className="mt-1">Detalii: <span className="font-medium text-slate-900">{order.notes?.trim() || "Fără detalii suplimentare"}</span></p>
                     </div>
+
+                    {isBuyer && mobilePayPhone ? (
+                      <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700">
+                        <p className="font-medium text-slate-900">Plată externă recomandată în Danemarca</p>
+                        <p className="mt-1">Echivalentul orientativ pentru această comandă este <strong>{formatDkk(totalDkk)}</strong>, la ancora VIVOS de <strong>1 talant = 100 DKK</strong>.</p>
+                        <p className="mt-1">MobilePay comerciant: <strong>{mobilePayPhone}</strong></p>
+                        <p className="mt-2 text-xs text-slate-500">VIVOS păstrează fluxul intern în talanți. MobilePay rămâne puntea practică pentru decontarea fiat externă.</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button type="button" variant="outline" className="rounded-2xl" onClick={() => handleCopyMobilePay(mobilePayPhone)}>
+                            Copiază nr. MobilePay
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
 
                     {actionStatuses.length ? (
                       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">

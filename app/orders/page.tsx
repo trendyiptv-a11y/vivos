@@ -48,7 +48,6 @@ type MerchantProfileLite = {
 }
 
 type OrderFilter = "all" | "buying" | "selling"
-
 type ExternalPaymentStatus = MerchantOrder["external_payment_status"]
 
 const TALANT_TO_DKK = 100
@@ -133,6 +132,10 @@ function externalBadgeClass(status: ExternalPaymentStatus) {
   return "bg-amber-100 text-amber-900 hover:bg-amber-100"
 }
 
+function proofBadgeClass() {
+  return "bg-violet-100 text-violet-900 hover:bg-violet-100"
+}
+
 export default function OrdersPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -176,8 +179,12 @@ export default function OrdersPage() {
       const loadedOrders = (data ?? []) as MerchantOrder[]
       setOrders(loadedOrders)
 
-      const userIds = Array.from(new Set(loadedOrders.flatMap((item) => [item.buyer_user_id, item.merchant_user_id]).filter(Boolean)))
-      const merchantUserIds = Array.from(new Set(loadedOrders.map((item) => item.merchant_user_id).filter(Boolean)))
+      const userIds = Array.from(
+        new Set(loadedOrders.flatMap((item) => [item.buyer_user_id, item.merchant_user_id]).filter(Boolean))
+      )
+      const merchantUserIds = Array.from(
+        new Set(loadedOrders.map((item) => item.merchant_user_id).filter(Boolean))
+      )
 
       if (!userIds.length) {
         setProfilesMap({})
@@ -189,7 +196,11 @@ export default function OrdersPage() {
       const [profilesResult, merchantProfilesResult] = await Promise.all([
         supabase.from("profiles").select("id, name, alias, email").in("id", userIds),
         merchantUserIds.length
-          ? supabase.from("merchant_profiles").select("user_id, display_name, business_name, phone").in("user_id", merchantUserIds).eq("is_active", true)
+          ? supabase
+              .from("merchant_profiles")
+              .select("user_id, display_name, business_name, phone")
+              .in("user_id", merchantUserIds)
+              .eq("is_active", true)
           : Promise.resolve({ data: [], error: null }),
       ])
 
@@ -205,12 +216,17 @@ export default function OrdersPage() {
         return
       }
 
-      const nextProfilesMap = ((profilesResult.data ?? []) as ProfileLite[]).reduce<Record<string, ProfileLite>>((acc, item) => {
-        acc[item.id] = item
-        return acc
-      }, {})
+      const nextProfilesMap = ((profilesResult.data ?? []) as ProfileLite[]).reduce<Record<string, ProfileLite>>(
+        (acc, item) => {
+          acc[item.id] = item
+          return acc
+        },
+        {}
+      )
 
-      const nextMerchantProfilesMap = ((merchantProfilesResult.data ?? []) as MerchantProfileLite[]).reduce<Record<string, MerchantProfileLite>>((acc, item) => {
+      const nextMerchantProfilesMap = ((merchantProfilesResult.data ?? []) as MerchantProfileLite[]).reduce<
+        Record<string, MerchantProfileLite>
+      >((acc, item) => {
         acc[item.user_id] = item
         return acc
       }, {})
@@ -261,15 +277,19 @@ export default function OrdersPage() {
             ? {
                 ...item,
                 status: (result?.status as MerchantOrder["status"]) || nextStatus,
-                payment_status: (result?.paymentStatus as MerchantOrder["payment_status"]) || item.payment_status,
-                external_payment_status: (result?.externalPaymentStatus as MerchantOrder["external_payment_status"]) || item.external_payment_status,
+                payment_status:
+                  (result?.paymentStatus as MerchantOrder["payment_status"]) || item.payment_status,
+                external_payment_status:
+                  (result?.externalPaymentStatus as MerchantOrder["external_payment_status"]) ||
+                  item.external_payment_status,
                 updated_at: new Date().toISOString(),
               }
             : item
         )
       )
 
-      const recipientUserId = currentUserId === order.buyer_user_id ? order.merchant_user_id : order.buyer_user_id
+      const recipientUserId =
+        currentUserId === order.buyer_user_id ? order.merchant_user_id : order.buyer_user_id
       const statusText = orderStatusLabel(nextStatus)
 
       await supabase.from("notifications").insert({
@@ -289,7 +309,10 @@ export default function OrdersPage() {
     }
   }
 
-  async function handleExternalPaymentChange(order: MerchantOrder, nextExternalPaymentStatus: ExternalPaymentStatus) {
+  async function handleExternalPaymentChange(
+    order: MerchantOrder,
+    nextExternalPaymentStatus: ExternalPaymentStatus
+  ) {
     setBusyOrderId(order.id)
     setMessage("")
 
@@ -326,9 +349,16 @@ export default function OrdersPage() {
           item.id === order.id
             ? {
                 ...item,
-                external_payment_status: (result?.externalPaymentStatus as ExternalPaymentStatus) || nextExternalPaymentStatus,
-                external_payment_sent_at: nextExternalPaymentStatus === "sent" ? new Date().toISOString() : item.external_payment_sent_at,
-                external_payment_confirmed_at: nextExternalPaymentStatus === "confirmed" ? new Date().toISOString() : item.external_payment_confirmed_at,
+                external_payment_status:
+                  (result?.externalPaymentStatus as ExternalPaymentStatus) || nextExternalPaymentStatus,
+                external_payment_sent_at:
+                  nextExternalPaymentStatus === "sent"
+                    ? new Date().toISOString()
+                    : item.external_payment_sent_at,
+                external_payment_confirmed_at:
+                  nextExternalPaymentStatus === "confirmed"
+                    ? new Date().toISOString()
+                    : item.external_payment_confirmed_at,
                 updated_at: new Date().toISOString(),
               }
             : item
@@ -419,6 +449,7 @@ export default function OrdersPage() {
             : item
         )
       )
+
       setSelectedProofFiles((prev) => ({ ...prev, [order.id]: null }))
       setMessage("Dovada plății externe a fost încărcată. Merchantul o poate verifica acum.")
       setBusyOrderId(null)
@@ -444,12 +475,15 @@ export default function OrdersPage() {
         return
       }
 
-      const response = await fetch(`/api/orders/get-external-payment-proof-url?orderId=${encodeURIComponent(orderId)}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const response = await fetch(
+        `/api/orders/get-external-payment-proof-url?orderId=${encodeURIComponent(orderId)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      )
 
       const result = await response.json().catch(() => null)
 
@@ -479,13 +513,36 @@ export default function OrdersPage() {
 
   return (
     <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
-      <header className="sticky top-0 z-10 border-b backdrop-blur-xl" style={{ background: vivosTheme.styles.bottomNav.background, borderColor: vivosTheme.styles.bottomNav.borderColor, boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)" }}>
+      <header
+        className="sticky top-0 z-10 border-b backdrop-blur-xl"
+        style={{
+          background: vivosTheme.styles.bottomNav.background,
+          borderColor: vivosTheme.styles.bottomNav.borderColor,
+          boxShadow: "0 8px 24px rgba(8, 20, 40, 0.16)",
+        }}
+      >
         <div className="mx-auto flex min-h-[84px] max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.22em] sm:text-xs" style={{ color: "rgba(255,255,255,0.68)" }}>Comerț comunitar</p>
-            <h1 className="truncate text-lg font-semibold sm:text-2xl" style={{ color: vivosTheme.colors.white }}>Comenzile mele</h1>
+            <p
+              className="text-[11px] uppercase tracking-[0.22em] sm:text-xs"
+              style={{ color: "rgba(255,255,255,0.68)" }}
+            >
+              Comerț comunitar
+            </p>
+            <h1
+              className="truncate text-lg font-semibold sm:text-2xl"
+              style={{ color: vivosTheme.colors.white }}
+            >
+              Comenzile mele
+            </h1>
           </div>
-          <Button variant="outline" className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={() => router.push("/market")}>Înapoi în piață</Button>
+          <Button
+            variant="outline"
+            className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15"
+            onClick={() => router.push("/market")}
+          >
+            Înapoi în piață
+          </Button>
         </div>
       </header>
 
@@ -497,9 +554,30 @@ export default function OrdersPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant={filter === "all" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("all")}>Toate</Button>
-              <Button type="button" variant={filter === "buying" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("buying")}>Cumpăr</Button>
-              <Button type="button" variant={filter === "selling" ? "default" : "outline"} className="rounded-2xl" onClick={() => setFilter("selling")}>Vând</Button>
+              <Button
+                type="button"
+                variant={filter === "all" ? "default" : "outline"}
+                className="rounded-2xl"
+                onClick={() => setFilter("all")}
+              >
+                Toate
+              </Button>
+              <Button
+                type="button"
+                variant={filter === "buying" ? "default" : "outline"}
+                className="rounded-2xl"
+                onClick={() => setFilter("buying")}
+              >
+                Cumpăr
+              </Button>
+              <Button
+                type="button"
+                variant={filter === "selling" ? "default" : "outline"}
+                className="rounded-2xl"
+                onClick={() => setFilter("selling")}
+              >
+                Vând
+              </Button>
             </div>
 
             {message ? <div className="rounded-2xl border p-4 text-sm text-slate-600">{message}</div> : null}
@@ -507,7 +585,9 @@ export default function OrdersPage() {
             {loading ? (
               <div className="rounded-2xl border p-4 text-sm text-slate-600">Se încarcă comenzile...</div>
             ) : filteredOrders.length === 0 ? (
-              <div className="rounded-2xl border p-4 text-sm text-slate-600">Nu există comenzi pentru filtrul selectat.</div>
+              <div className="rounded-2xl border p-4 text-sm text-slate-600">
+                Nu există comenzi pentru filtrul selectat.
+              </div>
             ) : (
               filteredOrders.map((order) => {
                 const isBuyer = currentUserId === order.buyer_user_id
@@ -521,47 +601,149 @@ export default function OrdersPage() {
                 const mobilePayPhone = otherMerchantProfile?.phone?.trim() || null
                 const unitDkk = talantiToDkk(order.unit_price_talanti)
                 const totalDkk = talantiToDkk(order.total_talanti)
-                const canBuyerMarkSent = isBuyer && order.external_payment_status === "pending" && !!mobilePayPhone && order.status !== "cancelled" && order.status !== "completed"
-                const canMerchantConfirm = !isBuyer && order.external_payment_status === "sent" && order.status !== "cancelled" && order.status !== "completed"
-                const canOpenDispute = order.external_payment_status === "sent" || order.external_payment_status === "confirmed"
+                const canBuyerMarkSent =
+                  isBuyer &&
+                  order.external_payment_status === "pending" &&
+                  !!mobilePayPhone &&
+                  order.status !== "cancelled" &&
+                  order.status !== "completed"
+                const canMerchantConfirm =
+                  !isBuyer &&
+                  order.external_payment_status === "sent" &&
+                  order.status !== "cancelled" &&
+                  order.status !== "completed"
+                const canOpenDispute =
+                  (order.external_payment_status === "sent" ||
+                    order.external_payment_status === "confirmed") &&
+                  order.status !== "cancelled" &&
+                  order.status !== "completed"
+
                 const proofIsAvailable = Boolean(order.external_payment_proof_path)
-                const canBuyerUploadProof = isBuyer && order.status !== "cancelled" && order.status !== "completed" && (order.external_payment_status === "sent" || order.external_payment_status === "confirmed" || order.external_payment_status === "disputed")
+                const proofLocked = Boolean(order.external_payment_confirmed_at)
+                const canBuyerUploadProof =
+                  isBuyer &&
+                  !proofLocked &&
+                  order.status !== "cancelled" &&
+                  order.status !== "completed" &&
+                  (order.external_payment_status === "sent" ||
+                    order.external_payment_status === "confirmed" ||
+                    order.external_payment_status === "disputed")
+
                 const selectedProofFile = selectedProofFiles[order.id] || null
 
                 return (
                   <div key={order.id} className="rounded-2xl border p-4">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">{orderStatusLabel(order.status)}</Badge>
-                      <Badge variant="outline" className="rounded-xl">Plată internă: {paymentStatusLabel(order.payment_status)}</Badge>
-                      <Badge className={`rounded-xl ${externalBadgeClass(order.external_payment_status)}`}>MobilePay: {externalPaymentStatusLabel(order.external_payment_status)}</Badge>
-                      {order.delivery_needed ? <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Cu livrare</Badge> : <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">Fără livrare</Badge>}
-                      {isBuyer ? <Badge variant="outline" className="rounded-xl">Cumpărător</Badge> : <Badge variant="outline" className="rounded-xl">Merchant</Badge>}
+                      <Badge className="rounded-xl bg-slate-900 text-white hover:bg-slate-900">
+                        {orderStatusLabel(order.status)}
+                      </Badge>
+                      <Badge variant="outline" className="rounded-xl">
+                        Plată internă: {paymentStatusLabel(order.payment_status)}
+                      </Badge>
+                      <Badge className={`rounded-xl ${externalBadgeClass(order.external_payment_status)}`}>
+                        MobilePay: {externalPaymentStatusLabel(order.external_payment_status)}
+                      </Badge>
+                      {proofIsAvailable ? (
+                        <Badge className={`rounded-xl ${proofBadgeClass()}`}>Dovadă atașată</Badge>
+                      ) : null}
+                      {order.delivery_needed ? (
+                        <Badge className="rounded-xl bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+                          Cu livrare
+                        </Badge>
+                      ) : (
+                        <Badge className="rounded-xl bg-amber-100 text-amber-900 hover:bg-amber-100">
+                          Fără livrare
+                        </Badge>
+                      )}
+                      {isBuyer ? (
+                        <Badge variant="outline" className="rounded-xl">
+                          Cumpărător
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="rounded-xl">
+                          Merchant
+                        </Badge>
+                      )}
                     </div>
 
                     <p className="text-lg font-semibold">{order.title}</p>
+
                     <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
-                      <p>Cantitate: <span className="font-medium text-slate-900">{order.quantity}</span></p>
                       <p>
-                        Preț unitar: <span className="font-medium text-slate-900">{formatTalanti(order.unit_price_talanti)} talanți</span>
+                        Cantitate: <span className="font-medium text-slate-900">{order.quantity}</span>
+                      </p>
+                      <p>
+                        Preț unitar:{" "}
+                        <span className="font-medium text-slate-900">
+                          {formatTalanti(order.unit_price_talanti)} talanți
+                        </span>
                         <span className="mt-1 block text-xs text-slate-500">≈ {formatDkk(unitDkk)}</span>
                       </p>
                       <p>
-                        Total: <span className="font-medium text-slate-900">{formatTalanti(order.total_talanti)} talanți</span>
+                        Total:{" "}
+                        <span className="font-medium text-slate-900">
+                          {formatTalanti(order.total_talanti)} talanți
+                        </span>
                         <span className="mt-1 block text-xs text-slate-500">≈ {formatDkk(totalDkk)}</span>
                       </p>
-                      <p>Creată: <span className="font-medium text-slate-900">{new Date(order.created_at).toLocaleString("ro-RO")}</span></p>
+                      <p>
+                        Creată:{" "}
+                        <span className="font-medium text-slate-900">
+                          {new Date(order.created_at).toLocaleString("ro-RO")}
+                        </span>
+                      </p>
                     </div>
 
                     <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                      <p>{isBuyer ? "Merchant" : "Cumpărător"}: <span className="font-medium text-slate-900">{otherPartyLabel}</span></p>
-                      <p className="mt-1">Detalii: <span className="font-medium text-slate-900">{order.notes?.trim() || "Fără detalii suplimentare"}</span></p>
-                      <p className="mt-1">Metodă externă: <span className="font-medium text-slate-900">{order.external_payment_method?.toUpperCase() || "—"}</span></p>
-                      {order.external_payment_sent_at ? <p className="mt-1">Plată marcată ca trimisă la: <span className="font-medium text-slate-900">{new Date(order.external_payment_sent_at).toLocaleString("ro-RO")}</span></p> : null}
-                      {order.external_payment_confirmed_at ? <p className="mt-1">Plată confirmată la: <span className="font-medium text-slate-900">{new Date(order.external_payment_confirmed_at).toLocaleString("ro-RO")}</span></p> : null}
-                      {order.external_payment_proof_uploaded_at ? <p className="mt-1">Dovadă încărcată la: <span className="font-medium text-slate-900">{new Date(order.external_payment_proof_uploaded_at).toLocaleString("ro-RO")}</span></p> : null}
+                      <p>
+                        {isBuyer ? "Merchant" : "Cumpărător"}:{" "}
+                        <span className="font-medium text-slate-900">{otherPartyLabel}</span>
+                      </p>
+                      <p className="mt-1">
+                        Detalii:{" "}
+                        <span className="font-medium text-slate-900">
+                          {order.notes?.trim() || "Fără detalii suplimentare"}
+                        </span>
+                      </p>
+                      <p className="mt-1">
+                        Metodă externă:{" "}
+                        <span className="font-medium text-slate-900">
+                          {order.external_payment_method?.toUpperCase() || "—"}
+                        </span>
+                      </p>
+                      {order.external_payment_sent_at ? (
+                        <p className="mt-1">
+                          Plată marcată ca trimisă la:{" "}
+                          <span className="font-medium text-slate-900">
+                            {new Date(order.external_payment_sent_at).toLocaleString("ro-RO")}
+                          </span>
+                        </p>
+                      ) : null}
+                      {order.external_payment_confirmed_at ? (
+                        <p className="mt-1">
+                          Plată confirmată la:{" "}
+                          <span className="font-medium text-slate-900">
+                            {new Date(order.external_payment_confirmed_at).toLocaleString("ro-RO")}
+                          </span>
+                        </p>
+                      ) : null}
+                      {order.external_payment_proof_uploaded_at ? (
+                        <p className="mt-1">
+                          Dovadă încărcată la:{" "}
+                          <span className="font-medium text-slate-900">
+                            {new Date(order.external_payment_proof_uploaded_at).toLocaleString("ro-RO")}
+                          </span>
+                        </p>
+                      ) : null}
                       {proofIsAvailable ? (
                         <div className="mt-3">
-                          <Button type="button" variant="outline" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleViewProof(order.id)}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="rounded-2xl"
+                            disabled={busyOrderId === order.id}
+                            onClick={() => handleViewProof(order.id)}
+                          >
                             {busyOrderId === order.id ? "Se deschide..." : "Vezi dovada"}
                           </Button>
                         </div>
@@ -571,15 +753,35 @@ export default function OrdersPage() {
                     {isBuyer && mobilePayPhone ? (
                       <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700">
                         <p className="font-medium text-slate-900">Plată externă recomandată în Danemarca</p>
-                        <p className="mt-1">Echivalentul orientativ pentru această comandă este <strong>{formatDkk(totalDkk)}</strong>, la ancora VIVOS de <strong>1 talant = 100 DKK</strong>.</p>
-                        <p className="mt-1">MobilePay comerciant: <strong>{mobilePayPhone}</strong></p>
-                        <p className="mt-2 text-xs text-slate-500">VIVOS păstrează fluxul intern în talanți. MobilePay rămâne puntea practică pentru decontarea fiat externă.</p>
+                        <p className="mt-1">
+                          Echivalentul orientativ pentru această comandă este{" "}
+                          <strong>{formatDkk(totalDkk)}</strong>, la ancora VIVOS de{" "}
+                          <strong>1 talant = 100 DKK</strong>.
+                        </p>
+                        <p className="mt-1">
+                          MobilePay comerciant: <strong>{mobilePayPhone}</strong>
+                        </p>
+                        <p className="mt-2 text-xs text-slate-500">
+                          VIVOS păstrează fluxul intern în talanți. MobilePay rămâne puntea practică
+                          pentru decontarea fiat externă.
+                        </p>
+
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Button type="button" variant="outline" className="rounded-2xl" onClick={() => handleCopyMobilePay(mobilePayPhone)}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="rounded-2xl"
+                            onClick={() => handleCopyMobilePay(mobilePayPhone)}
+                          >
                             Copiază nr. MobilePay
                           </Button>
                           {canBuyerMarkSent ? (
-                            <Button type="button" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleExternalPaymentChange(order, "sent")}>
+                            <Button
+                              type="button"
+                              className="rounded-2xl"
+                              disabled={busyOrderId === order.id}
+                              onClick={() => handleExternalPaymentChange(order, "sent")}
+                            >
                               {busyOrderId === order.id ? "Se actualizează..." : "Am trimis prin MobilePay"}
                             </Button>
                           ) : null}
@@ -588,19 +790,51 @@ export default function OrdersPage() {
                         {canBuyerUploadProof ? (
                           <div className="mt-4 rounded-2xl border border-sky-100 bg-white/70 p-3">
                             <p className="text-sm font-medium text-slate-900">Încarcă dovada plății</p>
-                            <p className="mt-1 text-xs text-slate-500">Acceptat: JPG, PNG sau WEBP, maxim 5 MB. Merchantul va putea vedea imaginea prin link securizat.</p>
-                            <input type="file" accept="image/png,image/jpeg,image/webp" className="mt-3 block w-full text-sm" onChange={(event) => handleProofFileChange(order.id, event)} />
-                            {selectedProofFile ? <p className="mt-2 text-xs text-slate-600">Selectat: {selectedProofFile.name}</p> : null}
+                            <p className="mt-1 text-xs text-slate-500">
+                              Acceptat: JPG, PNG sau WEBP, maxim 5 MB. Merchantul va putea vedea imaginea
+                              prin link securizat.
+                            </p>
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp"
+                              className="mt-3 block w-full text-sm"
+                              onChange={(event) => handleProofFileChange(order.id, event)}
+                            />
+                            {selectedProofFile ? (
+                              <p className="mt-2 text-xs text-slate-600">Selectat: {selectedProofFile.name}</p>
+                            ) : null}
                             <div className="mt-3 flex flex-wrap gap-2">
-                              <Button type="button" className="rounded-2xl" disabled={busyOrderId === order.id || !selectedProofFile} onClick={() => handleUploadProof(order)}>
-                                {busyOrderId === order.id ? "Se încarcă..." : proofIsAvailable ? "Înlocuiește dovada" : "Încarcă dovada"}
+                              <Button
+                                type="button"
+                                className="rounded-2xl"
+                                disabled={busyOrderId === order.id || !selectedProofFile}
+                                onClick={() => handleUploadProof(order)}
+                              >
+                                {busyOrderId === order.id
+                                  ? "Se încarcă..."
+                                  : proofIsAvailable
+                                    ? "Înlocuiește dovada"
+                                    : "Încarcă dovada"}
                               </Button>
                               {proofIsAvailable ? (
-                                <Button type="button" variant="outline" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleViewProof(order.id)}>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="rounded-2xl"
+                                  disabled={busyOrderId === order.id}
+                                  onClick={() => handleViewProof(order.id)}
+                                >
                                   Vezi dovada curentă
                                 </Button>
                               ) : null}
                             </div>
+                          </div>
+                        ) : null}
+
+                        {proofLocked ? (
+                          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-100/70 p-3 text-xs text-emerald-900">
+                            Dovada este acum blocată pentru modificare, deoarece plata MobilePay a fost deja
+                            confirmată de merchant.
                           </div>
                         ) : null}
                       </div>
@@ -614,15 +848,41 @@ export default function OrdersPage() {
                             ? "Plata MobilePay a fost confirmată. Comanda poate continua în fluxul normal."
                             : "Comanda nu poate avansa în fluxul normal până când plata MobilePay nu este confirmată de comerciant."}
                         </p>
-                        {proofIsAvailable ? <p className="mt-2 text-xs text-slate-500">Există o dovadă încărcată de cumpărător. O poți deschide din cardul de detalii.</p> : null}
+
+                        {proofIsAvailable ? (
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-slate-500">Există o dovadă încărcată de cumpărător.</span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="rounded-2xl"
+                              disabled={busyOrderId === order.id}
+                              onClick={() => handleViewProof(order.id)}
+                            >
+                              {busyOrderId === order.id ? "Se deschide..." : "Vezi dovada"}
+                            </Button>
+                          </div>
+                        ) : null}
+
                         <div className="mt-3 flex flex-wrap gap-2">
                           {canMerchantConfirm ? (
-                            <Button type="button" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleExternalPaymentChange(order, "confirmed")}>
+                            <Button
+                              type="button"
+                              className="rounded-2xl"
+                              disabled={busyOrderId === order.id}
+                              onClick={() => handleExternalPaymentChange(order, "confirmed")}
+                            >
                               {busyOrderId === order.id ? "Se actualizează..." : "Confirm plata MobilePay"}
                             </Button>
                           ) : null}
                           {canOpenDispute && order.external_payment_status !== "disputed" ? (
-                            <Button type="button" variant="outline" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleExternalPaymentChange(order, "disputed")}>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="rounded-2xl"
+                              disabled={busyOrderId === order.id}
+                              onClick={() => handleExternalPaymentChange(order, "disputed")}
+                            >
                               Marchează dispută
                             </Button>
                           ) : null}
@@ -633,12 +893,24 @@ export default function OrdersPage() {
                     {actionStatuses.length ? (
                       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
                         <p className="text-sm font-medium text-slate-900">Acțiuni disponibile</p>
-                        {order.external_payment_status !== "confirmed" && order.status !== "cancelled" && order.status !== "completed" ? (
-                          <p className="mt-2 text-xs text-slate-500">Fluxul comenzii este blocat temporar până la confirmarea plății externe MobilePay.</p>
+                        {order.external_payment_status !== "confirmed" &&
+                        order.status !== "cancelled" &&
+                        order.status !== "completed" ? (
+                          <p className="mt-2 text-xs text-slate-500">
+                            Fluxul comenzii este blocat temporar până la confirmarea plății externe
+                            MobilePay.
+                          </p>
                         ) : null}
                         <div className="mt-3 flex flex-wrap gap-2">
                           {actionStatuses.map((nextStatus) => (
-                            <Button key={nextStatus} type="button" variant="outline" className="rounded-2xl" disabled={busyOrderId === order.id} onClick={() => handleStatusChange(order, nextStatus)}>
+                            <Button
+                              key={nextStatus}
+                              type="button"
+                              variant="outline"
+                              className="rounded-2xl"
+                              disabled={busyOrderId === order.id}
+                              onClick={() => handleStatusChange(order, nextStatus)}
+                            >
                               {busyOrderId === order.id ? "Se actualizează..." : orderStatusLabel(nextStatus)}
                             </Button>
                           ))}
@@ -647,8 +919,22 @@ export default function OrdersPage() {
                     ) : null}
 
                     <div className="mt-4 flex flex-wrap gap-3">
-                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/member/${otherPartyId}`)}>Vezi profilul</Button>
-                      {order.delivery_request_id ? <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/deliveries/${order.delivery_request_id}`)}>Vezi livrarea</Button> : null}
+                      <Button
+                        variant="outline"
+                        className="rounded-2xl"
+                        onClick={() => router.push(`/member/${otherPartyId}`)}
+                      >
+                        Vezi profilul
+                      </Button>
+                      {order.delivery_request_id ? (
+                        <Button
+                          variant="outline"
+                          className="rounded-2xl"
+                          onClick={() => router.push(`/deliveries/${order.delivery_request_id}`)}
+                        >
+                          Vezi livrarea
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                 )

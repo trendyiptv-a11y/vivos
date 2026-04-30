@@ -220,6 +220,8 @@ export async function POST(request: Request) {
         delivery_needed: deliveryNeeded,
         status: "new",
         payment_status: "held",
+        external_payment_method: "mobilepay",
+        external_payment_status: "pending",
       })
       .select("id")
       .single()
@@ -296,6 +298,7 @@ export async function POST(request: Request) {
       ok: true,
       orderId: orderData.id,
       paymentStatus: "held",
+      externalPaymentStatus: "pending",
       heldTalanti: totalTalanti,
       availableTalanti: availableTalanti - totalTalanti,
       itemCount: orderItemsPayload.length,

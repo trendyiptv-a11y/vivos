@@ -7,7 +7,7 @@ import { vivosTheme } from "@/lib/theme/vivos-theme"
 const items = [
   { label: "Mesaje", href: "/messenger", icon: MessageCircle },
   { label: "Apeluri", href: "/messenger/calls", icon: Phone },
-  { label: "Profil", href: "/profile", icon: User },
+  { label: "Profil", href: "/messenger/profile", icon: User },
 ] as const
 
 export default function MessengerBottomNav() {

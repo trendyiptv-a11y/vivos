@@ -833,7 +833,7 @@ export default function ConversationPage() {
         } = await supabase.auth.getSession()
 
         if (!retrySession?.user) {
-          router.push("/login")
+          router.push("/messenger/login")
           return
         }
 
@@ -1102,7 +1102,7 @@ export default function ConversationPage() {
 
         setIncomingCall(null)
         setCallUiState("connected")
-        router.replace(`/messages/${conversationId}`)
+        router.replace(`/messenger/${conversationId}`)
       } catch (error: any) {
         console.error("Accept call error:", error)
         alert(error?.message || "Nu am putut accepta apelul.")
@@ -1173,7 +1173,7 @@ export default function ConversationPage() {
         setIncomingCall(null)
         setCurrentCallSessionId(null)
         setCallUiState("idle")
-        router.replace(`/messages/${conversationId}`)
+        router.replace(`/messenger/${conversationId}`)
         setCallBusy(false)
       }
     },
@@ -1682,7 +1682,7 @@ export default function ConversationPage() {
           <div className="flex items-center gap-3 px-4 py-3">
             <button
               type="button"
-              onClick={() => router.push("/messages")}
+              onClick={() => router.push("/messenger")}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition"
               style={{ color: "rgba(255,255,255,0.72)" }}
             >

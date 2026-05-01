@@ -116,7 +116,7 @@ export default function MessengerPage() {
     async function load() {
       setLoading(true)
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) { router.push("/login"); return }
+      if (!session?.user) { router.push("/login?redirect=/messenger"); return }
       setUserId(session.user.id)
       setUserEmail(session.user.email ?? null)
 

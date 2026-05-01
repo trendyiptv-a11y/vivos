@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Suspense, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -66,6 +66,25 @@ function LoginForm() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
+
+  useEffect(() => {
+    const selectors = [".messenger-bottom-nav", ".vivos-mobile-bottom-nav"]
+    const previous: Array<{ el: HTMLElement; display: string }> = []
+
+    selectors.forEach((selector) => {
+      document.querySelectorAll(selector).forEach((node) => {
+        const el = node as HTMLElement
+        previous.push({ el, display: el.style.display })
+        el.style.display = "none"
+      })
+    })
+
+    return () => {
+      previous.forEach(({ el, display }) => {
+        el.style.display = display
+      })
+    }
+  }, [])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()

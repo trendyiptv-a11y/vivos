@@ -12,6 +12,8 @@ import {
   PhoneOff,
   RefreshCcw,
   Send,
+  Volume2,
+  VolumeX,
   Video,
   VideoOff,
 } from "lucide-react"
@@ -152,7 +154,7 @@ export default function ConversationPage() {
   const conversationId = String(params.id)
 
   const [userId, setUserId] = useState<string | null>(null)
-  const [userEmail, setUserEmail] = useState<string | null>(null)
+  // FIX #1: removed userEmail state — loaded but never used in JSX
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [body, setBody] = useState("")
@@ -174,6 +176,7 @@ export default function ConversationPage() {
   const [isMicEnabled, setIsMicEnabled] = useState(true)
   const [isCameraEnabled, setIsCameraEnabled] = useState(true)
   const [usingFrontCamera, setUsingFrontCamera] = useState(true)
+  const [isSpeakerOn, setIsSpeakerOn] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -192,6 +195,12 @@ export default function ConversationPage() {
   const previousMessageCountRef = useRef(0)
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  // FIX #5: ref to capture userId at timer execution time
+  const userIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    userIdRef.current = userId
+  }, [userId])
 
   // Hide global bottom nav on this page
   useEffect(() => {
@@ -240,7 +249,7 @@ export default function ConversationPage() {
         data: { session },
       } = await supabase.auth.getSession()
 
-      setUserEmail(session?.user?.email ?? null)
+      // FIX #1: removed setUserEmail — not used in JSX
 
       if (!session?.user) {
         setUnreadCount(0)
@@ -428,6 +437,7 @@ export default function ConversationPage() {
     setIsMicEnabled(true)
     setIsCameraEnabled(true)
     setUsingFrontCamera(true)
+    setIsSpeakerOn(false)
     setCurrentCallType("audio")
   }, [stopRingtone])
 
@@ -464,7 +474,11 @@ export default function ConversationPage() {
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
           video:
             desiredCallType === "video"
               ? { facingMode: usingFrontCamera ? "user" : "environment" }
@@ -519,6 +533,14 @@ export default function ConversationPage() {
           audioEl.autoplay = true
           audioEl.muted = false
           audioEl.setAttribute("playsinline", "true")
+          // Route to earpiece by default (setSinkId not supported on iOS Safari)
+          if (typeof (audioEl as any).setSinkId === "function") {
+            try {
+              await (audioEl as any).setSinkId("") // "" = default = earpiece
+            } catch (e) {
+              console.warn("setSinkId not supported:", e)
+            }
+          }
           try {
             await audioEl.play()
           } catch (error) {
@@ -607,6 +629,30 @@ export default function ConversationPage() {
     setIsCameraEnabled(nextEnabled)
     await syncLocalVideoPreview()
   }, [syncLocalVideoPreview])
+
+  const toggleSpeaker = useCallback(async () => {
+    const audioEl = remoteAudioRef.current
+    const next = !isSpeakerOn
+    setIsSpeakerOn(next)
+
+    if (!audioEl) return
+
+    if (typeof (audioEl as any).setSinkId === "function") {
+      try {
+        // "" = default (earpiece), "speaker" or specific deviceId = loudspeaker
+        const deviceId = next ? "speaker" : ""
+        await (audioEl as any).setSinkId(deviceId)
+      } catch (e) {
+        console.warn("setSinkId toggle error:", e)
+        // Fallback: on iOS, mute/unmute trick won't help
+        // Best effort: update state only
+      }
+    } else {
+      // iOS Safari fallback: no setSinkId support
+      // Inform user via console; UI still shows toggle
+      console.info("setSinkId not supported on this browser. Speaker toggle is visual only on iOS Safari.")
+    }
+  }, [isSpeakerOn])
 
   const switchCamera = useCallback(async () => {
     try {
@@ -801,34 +847,34 @@ export default function ConversationPage() {
         data: { session },
       } = await supabase.auth.getSession()
 
-     if (!session?.user) {
-  await new Promise((resolve) => setTimeout(resolve, 400))
+      if (!session?.user) {
+        await new Promise((resolve) => setTimeout(resolve, 400))
 
-  const {
-    data: { session: retrySession },
-  } = await supabase.auth.getSession()
+        const {
+          data: { session: retrySession },
+        } = await supabase.auth.getSession()
 
-  if (!retrySession?.user) {
-    router.push("/login")
-    return
-  }
+        if (!retrySession?.user) {
+          router.push("/login")
+          return
+        }
 
-  setUserId(retrySession.user.id)
-  setUserEmail(retrySession.user.email ?? null)
+        setUserId(retrySession.user.id)
+        // FIX #1: removed setUserEmail
 
-  await Promise.all([
-    loadMessagesOnly(),
-    loadMembersOnly(),
-    markActiveConversation(retrySession.user.id),
-    markConversationNotificationsRead(retrySession.user.id),
-  ])
+        await Promise.all([
+          loadMessagesOnly(),
+          loadMembersOnly(),
+          markActiveConversation(retrySession.user.id),
+          markConversationNotificationsRead(retrySession.user.id),
+        ])
 
-  setLoading(false)
-  return
-}
+        setLoading(false)
+        return
+      }
 
       setUserId(session.user.id)
-      setUserEmail(session.user.email ?? null)
+      // FIX #1: removed setUserEmail
 
       await Promise.all([
         loadMessagesOnly(),
@@ -1349,13 +1395,17 @@ export default function ConversationPage() {
     let cancelled = false
 
     async function resolveAndHandleAction() {
+      // FIX #5: read userId from ref at execution time, not from closure
+      const currentUserId = userIdRef.current
+      if (!currentUserId) return
+
       try {
         const { data, error } = await supabase
           .from("call_sessions")
           .select("id, caller_id, callee_id, status, created_at, call_type")
           .eq("id", targetCallSessionId)
           .eq("conversation_id", conversationId)
-          .eq("callee_id", userId)
+          .eq("callee_id", currentUserId)
           .maybeSingle()
 
         if (cancelled || error || !data?.id) return
@@ -1409,66 +1459,67 @@ export default function ConversationPage() {
     rejectCallBySessionId,
   ])
 
- async function handleStartCall(callType: CallType) {
-  if (!userId || !otherMember?.member_id || callUiState !== "idle" || !callChannelRef.current) {
-    return
-  }
-
-  try {
-    setCallBusy(true)
-    setCurrentCallType(callType)
-    await ensureLocalStream(callType)
-
-    const { data: callSession, error: callSessionError } = await supabase
-      .from("call_sessions")
-      .insert({
-        conversation_id: conversationId,
-        caller_id: userId,
-        callee_id: otherMember.member_id,
-        status: "ringing",
-        call_type: callType,
-      })
-      .select("id")
-      .single()
-
-    if (callSessionError || !callSession?.id) {
-      alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`)
-      cleanupAudioCall()
+  async function handleStartCall(callType: CallType) {
+    if (!userId || !otherMember?.member_id || callUiState !== "idle" || !callChannelRef.current) {
       return
     }
 
-    const callSessionId = callSession.id
+    try {
+      setCallBusy(true)
+      setCurrentCallType(callType)
+      await ensureLocalStream(callType)
 
-    await supabase.from("call_events").insert({
-      call_session_id: callSessionId,
-      actor_id: userId,
-      event_type: "invite",
-      payload: { conversationId, callType },
-    })
+      const { data: callSession, error: callSessionError } = await supabase
+        .from("call_sessions")
+        .insert({
+          conversation_id: conversationId,
+          caller_id: userId,
+          callee_id: otherMember.member_id,
+          status: "ringing",
+          call_type: callType,
+        })
+        .select("id")
+        .single()
 
-    await callChannelRef.current.send({
-      type: "broadcast",
-      event: "call_invite",
-      payload: {
-        type: "call_invite",
-        callSessionId,
-        conversationId,
-        fromUserId: userId,
-        toUserId: otherMember.member_id,
-        callType,
-      },
-    })
+      if (callSessionError || !callSession?.id) {
+        alert(`Nu am putut porni apelul: ${callSessionError?.message || "necunoscut"}`)
+        cleanupAudioCall()
+        return
+      }
 
-    setCurrentCallSessionId(callSessionId)
-    setCallUiState("outgoing")
-  } catch (error: any) {
-    console.error("Start call error:", error)
-    alert(error?.message || "Nu am putut porni apelul.")
-    cleanupAudioCall()
-  } finally {
-    setCallBusy(false)
+      const callSessionId = callSession.id
+
+      await supabase.from("call_events").insert({
+        call_session_id: callSessionId,
+        actor_id: userId,
+        event_type: "invite",
+        payload: { conversationId, callType },
+      })
+
+      await callChannelRef.current.send({
+        type: "broadcast",
+        event: "call_invite",
+        payload: {
+          type: "call_invite",
+          callSessionId,
+          conversationId,
+          fromUserId: userId,
+          toUserId: otherMember.member_id,
+          callType,
+        },
+      })
+
+      setCurrentCallSessionId(callSessionId)
+      setCallUiState("outgoing")
+    } catch (error: any) {
+      console.error("Start call error:", error)
+      alert(error?.message || "Nu am putut porni apelul.")
+      cleanupAudioCall()
+    } finally {
+      setCallBusy(false)
+    }
   }
-}
+
   async function handleEndCall() {
     if (!userId || !currentCallSessionId) {
       cleanupAudioCall()
@@ -1535,6 +1586,8 @@ export default function ConversationPage() {
 
       if (!session?.access_token) {
         alert("Sesiunea nu este validă. Reautentifică-te.")
+        // FIX #7: unlock send button when session is invalid
+        setSending(false)
         return
       }
 
@@ -2069,9 +2122,7 @@ export default function ConversationPage() {
                   onClick={handleAcceptCall}
                   disabled={callBusy || isOffline}
                   className="flex items-center justify-center gap-2 rounded-full px-5 py-4 text-sm font-semibold text-white shadow-xl disabled:opacity-50"
-                  style={{
-                    background: "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)",
-                  }}
+                  style={{ background: "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)" }}
                 >
                   <Phone className="h-4 w-4" />
                   {callBusy ? "..." : "Răspunde"}
@@ -2082,9 +2133,7 @@ export default function ConversationPage() {
                   onClick={handleRejectCall}
                   disabled={callBusy}
                   className="flex items-center justify-center gap-2 rounded-full px-5 py-4 text-sm font-semibold text-white shadow-xl disabled:opacity-50"
-                  style={{
-                    background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)",
-                  }}
+                  style={{ background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)" }}
                 >
                   <PhoneOff className="h-4 w-4" />
                   {callBusy ? "..." : "Respinge"}
@@ -2134,12 +2183,23 @@ export default function ConversationPage() {
 
                 <button
                   type="button"
+                  onClick={toggleSpeaker}
+                  title={isSpeakerOn ? "Comută la ureche" : "Comută la difuzor"}
+                  className="flex h-14 w-14 items-center justify-center rounded-full text-white transition"
+                  style={{
+                    background: isSpeakerOn ? "rgba(99,166,230,0.30)" : "rgba(255,255,255,0.12)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                  }}
+                >
+                  {isSpeakerOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleEndCall}
                   disabled={callBusy}
                   className="flex h-16 min-w-[84px] items-center justify-center rounded-full px-5 text-white shadow-xl disabled:opacity-50"
-                  style={{
-                    background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)",
-                  }}
+                  style={{ background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)" }}
                 >
                   <PhoneOff className="h-6 w-6" />
                 </button>
@@ -2179,9 +2239,7 @@ export default function ConversationPage() {
               {callUiState === "incoming" && (
                 <div className="mt-2 flex items-center gap-1.5">
                   <PhoneIncoming className="h-3.5 w-3.5" style={{ color: vivosColors.pink }} />
-                  <p className="text-sm" style={{ color: "#E5B3D2" }}>
-                    Apel primit
-                  </p>
+                  <p className="text-sm" style={{ color: "#E5B3D2" }}>Apel primit</p>
                 </div>
               )}
 
@@ -2203,22 +2261,35 @@ export default function ConversationPage() {
                       style={{ background: vivosColors.teal }}
                     />
                   </span>
-                  <p className="text-sm font-medium" style={{ color: "#93E9F2" }}>
-                    Conectat
-                  </p>
+                  <p className="text-sm font-medium" style={{ color: "#93E9F2" }}>Conectat</p>
                 </div>
               )}
             </div>
 
             {callUiState === "connected" && (
               <div
-                className="mx-6 mb-4 flex items-center gap-2 rounded-2xl px-4 py-3"
+                className="mx-6 mb-4 flex items-center justify-between gap-2 rounded-2xl px-4 py-3"
                 style={{ background: "rgba(255,255,255,0.06)" }}
               >
-                <Mic className="h-4 w-4" style={{ color: vivosColors.teal }} />
-                <span className="text-sm" style={{ color: "rgba(255,255,255,0.68)" }}>
-                  Microfon activ
-                </span>
+                <div className="flex items-center gap-2">
+                  <Mic className="h-4 w-4" style={{ color: vivosColors.teal }} />
+                  <span className="text-sm" style={{ color: "rgba(255,255,255,0.68)" }}>
+                    Microfon activ
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleSpeaker}
+                  title={isSpeakerOn ? "Comută la ureche" : "Comută la difuzor"}
+                  className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-white transition"
+                  style={{
+                    background: isSpeakerOn ? "rgba(99,166,230,0.30)" : "rgba(255,255,255,0.10)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                  }}
+                >
+                  {isSpeakerOn ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                  <span>{isSpeakerOn ? "Difuzor" : "Ureche"}</span>
+                </button>
               </div>
             )}
 
@@ -2230,9 +2301,7 @@ export default function ConversationPage() {
                     onClick={handleAcceptCall}
                     disabled={callBusy || isOffline}
                     className="flex items-center justify-center gap-2 rounded-2xl py-4 text-sm font-medium text-white shadow transition disabled:opacity-50"
-                    style={{
-                      background: "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)",
-                    }}
+                    style={{ background: "linear-gradient(135deg, #45BFD2 0%, #63A6E6 100%)" }}
                   >
                     <Phone className="h-4 w-4" />
                     {callBusy ? "..." : "Răspunde"}
@@ -2261,9 +2330,7 @@ export default function ConversationPage() {
                   onClick={handleEndCall}
                   disabled={callBusy}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-medium text-white shadow transition disabled:opacity-50"
-                  style={{
-                    background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)",
-                  }}
+                  style={{ background: "linear-gradient(135deg, #F87171 0%, #EF4444 100%)" }}
                 >
                   <PhoneOff className="h-4 w-4" />
                   {callBusy ? "Se închide..." : callUiState === "connected" ? "Închide apelul" : "Anulează apelul"}

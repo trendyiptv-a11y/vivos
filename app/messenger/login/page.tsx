@@ -114,7 +114,7 @@ function LoginForm() {
             <Button type="submit" className="w-full rounded-2xl border-0" style={{ background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white, boxShadow: vivosTheme.shadows.bubble }} disabled={loading}>
               {loading ? text.loading : text.login}
             </Button>
-            <Button type="button" variant="outline" className="w-full rounded-2xl" onClick={() => router.push("/signup")}>
+            <Button type="button" variant="outline" className="w-full rounded-2xl" onClick={() => router.push("/messenger/signup")}>
               {text.createAccount}
             </Button>
           </form>

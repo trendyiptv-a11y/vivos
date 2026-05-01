@@ -14,7 +14,7 @@ type AppLang = "ro" | "da" | "en"
 
 const loginTexts: Record<AppLang, Record<string, string>> = {
   ro: {
-    platform: "VIVOS Messenger",
+    platform: "Messenger VIVOS",
     title: "Intră în Messenger",
     email: "Email",
     password: "Parolă",
@@ -27,7 +27,7 @@ const loginTexts: Record<AppLang, Record<string, string>> = {
     success: "Autentificare reușită.",
   },
   da: {
-    platform: "VIVOS Messenger",
+    platform: "Messenger VIVOS",
     title: "Log ind i Messenger",
     email: "E-mail",
     password: "Adgangskode",
@@ -40,7 +40,7 @@ const loginTexts: Record<AppLang, Record<string, string>> = {
     success: "Login gennemført.",
   },
   en: {
-    platform: "VIVOS Messenger",
+    platform: "Messenger VIVOS",
     title: "Log in to Messenger",
     email: "Email",
     password: "Password",
@@ -110,7 +110,7 @@ function LoginForm() {
         <CardHeader className="pb-4 text-center">
           <div className="mb-3 flex justify-center">
             <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl shadow-sm">
-              <img src="/icons/icon-192.png" alt="VIVOS Messenger" className="h-14 w-14 object-cover" />
+              <img src="/icons/icon-192.png" alt="Messenger VIVOS" className="h-14 w-14 object-cover" />
             </div>
           </div>
           <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{text.platform}</p>

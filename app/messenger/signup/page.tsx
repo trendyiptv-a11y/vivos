@@ -14,7 +14,7 @@ type AppLang = "ro" | "da" | "en"
 const signupTexts: Record<AppLang, Record<string, string>> = {
   ro: {
     platform: "Messenger VIVOS",
-    title: "Creează cont Messenger",
+    title: "Creează cont VIVOS",
     email: "Email",
     emailPlaceholder: "nume@email.com",
     password: "Parolă",
@@ -26,7 +26,7 @@ const signupTexts: Record<AppLang, Record<string, string>> = {
   },
   da: {
     platform: "Messenger VIVOS",
-    title: "Opret Messenger-konto",
+    title: "Opret VIVOS-konto",
     email: "E-mail",
     emailPlaceholder: "navn@email.com",
     password: "Adgangskode",
@@ -38,7 +38,7 @@ const signupTexts: Record<AppLang, Record<string, string>> = {
   },
   en: {
     platform: "Messenger VIVOS",
-    title: "Create Messenger account",
+    title: "Create VIVOS account",
     email: "Email",
     emailPlaceholder: "name@email.com",
     password: "Password",

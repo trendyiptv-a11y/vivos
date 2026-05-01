@@ -344,6 +344,14 @@ export default function MessengerCallsPage() {
                       <Button className="rounded-2xl" onClick={() => router.push(`/messenger/${call.conversation_id}`)}>
                         Deschide conversația
                       </Button>
+                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/messenger/${call.conversation_id}?autoCall=audio`)}>
+                        <Phone className="mr-2 h-4 w-4" />
+                        Reapelare audio
+                      </Button>
+                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/messenger/${call.conversation_id}?autoCall=video`)}>
+                        <Video className="mr-2 h-4 w-4" />
+                        Reapelare video
+                      </Button>
                     </div>
                   </div>
                 )

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
 import { useI18n } from "@/lib/i18n/provider"
-import { Bell, MessageCircle, Phone, Search } from "lucide-react"
+import { MessageCircle, Phone, Search } from "lucide-react"
 
 type AppLang = "ro" | "da" | "en"
 
@@ -289,24 +289,6 @@ export default function MessengerPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <button
-                className="flex h-10 w-10 items-center justify-center rounded-2xl border"
-                style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.08)" }}
-                onClick={() => router.push("/messenger/notifications")}
-              >
-                <Bell className="h-5 w-5 text-white" />
-              </button>
-              {unreadCount > 0 && (
-                <div
-                  className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-bold text-white"
-                  style={{ background: vivosTheme.colors.purple }}
-                >
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </div>
-              )}
-            </div>
-
             {userEmail ? (
               <div className="relative" ref={menuRef}>
                 <button className="rounded-2xl" onClick={() => setMenuOpen((p) => !p)}>
@@ -318,15 +300,16 @@ export default function MessengerPage() {
                 </button>
                 {menuOpen && (
                   <div className="absolute right-0 top-12 z-50 w-44 rounded-2xl border p-2 shadow-lg" style={{ background: "rgba(18,46,84,0.98)", borderColor: "rgba(255,255,255,0.10)" }}>
+                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10" onClick={() => { setMenuOpen(false); router.push("/messenger") }}>
+                      Mesaje
+                    </button>
+                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10" onClick={() => { setMenuOpen(false); router.push("/messenger/calls") }}>
+                      Apeluri
+                    </button>
                     <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10" onClick={() => { setMenuOpen(false); router.push("/messenger/profile") }}>
                       Profil
                     </button>
-                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10" onClick={() => { setMenuOpen(false); router.push("/messenger/settings") }}>
-                      Setări
-                    </button>
-                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10" onClick={() => { setMenuOpen(false); router.push("/messenger/about") }}>
-                      Despre
-                    </button>
+                    <div className="mx-2 my-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
                     <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 hover:bg-white/10" onClick={async () => { setMenuOpen(false); await supabase.auth.signOut(); router.push("/messenger/login") }}>
                       Logout
                     </button>

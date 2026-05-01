@@ -20,6 +20,18 @@ type CallRow = {
   ended_at: string | null
 }
 
+type RawCallRow = {
+  id: string
+  conversation_id: string
+  caller_id: string
+  callee_id: string
+  status: string
+  call_type: string | null
+  created_at: string
+  answered_at: string | null
+  ended_at: string | null
+}
+
 type ProfileLite = {
   id: string
   name: string | null
@@ -99,9 +111,16 @@ export default function MessengerCallsPage() {
       return
     }
 
-    const loadedCalls = ((data ?? []) as CallRow[]).map((item) => ({
-      ...item,
+    const loadedCalls: CallRow[] = ((data ?? []) as RawCallRow[]).map((item) => ({
+      id: item.id,
+      conversation_id: item.conversation_id,
+      caller_id: item.caller_id,
+      callee_id: item.callee_id,
+      status: item.status,
       call_type: item.call_type === "video" ? "video" : "audio",
+      created_at: item.created_at,
+      answered_at: item.answered_at,
+      ended_at: item.ended_at,
     }))
     setCalls(loadedCalls)
 

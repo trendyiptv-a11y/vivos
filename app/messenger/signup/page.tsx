@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -60,6 +60,25 @@ export default function MessengerSignupPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
+
+  useEffect(() => {
+    const selectors = [".messenger-bottom-nav", ".vivos-mobile-bottom-nav"]
+    const previous: Array<{ el: HTMLElement; display: string }> = []
+
+    selectors.forEach((selector) => {
+      document.querySelectorAll(selector).forEach((node) => {
+        const el = node as HTMLElement
+        previous.push({ el, display: el.style.display })
+        el.style.display = "none"
+      })
+    })
+
+    return () => {
+      previous.forEach(({ el, display }) => {
+        el.style.display = display
+      })
+    }
+  }, [])
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()

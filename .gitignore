@@ -1,3 +1,12 @@
-node_modules/ 
-.next/ 
-.env.local 
+node_modules/
+.next/
+.env.local
+.env
+
+# Android secrets - nu comite in repo public
+android/app/google-services.json
+android/app/*.keystore
+android/app/*.jks
+messenger-android/app/google-services.json
+messenger-android/app/*.keystore
+messenger-android/app/*.jks

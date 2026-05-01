@@ -2,7 +2,7 @@ import "./globals.css"
 import type { Metadata, Viewport } from "next"
 import { ReactNode, Suspense } from "react"
 import ServiceWorkerRegister from "./ServiceWorkerRegister"
-import MobileBottomNav from "@/components/mobile-bottom-nav"
+import ConditionalNav from "@/components/ConditionalNav"
 import NativePushSetup from "@/components/NativePushSetup"
 import WebPushSetup from "@/components/WebPushSetup"
 import InAppPushBanner from "@/components/InAppPushBanner"
@@ -64,7 +64,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             {children}
           </div>
 
-          <MobileBottomNav />
+          <ConditionalNav />
         </I18nProvider>
       </body>
     </html>

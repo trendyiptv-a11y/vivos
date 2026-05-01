@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -54,8 +54,10 @@ const loginTexts: Record<AppLang, Record<string, string>> = {
   },
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get("redirect") || "/"
   const { language } = useI18n()
   const lang = (language === "da" || language === "en" ? language : "ro") as AppLang
   const text = loginTexts[lang]
@@ -82,7 +84,7 @@ export default function LoginPage() {
     }
 
     setMessage(text.success)
-    router.push("/")
+    router.push(redirectTo)
     router.refresh()
   }
 
@@ -171,5 +173,13 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

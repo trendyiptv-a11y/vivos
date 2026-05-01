@@ -141,7 +141,7 @@ export default function MessengerPage() {
     async function load() {
       setLoading(true)
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) { router.push("/login?redirect=/messenger"); return }
+      if (!session?.user) { router.push("/messenger/login?redirect=/messenger"); return }
       setUserId(session.user.id)
       setUserEmail(session.user.email ?? null)
 
@@ -184,7 +184,7 @@ export default function MessengerPage() {
         id: m.id, conversation_id: m.conversation_id, body: m.body, created_at: m.created_at,
       }))
 
-      const unreadMsgIds = ((notifResult.data ?? []) as NotifRow[]).map(n => n.ref_id).filter((v): v is string => !!v)
+      const unreadMsgIds = ((notifResult.data ?? []) as NotifRow[]).map(n => n.ref_id).filter((v): value is string => !!v)
       const unreadByConvMap: Record<string, number> = {}
 
       if (unreadMsgIds.length > 0) {
@@ -271,7 +271,7 @@ export default function MessengerPage() {
               <button
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border"
                 style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.08)" }}
-                onClick={() => router.push("/notifications")}
+                onClick={() => router.push("/messenger/notifications")}
               >
                 <Bell className="h-5 w-5 text-white" />
               </button>
@@ -296,17 +296,23 @@ export default function MessengerPage() {
                 </button>
                 {menuOpen && (
                   <div className="absolute right-0 top-12 z-50 w-44 rounded-2xl border p-2 shadow-lg" style={{ background: "rgba(18,46,84,0.98)", borderColor: "rgba(255,255,255,0.10)" }}>
-                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10" onClick={() => { setMenuOpen(false); router.push("/profile") }}>
+                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10" onClick={() => { setMenuOpen(false); router.push("/messenger/profile") }}>
                       Profil
                     </button>
-                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 hover:bg-white/10" onClick={async () => { setMenuOpen(false); await supabase.auth.signOut(); router.push("/login") }}>
+                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10" onClick={() => { setMenuOpen(false); router.push("/messenger/settings") }}>
+                      Setări
+                    </button>
+                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10" onClick={() => { setMenuOpen(false); router.push("/messenger/about") }}>
+                      Despre
+                    </button>
+                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 hover:bg-white/10" onClick={async () => { setMenuOpen(false); await supabase.auth.signOut(); router.push("/messenger/login") }}>
                       Logout
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <Button className="rounded-2xl border-0 text-sm" style={{ background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white }} onClick={() => router.push("/login")}>
+              <Button className="rounded-2xl border-0 text-sm" style={{ background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white }} onClick={() => router.push("/messenger/login") }>
                 {text.login}
               </Button>
             )}

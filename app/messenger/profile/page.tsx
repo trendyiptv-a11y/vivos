@@ -99,6 +99,8 @@ export default function MessengerProfilePage() {
   }
 
   const avatarSeed = email || name || alias || "VI"
+  const displayName = name.trim() || "Membru Messenger"
+  const displayAlias = alias.trim() ? `@${alias.trim()}` : "Fără alias"
 
   return (
     <main className="min-h-screen pb-28" style={{ background: vivosTheme.gradients.appBackground }}>
@@ -134,27 +136,29 @@ export default function MessengerProfilePage() {
           className="rounded-[28px] border p-4"
           style={{ background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.10)" }}
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 rounded-3xl border border-white/15">
-                <AvatarFallback
-                  className="rounded-3xl text-lg font-semibold text-white"
-                  style={{ background: getVivosAvatarGradient(avatarSeed) }}
-                >
-                  {avatarSeed.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.52)" }}>
-                  Spațiu independent
-                </p>
-                <h2 className="text-xl font-semibold text-white">Identitate Messenger</h2>
-                <p className="text-sm" style={{ color: "rgba(255,255,255,0.62)" }}>
-                  Aici rămân doar datele de bază pentru conversații și apeluri, fără interfața platformei mari.
-                </p>
-              </div>
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16 rounded-3xl border border-white/15">
+              <AvatarFallback
+                className="rounded-3xl text-lg font-semibold text-white"
+                style={{ background: getVivosAvatarGradient(avatarSeed) }}
+              >
+                {avatarSeed.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xl font-semibold text-white">{displayName}</p>
+              <p className="mt-1 truncate text-sm" style={{ color: "rgba(255,255,255,0.62)" }}>
+                {displayAlias}
+              </p>
+              <p className="mt-1 truncate text-xs" style={{ color: "rgba(255,255,255,0.48)" }}>
+                {email}
+              </p>
             </div>
-            <Button variant="outline" className="rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={handleLogout}>
+          </div>
+
+          <div className="mt-4">
+            <Button variant="outline" className="w-full rounded-2xl border-white/15 bg-white/10 text-white hover:bg-white/15" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </Button>
@@ -178,12 +182,12 @@ export default function MessengerProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-medium"><UserRound className="h-4 w-4" />Nume</label>
+                  <label className="flex items-center gap-2 text-sm font-medium"><UserRound className="h-4 w-4" />Nume afișat în conversații</label>
                   <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Numele tău în Messenger" className="rounded-2xl" />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-medium"><AtSign className="h-4 w-4" />Alias</label>
+                  <label className="flex items-center gap-2 text-sm font-medium"><AtSign className="h-4 w-4" />Alias scurt</label>
                   <Input value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="Alias scurt" className="rounded-2xl" />
                 </div>
 
@@ -196,7 +200,6 @@ export default function MessengerProfilePage() {
                     <Save className="mr-2 h-4 w-4" />
                     {saving ? "Se salvează..." : "Salvează"}
                   </Button>
-                  <Button type="button" variant="outline" className="rounded-2xl" onClick={() => router.push("/messenger")}>Înapoi la Messenger</Button>
                 </div>
               </form>
             )}

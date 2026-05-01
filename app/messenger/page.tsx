@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
 import { useI18n } from "@/lib/i18n/provider"
-import { Bell, MessageCircle } from "lucide-react"
+import { Bell, MessageCircle, Phone, Search } from "lucide-react"
 
 type AppLang = "ro" | "da" | "en"
 
@@ -21,6 +21,14 @@ const t: Record<AppLang, Record<string, string>> = {
     noMessages: "Fără mesaje",
     memberFallback: "Membru",
     login: "Autentifică-te",
+    search: "Caută în conversații...",
+    unread: "Necitite",
+    all: "Toate",
+    directSpace: "Spațiu direct de legătură",
+    directSpaceBody: "Mesaje clare, apeluri rapide și contact uman fără zgomot inutil.",
+    openCalls: "Deschide apeluri",
+    activeNow: "Active acum",
+    results: "rezultate",
   },
   da: {
     title: "VIVOS Messenger",
@@ -31,6 +39,14 @@ const t: Record<AppLang, Record<string, string>> = {
     noMessages: "Ingen beskeder",
     memberFallback: "Medlem",
     login: "Log ind",
+    search: "Søg i samtaler...",
+    unread: "Ulæste",
+    all: "Alle",
+    directSpace: "Direkte kontaktområde",
+    directSpaceBody: "Klare beskeder, hurtige opkald og menneskelig kontakt uden unødig støj.",
+    openCalls: "Åbn opkald",
+    activeNow: "Aktive nu",
+    results: "resultater",
   },
   en: {
     title: "VIVOS Messenger",
@@ -41,6 +57,14 @@ const t: Record<AppLang, Record<string, string>> = {
     noMessages: "No messages",
     memberFallback: "Member",
     login: "Log in",
+    search: "Search conversations...",
+    unread: "Unread",
+    all: "All",
+    directSpace: "Direct connection space",
+    directSpaceBody: "Clear messages, quick calls, and human contact without unnecessary noise.",
+    openCalls: "Open calls",
+    activeNow: "Active now",
+    results: "results",
   },
 }
 
@@ -79,6 +103,7 @@ export default function MessengerPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [search, setSearch] = useState("")
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   const [conversations, setConversations] = useState<ConversationRow[]>([])
@@ -205,9 +230,18 @@ export default function MessengerPage() {
     })
   }, [conversations, members, messages, unreadByConv, userId, text])
 
+  const filteredCards = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    if (!term) return cards
+    return cards.filter(card => {
+      return [card.name, card.email || "", card.preview].some(value => value.toLowerCase().includes(term))
+    })
+  }, [cards, search])
+
+  const activeNowCount = useMemo(() => cards.filter(card => card.hasUnread).length, [cards])
+
   return (
     <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
-      {/* Header */}
       <header
         className="sticky top-0 z-10 border-b backdrop-blur-xl"
         style={{
@@ -253,45 +287,26 @@ export default function MessengerPage() {
 
             {userEmail ? (
               <div className="relative" ref={menuRef}>
-                <button
-                  className="rounded-2xl"
-                  onClick={() => setMenuOpen(p => !p)}
-                >
+                <button className="rounded-2xl" onClick={() => setMenuOpen(p => !p)}>
                   <Avatar className="h-10 w-10 rounded-2xl border border-white/15">
-                    <AvatarFallback
-                      className="rounded-2xl text-white text-sm font-semibold"
-                      style={{ background: getVivosAvatarGradient(userEmail) }}
-                    >
+                    <AvatarFallback className="rounded-2xl text-white text-sm font-semibold" style={{ background: getVivosAvatarGradient(userEmail) }}>
                       {userEmail.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </button>
                 {menuOpen && (
-                  <div
-                    className="absolute right-0 top-12 z-50 w-44 rounded-2xl border p-2 shadow-lg"
-                    style={{ background: "rgba(18,46,84,0.98)", borderColor: "rgba(255,255,255,0.10)" }}
-                  >
-                    <button
-                      className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10"
-                      onClick={() => { setMenuOpen(false); router.push("/profile") }}
-                    >
+                  <div className="absolute right-0 top-12 z-50 w-44 rounded-2xl border p-2 shadow-lg" style={{ background: "rgba(18,46,84,0.98)", borderColor: "rgba(255,255,255,0.10)" }}>
+                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-white/85 hover:bg-white/10" onClick={() => { setMenuOpen(false); router.push("/profile") }}>
                       Profil
                     </button>
-                    <button
-                      className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 hover:bg-white/10"
-                      onClick={async () => { setMenuOpen(false); await supabase.auth.signOut(); router.push("/login") }}
-                    >
+                    <button className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 hover:bg-white/10" onClick={async () => { setMenuOpen(false); await supabase.auth.signOut(); router.push("/login") }}>
                       Logout
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <Button
-                className="rounded-2xl border-0 text-sm"
-                style={{ background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white }}
-                onClick={() => router.push("/login")}
-              >
+              <Button className="rounded-2xl border-0 text-sm" style={{ background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white }} onClick={() => router.push("/login")}>
                 {text.login}
               </Button>
             )}
@@ -299,18 +314,71 @@ export default function MessengerPage() {
         </div>
       </header>
 
-      {/* Lista conversații */}
-      <div className="mx-auto max-w-2xl space-y-2 px-4 py-4 pb-28">
+      <div className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-28">
+        <section className="rounded-[28px] border p-4" style={{ background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.10)" }}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.52)" }}>
+                {text.subtitle}
+              </p>
+              <h2 className="text-xl font-semibold text-white">{text.directSpace}</h2>
+              <p className="max-w-xl text-sm" style={{ color: "rgba(255,255,255,0.62)" }}>
+                {text.directSpaceBody}
+              </p>
+            </div>
+            <Button className="rounded-2xl border-0" style={{ background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white }} onClick={() => router.push("/messenger/calls")}>
+              <Phone className="mr-2 h-4 w-4" />
+              {text.openCalls}
+            </Button>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}>
+              <p className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.46)" }}>{text.conversations}</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{cards.length}</p>
+            </div>
+            <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}>
+              <p className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.46)" }}>{text.unread}</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{unreadCount}</p>
+            </div>
+            <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}>
+              <p className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.46)" }}>{text.activeNow}</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{activeNowCount}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border p-3" style={{ background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.08)" }}>
+          <div className="flex items-center gap-3 rounded-2xl border px-3 py-2.5" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" }}>
+            <Search className="h-4 w-4 shrink-0" style={{ color: "rgba(255,255,255,0.45)" }} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={text.search}
+              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/35"
+            />
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3 px-1">
+            <p className="text-xs" style={{ color: "rgba(255,255,255,0.48)" }}>
+              {filteredCards.length} {text.results}
+            </p>
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="rounded-full px-2.5 py-1" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.72)" }}>{text.all}</span>
+              <span className="rounded-full px-2.5 py-1" style={{ background: unreadCount ? "rgba(154,113,193,0.22)" : "rgba(255,255,255,0.05)", color: unreadCount ? "#fff" : "rgba(255,255,255,0.55)" }}>{text.unread}: {unreadCount}</span>
+            </div>
+          </div>
+        </section>
+
         {loading ? (
           <div className="py-12 text-center text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
             {text.loading}
           </div>
-        ) : cards.length === 0 ? (
+        ) : filteredCards.length === 0 ? (
           <div className="py-12 text-center text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
-            {text.empty}
+            {search.trim() ? `${text.results}: 0` : text.empty}
           </div>
         ) : (
-          cards.map(card => (
+          filteredCards.map(card => (
             <button
               key={card.id}
               onClick={() => router.push(`/messenger/${card.id}`)}
@@ -321,36 +389,29 @@ export default function MessengerPage() {
               }}
             >
               <Avatar className="h-12 w-12 shrink-0 rounded-2xl">
-                <AvatarFallback
-                  className="rounded-2xl text-white font-semibold"
-                  style={{ background: getVivosAvatarGradient(card.email || card.name) }}
-                >
+                <AvatarFallback className="rounded-2xl text-white font-semibold" style={{ background: getVivosAvatarGradient(card.email || card.name) }}>
                   {card.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <p className={`truncate text-base text-white ${card.hasUnread ? "font-bold" : "font-medium"}`}>
-                    {card.name}
-                  </p>
+                  <div className="min-w-0">
+                    <p className={`truncate text-base text-white ${card.hasUnread ? "font-bold" : "font-medium"}`}>{card.name}</p>
+                    <p className="mt-0.5 text-[11px]" style={{ color: "rgba(255,255,255,0.40)" }}>{card.hasUnread ? text.unread : text.subtitle}</p>
+                  </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>
                       {new Date(card.date).toLocaleString(locale, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
                     </p>
                     {card.unreadCount > 0 && (
-                      <span
-                        className="flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-bold text-white"
-                        style={{ background: vivosTheme.colors.purple }}
-                      >
+                      <span className="flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-bold text-white" style={{ background: vivosTheme.colors.purple }}>
                         {card.unreadCount > 99 ? "99+" : card.unreadCount}
                       </span>
                     )}
                   </div>
                 </div>
-                <p
-                  className={`mt-1 truncate text-sm ${card.hasUnread ? "font-medium text-white/80" : "text-white/45"}`}
-                >
+                <p className={`mt-1 truncate text-sm ${card.hasUnread ? "font-medium text-white/80" : "text-white/45"}`}>
                   {card.preview}
                 </p>
               </div>

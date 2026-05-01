@@ -6,7 +6,6 @@ import { ArrowLeft, Save, UserRound, Mail, AtSign, LogOut } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { supabase } from "@/lib/supabase/client"
 import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
@@ -174,17 +173,17 @@ export default function MessengerProfilePage() {
             ) : (
               <form onSubmit={handleSave} className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2"><Mail className="h-4 w-4" />Email</Label>
+                  <label className="flex items-center gap-2 text-sm font-medium"><Mail className="h-4 w-4" />Email</label>
                   <Input value={email} disabled className="rounded-2xl bg-slate-100" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2"><UserRound className="h-4 w-4" />Nume</Label>
+                  <label className="flex items-center gap-2 text-sm font-medium"><UserRound className="h-4 w-4" />Nume</label>
                   <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Numele tău în Messenger" className="rounded-2xl" />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2"><AtSign className="h-4 w-4" />Alias</Label>
+                  <label className="flex items-center gap-2 text-sm font-medium"><AtSign className="h-4 w-4" />Alias</label>
                   <Input value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="Alias scurt" className="rounded-2xl" />
                 </div>
 

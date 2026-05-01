@@ -13,7 +13,7 @@ type AppLang = "ro" | "da" | "en"
 
 const signupTexts: Record<AppLang, Record<string, string>> = {
   ro: {
-    platform: "VIVOS Messenger",
+    platform: "Messenger VIVOS",
     title: "Creează cont Messenger",
     email: "Email",
     emailPlaceholder: "nume@email.com",
@@ -25,7 +25,7 @@ const signupTexts: Record<AppLang, Record<string, string>> = {
     success: "Cererea a fost procesată. Dacă emailul este nou, verifică inbox-ul pentru confirmare. Dacă ai deja cont, folosește Login.",
   },
   da: {
-    platform: "VIVOS Messenger",
+    platform: "Messenger VIVOS",
     title: "Opret Messenger-konto",
     email: "E-mail",
     emailPlaceholder: "navn@email.com",
@@ -37,7 +37,7 @@ const signupTexts: Record<AppLang, Record<string, string>> = {
     success: "Anmodningen er behandlet. Hvis e-mailen er ny, skal du tjekke din indbakke for bekræftelse. Hvis du allerede har en konto, brug Login.",
   },
   en: {
-    platform: "VIVOS Messenger",
+    platform: "Messenger VIVOS",
     title: "Create Messenger account",
     email: "Email",
     emailPlaceholder: "name@email.com",
@@ -109,7 +109,7 @@ export default function MessengerSignupPage() {
         <CardHeader className="pb-4 text-center">
           <div className="mb-3 flex justify-center">
             <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl shadow-sm">
-              <img src="/icons/icon-192.png" alt="VIVOS Messenger" className="h-14 w-14 object-cover" />
+              <img src="/icons/icon-192.png" alt="Messenger VIVOS" className="h-14 w-14 object-cover" />
             </div>
           </div>
 

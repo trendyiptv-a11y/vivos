@@ -7,3 +7,6 @@ node_modules/
 android/app/google-services.json
 android/app/*.keystore
 android/app/*.jks
+messenger-android/app/google-services.json
+messenger-android/app/*.keystore
+messenger-android/app/*.jks

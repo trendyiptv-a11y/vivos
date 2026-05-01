@@ -2,10 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Phone, Video, ArrowLeft, Clock3, PhoneIncoming, Radio, PhoneMissed, RefreshCcw } from "lucide-react"
-import { vivosTheme } from "@/lib/theme/vivos-theme"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+  Phone,
+  Video,
+  ArrowLeft,
+  Clock3,
+  PhoneIncoming,
+  PhoneMissed,
+  RefreshCcw,
+  PhoneOutgoing,
+  PhoneOff,
+  Filter,
+} from "lucide-react"
+import { vivosTheme, getVivosAvatarGradient } from "@/lib/theme/vivos-theme"
 import { supabase } from "@/lib/supabase/client"
 
 type CallRow = {
@@ -39,17 +50,24 @@ type ProfileLite = {
   email: string | null
 }
 
+type CallFilter = "all" | "audio" | "video" | "missed"
+
 function displayName(profile: ProfileLite | null) {
   return profile?.alias?.trim() || profile?.name?.trim() || profile?.email?.split("@")[0] || "Membru"
 }
 
 function formatWhen(value: string) {
-  return new Date(value).toLocaleString("ro-RO", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
+  const date = new Date(value)
+  return {
+    day: date.toLocaleDateString("ro-RO", {
+      day: "2-digit",
+      month: "2-digit",
+    }),
+    time: date.toLocaleTimeString("ro-RO", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  }
 }
 
 function computeDuration(call: CallRow) {
@@ -63,14 +81,36 @@ function computeDuration(call: CallRow) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`
 }
 
+function isMissedLike(call: CallRow, currentUserId: string | null) {
+  if (!currentUserId) return false
+  return call.status === "missed" || (call.status === "rejected" && call.callee_id === currentUserId)
+}
+
 function statusLabel(call: CallRow, currentUserId: string) {
   const isIncoming = call.callee_id === currentUserId
-  if (call.status === "missed") return "Ratată"
-  if (call.status === "rejected") return isIncoming ? "Respinsă de tine" : "Respinsă"
-  if (call.status === "accepted") return "Acceptată"
-  if (call.status === "ended") return "Încheiată"
-  if (call.status === "ringing") return isIncoming ? "Te apelează" : "În apelare"
+  if (call.status === "missed") return "Ratat"
+  if (call.status === "rejected") return isIncoming ? "Respins" : "Anulat"
+  if (call.status === "accepted") return "Acceptat"
+  if (call.status === "ended") return "Încheiat"
+  if (call.status === "ringing") return isIncoming ? "Sună acum" : "În apelare"
   return call.status
+}
+
+function statusBadgeClass(call: CallRow, currentUserId: string | null) {
+  if (isMissedLike(call, currentUserId)) return "bg-rose-100 text-rose-900"
+  if (call.status === "ended" || call.status === "accepted") return "bg-emerald-100 text-emerald-900"
+  if (call.status === "ringing") return "bg-sky-100 text-sky-900"
+  return "bg-slate-100 text-slate-700"
+}
+
+function directionLabel(call: CallRow, currentUserId: string | null) {
+  return currentUserId === call.callee_id ? "Primit" : "Inițiat"
+}
+
+function directionIcon(call: CallRow, currentUserId: string | null) {
+  const incoming = currentUserId === call.callee_id
+  if (isMissedLike(call, currentUserId)) return <PhoneMissed className="h-4 w-4" />
+  return incoming ? <PhoneIncoming className="h-4 w-4" /> : <PhoneOutgoing className="h-4 w-4" />
 }
 
 export default function MessengerCallsPage() {
@@ -80,6 +120,7 @@ export default function MessengerCallsPage() {
   const [calls, setCalls] = useState<CallRow[]>([])
   const [profilesMap, setProfilesMap] = useState<Record<string, ProfileLite>>({})
   const [error, setError] = useState<string>("")
+  const [filter, setFilter] = useState<CallFilter>("all")
 
   async function loadCalls() {
     setLoading(true)
@@ -90,7 +131,7 @@ export default function MessengerCallsPage() {
     } = await supabase.auth.getSession()
 
     if (!session?.user) {
-      router.push("/login?redirect=/messenger/calls")
+      router.push("/messenger/login?redirect=/messenger/calls")
       return
     }
 
@@ -101,7 +142,7 @@ export default function MessengerCallsPage() {
       .select("id, conversation_id, caller_id, callee_id, status, call_type, created_at, answered_at, ended_at")
       .or(`caller_id.eq.${session.user.id},callee_id.eq.${session.user.id}`)
       .order("created_at", { ascending: false })
-      .limit(30)
+      .limit(50)
 
     if (callsError) {
       setCalls([])
@@ -124,11 +165,7 @@ export default function MessengerCallsPage() {
     }))
     setCalls(loadedCalls)
 
-    const profileIds = Array.from(
-      new Set(
-        loadedCalls.flatMap((call) => [call.caller_id, call.callee_id]).filter(Boolean)
-      )
-    )
+    const profileIds = Array.from(new Set(loadedCalls.flatMap((call) => [call.caller_id, call.callee_id]).filter(Boolean)))
 
     if (!profileIds.length) {
       setProfilesMap({})
@@ -169,13 +206,21 @@ export default function MessengerCallsPage() {
     }
   }, [])
 
+  const filteredCalls = useMemo(() => {
+    return calls.filter((call) => {
+      if (filter === "audio") return call.call_type === "audio"
+      if (filter === "video") return call.call_type === "video"
+      if (filter === "missed") return isMissedLike(call, currentUserId)
+      return true
+    })
+  }, [calls, filter, currentUserId])
+
   const stats = useMemo(() => {
-    const total = calls.length
-    const missed = currentUserId
-      ? calls.filter((call) => call.status === "missed" || (call.status === "rejected" && call.callee_id === currentUserId)).length
-      : 0
-    const video = calls.filter((call) => call.call_type === "video").length
-    return { total, missed, video }
+    const todayKey = new Date().toDateString()
+    const today = calls.filter((call) => new Date(call.created_at).toDateString() === todayKey).length
+    const answered = calls.filter((call) => call.status === "ended" || call.status === "accepted").length
+    const missed = calls.filter((call) => isMissedLike(call, currentUserId)).length
+    return { today, answered, missed }
   }, [calls, currentUserId])
 
   return (
@@ -220,164 +265,122 @@ export default function MessengerCallsPage() {
           className="rounded-[28px] border p-4"
           style={{ background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.10)" }}
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.52)" }}>
-                Zonă dedicată
-              </p>
-              <h2 className="text-xl font-semibold text-white">Istoric real de apeluri între membri</h2>
-              <p className="max-w-xl text-sm" style={{ color: "rgba(255,255,255,0.62)" }}>
-                Vezi apelurile recente și revino rapid în conversația relevantă, fără să cauți manual printre mesaje.
-              </p>
-            </div>
-            <Button
-              className="rounded-2xl border-0"
-              style={{ background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white }}
-              onClick={() => router.push("/messenger")}
-            >
-              Înapoi la conversații
-            </Button>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-white/70" />
+            <p className="text-xs uppercase tracking-[0.22em]" style={{ color: "rgba(255,255,255,0.52)" }}>
+              Istoric clar și rapid
+            </p>
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}>
-              <p className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.46)" }}>Total</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{stats.total}</p>
+              <p className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.46)" }}>Astăzi</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{stats.today}</p>
             </div>
             <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}>
-              <p className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.46)" }}>Ratate / respinse</p>
+              <p className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.46)" }}>Răspunse</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{stats.answered}</p>
+            </div>
+            <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}>
+              <p className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.46)" }}>Ratate</p>
               <p className="mt-1 text-2xl font-semibold text-white">{stats.missed}</p>
             </div>
-            <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" }}>
-              <p className="text-[11px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.46)" }}>Video</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{stats.video}</p>
-            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[
+              { key: "all", label: "Toate" },
+              { key: "audio", label: "Audio" },
+              { key: "video", label: "Video" },
+              { key: "missed", label: "Ratat" },
+            ].map((item) => (
+              <Button
+                key={item.key}
+                type="button"
+                variant={filter === item.key ? "default" : "outline"}
+                className="rounded-2xl"
+                style={filter === item.key ? { background: vivosTheme.gradients.activeIcon, color: vivosTheme.colors.white, border: "none" } : undefined}
+                onClick={() => setFilter(item.key as CallFilter)}
+              >
+                {item.label}
+              </Button>
+            ))}
           </div>
         </section>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Phone className="h-5 w-5" />
-                Apel audio
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-slate-600">
-              <p>
-                Istoricul audio îți arată clar cine a sunat, cine a răspuns și când merită să revii rapid.
-              </p>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <div className="flex items-center gap-2 text-slate-900">
-                  <Radio className="h-4 w-4" />
-                  <span className="font-medium">Status actual</span>
-                </div>
-                <p className="mt-2">Apelurile sunt citite direct din call_sessions și actualizate live.</p>
-              </div>
-            </CardContent>
-          </Card>
+        <section className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <Clock3 className="h-4 w-4 text-white/70" />
+            <h2 className="text-lg font-semibold text-white">Istoric apeluri</h2>
+          </div>
 
-          <Card className="rounded-3xl border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Video className="h-5 w-5" />
-                Apel video
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-slate-600">
-              <p>
-                Video-ul rămâne integrat în conversație, iar aici vezi traseul lui: pornit, acceptat, încheiat sau ratat.
-              </p>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <div className="flex items-center gap-2 text-slate-900">
-                  <PhoneIncoming className="h-4 w-4" />
-                  <span className="font-medium">Direcție următoare</span>
-                </div>
-                <p className="mt-2">Mai târziu putem adăuga reapelare directă și filtre audio/video.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          {error ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+          ) : loading ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Se încarcă istoricul apelurilor...</div>
+          ) : filteredCalls.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Nu există apeluri pentru filtrul selectat.</div>
+          ) : (
+            filteredCalls.map((call) => {
+              const otherUserId = currentUserId === call.caller_id ? call.callee_id : call.caller_id
+              const otherProfile = profilesMap[otherUserId] || null
+              const otherLabel = displayName(otherProfile)
+              const duration = computeDuration(call)
+              const when = formatWhen(call.created_at)
 
-        <Card className="rounded-3xl border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Clock3 className="h-5 w-5" />
-              Istoric apeluri
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-600">
-            {error ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-            ) : loading ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Se încarcă istoricul apelurilor...</div>
-            ) : calls.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Nu există încă apeluri înregistrate pentru contul tău.</div>
-            ) : (
-              calls.map((call) => {
-                const otherUserId = currentUserId === call.caller_id ? call.callee_id : call.caller_id
-                const otherProfile = profilesMap[otherUserId] || null
-                const otherLabel = displayName(otherProfile)
-                const isIncoming = currentUserId === call.callee_id
-                const duration = computeDuration(call)
+              return (
+                <div key={call.id} className="rounded-3xl border bg-white p-4 shadow-sm" style={{ borderColor: "rgba(15,23,42,0.08)" }}>
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-12 w-12 rounded-2xl">
+                      <AvatarFallback className="rounded-2xl font-semibold text-white" style={{ background: getVivosAvatarGradient(otherProfile?.email || otherLabel) }}>
+                        {otherLabel.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
 
-                return (
-                  <div key={call.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          {call.call_type === "video" ? (
-                            <Video className="h-4 w-4 text-slate-700" />
-                          ) : (
-                            <Phone className="h-4 w-4 text-slate-700" />
-                          )}
-                          <p className="font-medium text-slate-900">{otherLabel}</p>
-                          {isIncoming ? (
-                            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-900">Primit</span>
-                          ) : (
-                            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-900">Inițiat</span>
-                          )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-base font-semibold text-slate-900">{otherLabel}</p>
+                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${statusBadgeClass(call, currentUserId)}`}>
+                              {statusLabel(call, currentUserId || "")}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                            <span className="inline-flex items-center gap-1.5 text-slate-600">
+                              {call.call_type === "video" ? <Video className="h-3.5 w-3.5" /> : <Phone className="h-3.5 w-3.5" />}
+                              {call.call_type === "video" ? "Video" : "Audio"}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 text-slate-600">
+                              {directionIcon(call, currentUserId)}
+                              {directionLabel(call, currentUserId)}
+                            </span>
+                            <span>{when.day} · {when.time}</span>
+                            {duration ? <span>Durată {duration}</span> : null}
+                          </div>
                         </div>
-                        <p className="mt-1 text-xs text-slate-500">{formatWhen(call.created_at)}</p>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-slate-700 border border-slate-200">
-                          {statusLabel(call, currentUserId || "")}
-                        </span>
-                        {duration ? (
-                          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-900">
-                            {duration}
-                          </span>
-                        ) : null}
-                        {(call.status === "missed" || call.status === "rejected") ? (
-                          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-900 flex items-center gap-1">
-                            <PhoneMissed className="h-3 w-3" />
-                            Atenție
-                          </span>
-                        ) : null}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button className="rounded-2xl" onClick={() => router.push(`/messenger/${call.conversation_id}`)}>
+                          Deschide conversația
+                        </Button>
+                        <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/messenger/${call.conversation_id}?autoCall=audio`)}>
+                          <Phone className="mr-2 h-4 w-4" />
+                          Reapelare audio
+                        </Button>
+                        <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/messenger/${call.conversation_id}?autoCall=video`)}>
+                          <Video className="mr-2 h-4 w-4" />
+                          Reapelare video
+                        </Button>
                       </div>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button className="rounded-2xl" onClick={() => router.push(`/messenger/${call.conversation_id}`)}>
-                        Deschide conversația
-                      </Button>
-                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/messenger/${call.conversation_id}?autoCall=audio`)}>
-                        <Phone className="mr-2 h-4 w-4" />
-                        Reapelare audio
-                      </Button>
-                      <Button variant="outline" className="rounded-2xl" onClick={() => router.push(`/messenger/${call.conversation_id}?autoCall=video`)}>
-                        <Video className="mr-2 h-4 w-4" />
-                        Reapelare video
-                      </Button>
                     </div>
                   </div>
-                )
-              })
-            )}
-          </CardContent>
-        </Card>
+                </div>
+              )
+            })
+          )}
+        </section>
       </div>
     </main>
   )

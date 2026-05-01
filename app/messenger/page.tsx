@@ -121,7 +121,9 @@ export default function MessengerPage() {
 
   useEffect(() => {
     async function loadUnread() {
-      const { data: { session } } = await supabase.auth.getSession()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
       if (!session?.user) return
       const { count } = await supabase
         .from("notifications")
@@ -131,17 +133,25 @@ export default function MessengerPage() {
       setUnreadCount(count || 0)
     }
     loadUnread()
-    const ch = supabase.channel("messenger-unread")
+    const ch = supabase
+      .channel("messenger-unread")
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, loadUnread)
       .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    return () => {
+      supabase.removeChannel(ch)
+    }
   }, [])
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) { router.push("/messenger/login?redirect=/messenger"); return }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session?.user) {
+        router.push("/messenger/login?redirect=/messenger")
+        return
+      }
       setUserId(session.user.id)
       setUserEmail(session.user.email ?? null)
 
@@ -150,9 +160,9 @@ export default function MessengerPage() {
         supabase.from("conversation_hidden_for_users").select("conversation_id").eq("user_id", session.user.id),
       ])
 
-      const hiddenIds = new Set(((hiddenData ?? []) as HiddenRow[]).map(h => h.conversation_id))
-      const convs = ((convData ?? []) as ConversationRow[]).filter(c => !hiddenIds.has(c.id))
-      const ids = convs.map(c => c.id)
+      const hiddenIds = new Set(((hiddenData ?? []) as HiddenRow[]).map((h) => h.conversation_id))
+      const convs = ((convData ?? []) as ConversationRow[]).filter((c) => !hiddenIds.has(c.id))
+      const ids = convs.map((c) => c.id)
 
       if (ids.length === 0) {
         setConversations([])
@@ -164,32 +174,39 @@ export default function MessengerPage() {
       }
 
       const [memberGroups, msgResult, notifResult] = await Promise.all([
-        Promise.all(ids.map(async cid => {
-          const { data } = await supabase.rpc("get_conversation_members_with_profiles", { p_conversation_id: cid })
-          return {
-            conversation_id: cid,
-            members: ((data ?? []) as any[]).map(item => ({
-              member_id: item.member_id, name: item.name ?? null,
-              alias: item.alias ?? null, email: item.email ?? null,
-            })),
-          } as MemberGroup
-        })),
-        supabase.from("messages").select("id, conversation_id, body, created_at")
-          .in("conversation_id", ids).order("created_at", { ascending: false }),
-        supabase.from("notifications").select("id, ref_id, is_read, event_type, user_id")
-          .eq("event_type", "new_message").eq("is_read", false).eq("user_id", session.user.id),
+        Promise.all(
+          ids.map(async (cid) => {
+            const { data } = await supabase.rpc("get_conversation_members_with_profiles", { p_conversation_id: cid })
+            return {
+              conversation_id: cid,
+              members: ((data ?? []) as any[]).map((item) => ({
+                member_id: item.member_id,
+                name: item.name ?? null,
+                alias: item.alias ?? null,
+                email: item.email ?? null,
+              })),
+            } as MemberGroup
+          })
+        ),
+        supabase.from("messages").select("id, conversation_id, body, created_at").in("conversation_id", ids).order("created_at", { ascending: false }),
+        supabase.from("notifications").select("id, ref_id, is_read, event_type, user_id").eq("event_type", "new_message").eq("is_read", false).eq("user_id", session.user.id),
       ])
 
-      const msgs = ((msgResult.data ?? []) as any[]).map(m => ({
-        id: m.id, conversation_id: m.conversation_id, body: m.body, created_at: m.created_at,
+      const msgs = ((msgResult.data ?? []) as any[]).map((m) => ({
+        id: m.id,
+        conversation_id: m.conversation_id,
+        body: m.body,
+        created_at: m.created_at,
       }))
 
-      const unreadMsgIds = ((notifResult.data ?? []) as NotifRow[]).map(n => n.ref_id).filter((v): value is string => !!v)
+      const unreadMsgIds = ((notifResult.data ?? []) as NotifRow[])
+        .map((n) => n.ref_id)
+        .filter((v): v is string => !!v)
       const unreadByConvMap: Record<string, number> = {}
 
       if (unreadMsgIds.length > 0) {
         const { data: unreadMsgs } = await supabase.from("messages").select("id, conversation_id").in("id", unreadMsgIds)
-        ;((unreadMsgs ?? []) as any[]).forEach(row => {
+        ;((unreadMsgs ?? []) as any[]).forEach((row) => {
           const cid = row.conversation_id as string
           if (!cid || hiddenIds.has(cid)) return
           unreadByConvMap[cid] = (unreadByConvMap[cid] ?? 0) + 1
@@ -204,41 +221,49 @@ export default function MessengerPage() {
     }
 
     load()
-    const ch = supabase.channel("messenger-list")
+    const ch = supabase
+      .channel("messenger-list")
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, load)
       .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    return () => {
+      supabase.removeChannel(ch)
+    }
   }, [router])
 
   const cards = useMemo<ConvCard[]>(() => {
-    return conversations.map(conv => {
-      const group = members.find(g => g.conversation_id === conv.id)
-      const other = group?.members.find(m => m.member_id !== userId) ?? null
-      const latest = messages.find(m => m.conversation_id === conv.id)
-      const unread = unreadByConv[conv.id] ?? 0
-      const name = other?.name?.trim() || other?.alias?.trim() || other?.email?.trim() || text.memberFallback
-      return {
-        id: conv.id, name, email: other?.email?.trim() || null,
-        preview: latest?.body || text.noMessages,
-        date: latest?.created_at || conv.created_at,
-        hasUnread: unread > 0, unreadCount: unread,
-      }
-    }).sort((a, b) => {
-      if (a.hasUnread !== b.hasUnread) return a.hasUnread ? -1 : 1
-      return new Date(b.date).getTime() - new Date(a.date).getTime()
-    })
+    return conversations
+      .map((conv) => {
+        const group = members.find((g) => g.conversation_id === conv.id)
+        const other = group?.members.find((m) => m.member_id !== userId) ?? null
+        const latest = messages.find((m) => m.conversation_id === conv.id)
+        const unread = unreadByConv[conv.id] ?? 0
+        const name = other?.name?.trim() || other?.alias?.trim() || other?.email?.trim() || text.memberFallback
+        return {
+          id: conv.id,
+          name,
+          email: other?.email?.trim() || null,
+          preview: latest?.body || text.noMessages,
+          date: latest?.created_at || conv.created_at,
+          hasUnread: unread > 0,
+          unreadCount: unread,
+        }
+      })
+      .sort((a, b) => {
+        if (a.hasUnread !== b.hasUnread) return a.hasUnread ? -1 : 1
+        return new Date(b.date).getTime() - new Date(a.date).getTime()
+      })
   }, [conversations, members, messages, unreadByConv, userId, text])
 
   const filteredCards = useMemo(() => {
     const term = search.trim().toLowerCase()
     if (!term) return cards
-    return cards.filter(card => {
-      return [card.name, card.email || "", card.preview].some(value => value.toLowerCase().includes(term))
+    return cards.filter((card) => {
+      return [card.name, card.email || "", card.preview].some((value) => value.toLowerCase().includes(term))
     })
   }, [cards, search])
 
-  const activeNowCount = useMemo(() => cards.filter(card => card.hasUnread).length, [cards])
+  const activeNowCount = useMemo(() => cards.filter((card) => card.hasUnread).length, [cards])
 
   return (
     <main className="min-h-screen" style={{ background: vivosTheme.gradients.appBackground }}>
@@ -252,10 +277,7 @@ export default function MessengerPage() {
       >
         <div className="flex min-h-[72px] items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-2xl"
-              style={{ background: vivosTheme.gradients.activeIcon }}
-            >
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: vivosTheme.gradients.activeIcon }}>
               <MessageCircle className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -287,7 +309,7 @@ export default function MessengerPage() {
 
             {userEmail ? (
               <div className="relative" ref={menuRef}>
-                <button className="rounded-2xl" onClick={() => setMenuOpen(p => !p)}>
+                <button className="rounded-2xl" onClick={() => setMenuOpen((p) => !p)}>
                   <Avatar className="h-10 w-10 rounded-2xl border border-white/15">
                     <AvatarFallback className="rounded-2xl text-white text-sm font-semibold" style={{ background: getVivosAvatarGradient(userEmail) }}>
                       {userEmail.slice(0, 2).toUpperCase()}
@@ -384,7 +406,7 @@ export default function MessengerPage() {
             {search.trim() ? `${text.results}: 0` : text.empty}
           </div>
         ) : (
-          filteredCards.map(card => (
+          filteredCards.map((card) => (
             <button
               key={card.id}
               onClick={() => router.push(`/messenger/${card.id}`)}

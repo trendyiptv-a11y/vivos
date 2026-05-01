@@ -13,7 +13,6 @@ import {
   RefreshCcw,
   Send,
   Volume2,
-  VolumeX,
   Video,
   VideoOff,
 } from "lucide-react"
@@ -176,7 +175,6 @@ export default function ConversationPage() {
   const [isMicEnabled, setIsMicEnabled] = useState(true)
   const [isCameraEnabled, setIsCameraEnabled] = useState(true)
   const [usingFrontCamera, setUsingFrontCamera] = useState(true)
-  const [isSpeakerOn, setIsSpeakerOn] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -437,7 +435,6 @@ export default function ConversationPage() {
     setIsMicEnabled(true)
     setIsCameraEnabled(true)
     setUsingFrontCamera(true)
-    setIsSpeakerOn(false)
     setCurrentCallType("audio")
   }, [stopRingtone])
 
@@ -630,29 +627,10 @@ export default function ConversationPage() {
     await syncLocalVideoPreview()
   }, [syncLocalVideoPreview])
 
-  const toggleSpeaker = useCallback(async () => {
-    const audioEl = remoteAudioRef.current
-    const next = !isSpeakerOn
-    setIsSpeakerOn(next)
-
-    if (!audioEl) return
-
-    if (typeof (audioEl as any).setSinkId === "function") {
-      try {
-        // "" = default (earpiece), "speaker" or specific deviceId = loudspeaker
-        const deviceId = next ? "speaker" : ""
-        await (audioEl as any).setSinkId(deviceId)
-      } catch (e) {
-        console.warn("setSinkId toggle error:", e)
-        // Fallback: on iOS, mute/unmute trick won't help
-        // Best effort: update state only
-      }
-    } else {
-      // iOS Safari fallback: no setSinkId support
-      // Inform user via console; UI still shows toggle
-      console.info("setSinkId not supported on this browser. Speaker toggle is visual only on iOS Safari.")
-    }
-  }, [isSpeakerOn])
+  // Speaker routing is controlled by the OS on mobile browsers.
+  // setSinkId("speaker") is not a valid deviceId — routing to earpiece
+  // is not possible in WebRTC web without native app access.
+  // Audio goes to speaker or connected headphones automatically.
 
   const switchCamera = useCallback(async () => {
     try {
@@ -2183,15 +2161,15 @@ export default function ConversationPage() {
 
                 <button
                   type="button"
-                  onClick={toggleSpeaker}
-                  title={isSpeakerOn ? "Comută la ureche" : "Comută la difuzor"}
-                  className="flex h-14 w-14 items-center justify-center rounded-full text-white transition"
+                  disabled
+                  title="Pe mobile, sunetul merge pe difuzor sau căști. Conectează căști pentru audio privat."
+                  className="flex h-14 w-14 items-center justify-center rounded-full text-white transition opacity-50 cursor-default"
                   style={{
-                    background: isSpeakerOn ? "rgba(99,166,230,0.30)" : "rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.12)",
                     border: "1px solid rgba(255,255,255,0.10)",
                   }}
                 >
-                  {isSpeakerOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                  <Volume2 className="h-5 w-5" />
                 </button>
 
                 <button
@@ -2277,19 +2255,14 @@ export default function ConversationPage() {
                     Microfon activ
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={toggleSpeaker}
-                  title={isSpeakerOn ? "Comută la ureche" : "Comută la difuzor"}
-                  className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-white transition"
-                  style={{
-                    background: isSpeakerOn ? "rgba(99,166,230,0.30)" : "rgba(255,255,255,0.10)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                  }}
+                <div
+                  className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs"
+                  style={{ color: "rgba(255,255,255,0.45)" }}
+                  title="Pe mobile, sunetul merge pe difuzor sau căști. Conectează căști pentru audio privat."
                 >
-                  {isSpeakerOn ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
-                  <span>{isSpeakerOn ? "Difuzor" : "Ureche"}</span>
-                </button>
+                  <Volume2 className="h-3.5 w-3.5" />
+                  <span>Difuzor / căști</span>
+                </div>
               </div>
             )}
 

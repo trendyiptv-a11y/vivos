@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowLeft,
+  Home,
   MoreVertical,
   Mic,
   MicOff,
@@ -1957,6 +1958,18 @@ export default function ConversationPage() {
           }}
         >
           <form onSubmit={handleSend} className="flex items-end gap-2">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              title="VIVOS Home"
+              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl transition"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.10)",
+              }}
+            >
+              <Home className="h-4 w-4" style={{ color: "rgba(255,255,255,0.65)" }} />
+            </button>
             <textarea
               ref={textareaRef}
               value={body}

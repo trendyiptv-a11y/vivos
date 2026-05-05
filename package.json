@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/patch-native-call-push.mjs && next dev",
+    "build": "node scripts/patch-native-call-push.mjs && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "node scripts/patch-native-call-push.mjs && next lint"
   },
   "browserslist": {
     "production": [

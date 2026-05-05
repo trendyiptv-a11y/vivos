@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import webpush from "web-push"
-import { App, cert, getApps, initializeApp } from "firebase-admin/app"
-import { getMessaging } from "firebase-admin/messaging"
 
 type SendPushBody = {
   conversationId?: string
   messageId?: string
   messageBody?: string
 }
+
+type DevicePushTokenRow = {
+  id: string
+  token: string
+  platform: string | null
+  is_active?: boolean | null
+}
+
+const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+const EXPO_BATCH_SIZE = 100
 
 function getServerSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -37,36 +45,84 @@ function trySetupWebPush() {
   const privateKey = process.env.VAPID_PRIVATE_KEY
   const subject = process.env.VAPID_SUBJECT
 
-  if (!publicKey || !privateKey || !subject) {
-    return false
-  }
+  if (!publicKey || !privateKey || !subject) return false
 
   webpush.setVapidDetails(subject, publicKey, privateKey)
   return true
 }
 
-function getFirebaseAdminApp(): App {
-  if (getApps().length > 0) {
-    return getApps()[0]
+function isExpoPushToken(token: string) {
+  return token.startsWith("ExponentPushToken[") || token.startsWith("ExpoPushToken[")
+}
+
+function chunk<T>(items: T[], size: number) {
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size))
+  return chunks
+}
+
+async function sendExpoPushNotifications(args: {
+  tokens: string[]
+  title: string
+  body: string
+  conversationId: string
+  messageId: string
+}) {
+  const uniqueTokens = Array.from(new Set(args.tokens.filter(isExpoPushToken)))
+  if (!uniqueTokens.length) return { delivered: 0, failed: 0, tickets: [] as unknown[] }
+
+  let delivered = 0
+  let failed = 0
+  const tickets: unknown[] = []
+
+  const messages = uniqueTokens.map((token) => ({
+    to: token,
+    title: args.title,
+    body: args.body,
+    sound: "default",
+    priority: "high",
+    channelId: "vivos-messages",
+    data: {
+      type: "message",
+      kind: "message",
+      notificationType: "new_message",
+      conversationId: args.conversationId,
+      messageId: args.messageId,
+      url: `/messages/${args.conversationId}`,
+      tag: `conversation-${args.conversationId}`,
+    },
+  }))
+
+  for (const batch of chunk(messages, EXPO_BATCH_SIZE)) {
+    const response = await fetch(EXPO_PUSH_URL, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(batch),
+    })
+
+    const result = await response.json().catch(() => null)
+    tickets.push(result)
+
+    if (!response.ok) {
+      failed += batch.length
+      continue
+    }
+
+    const ticketList = Array.isArray(result?.data) ? result.data : []
+    if (!ticketList.length) {
+      delivered += batch.length
+      continue
+    }
+
+    delivered += ticketList.filter((ticket: any) => ticket?.status === "ok").length
+    failed += ticketList.filter((ticket: any) => ticket?.status === "error").length
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n")
-
-  if (!projectId || !clientEmail || !privateKey) {
-    throw new Error(
-      "Lipsesc FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL sau FIREBASE_PRIVATE_KEY."
-    )
-  }
-
-  return initializeApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey,
-    }),
-  })
+  return { delivered, failed, tickets }
 }
 
 export async function POST(request: Request) {
@@ -83,10 +139,7 @@ export async function POST(request: Request) {
     const messageBody = body.messageBody?.trim() || ""
 
     if (!conversationId || !messageId) {
-      return NextResponse.json(
-        { error: "Lipsesc conversationId sau messageId." },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Lipsesc conversationId sau messageId." }, { status: 400 })
     }
 
     const supabase = getServerSupabase()
@@ -117,11 +170,10 @@ export async function POST(request: Request) {
     const recipient = membersData.find((m: any) => m.member_id !== senderId)
 
     if (!recipient?.member_id) {
-      return NextResponse.json({ ok: true, webDelivered: 0, fcmDelivered: 0, reason: "Nu există receptor." })
+      return NextResponse.json({ ok: true, webDelivered: 0, expoDelivered: 0, reason: "Nu există receptor." })
     }
 
     const recipientId = recipient.member_id
-
     const activeThreshold = new Date(Date.now() - 30 * 1000).toISOString()
 
     const { data: activeConversation, error: activeConversationError } = await supabase
@@ -150,7 +202,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         ok: true,
         webDelivered: 0,
-        fcmDelivered: 0,
+        expoDelivered: 0,
         suppressed: true,
         reason: "Receptorul este deja activ în conversație.",
       })
@@ -168,6 +220,10 @@ export async function POST(request: Request) {
       senderProfile?.email?.trim() ||
       "Un membru"
 
+    const preview = messageBody.slice(0, 140)
+    const notificationTitle = "Ai primit un mesaj nou"
+    const notificationBody = `${senderName}: ${preview}`
+
     const { data: subscriptions, error: subscriptionsError } = await supabase
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
@@ -175,32 +231,24 @@ export async function POST(request: Request) {
       .eq("is_active", true)
 
     if (subscriptionsError) {
-      return NextResponse.json(
-        { error: `Nu am putut citi push subscriptions: ${subscriptionsError.message}` },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: `Nu am putut citi push subscriptions: ${subscriptionsError.message}` }, { status: 500 })
     }
 
     const { data: deviceTokens, error: deviceTokensError } = await supabase
       .from("device_push_tokens")
-      .select("id, token, platform")
+      .select("id, token, platform, is_active")
       .eq("user_id", recipientId)
-      .eq("is_active", true)
+      .or("is_active.eq.true,is_active.is.null")
 
     if (deviceTokensError) {
-      return NextResponse.json(
-        { error: `Nu am putut citi device push tokens: ${deviceTokensError.message}` },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: `Nu am putut citi device push tokens: ${deviceTokensError.message}` }, { status: 500 })
     }
 
     const webPushConfigured = trySetupWebPush()
 
-    const preview = messageBody.slice(0, 140)
-
     const payload = JSON.stringify({
-      title: "Ai primit un mesaj nou",
-      body: `${senderName}: ${preview}`,
+      title: notificationTitle,
+      body: notificationBody,
       url: `/messages/${conversationId}`,
       tag: `conversation-${conversationId}`,
       conversationId,
@@ -213,22 +261,14 @@ export async function POST(request: Request) {
       for (const sub of subscriptions) {
         try {
           await webpush.sendNotification(
-            {
-              endpoint: sub.endpoint,
-              keys: {
-                p256dh: sub.p256dh,
-                auth: sub.auth,
-              },
-            },
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
             payload
           )
-
           webDelivered += 1
-
           await supabase.from("notification_delivery_log").insert({
             user_id: recipientId,
             notification_type: "new_message",
-            channel: "push",
+            channel: "web_push",
             status: "sent",
             conversation_id: conversationId,
             message_id: messageId,
@@ -240,7 +280,7 @@ export async function POST(request: Request) {
           await supabase.from("notification_delivery_log").insert({
             user_id: recipientId,
             notification_type: "new_message",
-            channel: "push",
+            channel: "web_push",
             status: "failed",
             conversation_id: conversationId,
             message_id: messageId,
@@ -257,67 +297,43 @@ export async function POST(request: Request) {
       }
     }
 
-    let fcmDelivered = 0
-    let fcmFailed = 0
+    const expoTokens = ((deviceTokens ?? []) as DevicePushTokenRow[])
+      .map((row) => row.token)
+      .filter((value): value is string => typeof value === "string")
+      .filter(isExpoPushToken)
 
-    if ((deviceTokens || []).length > 0) {
-      try {
-        const firebaseApp = getFirebaseAdminApp()
-        const messaging = getMessaging(firebaseApp)
+    const expoResult = await sendExpoPushNotifications({
+      tokens: expoTokens,
+      title: notificationTitle,
+      body: notificationBody,
+      conversationId,
+      messageId,
+    })
 
-        const fcmResults = await Promise.allSettled(
-          deviceTokens.map(async (row) => {
-            try {
-              await messaging.send({
-                token: row.token,
-                notification: {
-                  title: "Ai primit un mesaj nou",
-                  body: `${senderName}: ${preview}`,
-                },
-                data: {
-                  url: `/messages/${conversationId}`,
-                  conversationId,
-                  messageId,
-                  notificationType: "new_message",
-                  tag: `conversation-${conversationId}`,
-                },
-                android: {
-                  priority: "high",
-                  notification: {
-                    channelId: "default",
-                    clickAction: "OPEN_CONVERSATION",
-                    sound: "default",
-                    tag: `conversation-${conversationId}`,
-                  },
-                },
-              })
-
-              fcmDelivered += 1
-              return { ok: true, id: row.id }
-            } catch (error: any) {
-              const code = String(error?.code || "")
-              if (
-                code.includes("registration-token-not-registered") ||
-                code.includes("invalid-argument")
-              ) {
-                await supabase
-                  .from("device_push_tokens")
-                  .update({ is_active: false, last_seen_at: new Date().toISOString() })
-                  .eq("id", row.id)
-              }
-              throw error
-            }
-          })
-        )
-
-        fcmFailed = fcmResults.filter((r) => r.status === "rejected").length
-      } catch (fcmBootstrapError: any) {
-        console.error("FCM message bootstrap/send error:", fcmBootstrapError)
-        fcmFailed = deviceTokens.length
-      }
+    if (expoResult.delivered > 0) {
+      await supabase.from("notification_delivery_log").insert({
+        user_id: recipientId,
+        notification_type: "new_message",
+        channel: "expo_push",
+        status: "sent",
+        conversation_id: conversationId,
+        message_id: messageId,
+      })
     }
 
-    if (webDelivered === 0 && fcmDelivered === 0 && (subscriptions || []).length === 0 && (deviceTokens || []).length === 0) {
+    if (expoResult.failed > 0) {
+      await supabase.from("notification_delivery_log").insert({
+        user_id: recipientId,
+        notification_type: "new_message",
+        channel: "expo_push",
+        status: "failed",
+        conversation_id: conversationId,
+        message_id: messageId,
+        error_message: JSON.stringify(expoResult.tickets).slice(0, 1000),
+      })
+    }
+
+    if (webDelivered === 0 && expoResult.delivered === 0 && (subscriptions || []).length === 0 && expoTokens.length === 0) {
       await supabase.from("notification_delivery_log").insert({
         user_id: recipientId,
         notification_type: "new_message",
@@ -333,13 +349,11 @@ export async function POST(request: Request) {
       ok: true,
       webPushConfigured,
       webDelivered,
-      fcmDelivered,
-      fcmFailed,
+      expoDelivered: expoResult.delivered,
+      expoFailed: expoResult.failed,
+      expoTokenCount: expoTokens.length,
     })
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || "Eroare internă la trimiterea push." },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: error?.message || "Eroare internă la trimiterea push." }, { status: 500 })
   }
 }
